@@ -1,0 +1,1 @@
+Permite ejecutar un shellcode o código nativo directamente desde una instancia de VM, escribiendo el código desde la instancia usando  instrucciones de la VM.

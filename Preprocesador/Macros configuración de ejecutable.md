@@ -1,0 +1,1 @@
+Permiten configurar parámetros del ejecutable final, como tamaño de secciones, permisos, nombres de la secciones y cualquier otro dato útiles del ejecutable
