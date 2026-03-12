@@ -23,7 +23,7 @@ Este modo de acceso sirve principalmente para el acceso a array y estructuras de
 ![[direccionamiento.png]]
 # peculiaridades de las instrucciones aritméticas y lógicas
 La mayoría de instrucciones de este tipo que operan con memoria, usan solo ``5bytes * 8 = 40bits`` para acceder a memoria, por tanto ``0x000000000000 - 0xFFFFFFFFFFFF`` es su rango de operación (Si el Registro de paginado (`RP`) esta configurado en 0).
-Sin embargo, estas pueden usar un registro de ``24bits``(`RP`) para acceder a otras partes de la memoria si es que esto fuera realmente necesario.
+Sin embargo, estas pueden usar un registro de ``64bits``(`RP`) para acceder a otras partes de la memoria si es que esto fuera realmente necesario.
 
 # INC
 Permite incrementar un registro en 1
@@ -147,9 +147,9 @@ struct Flags {
 | `JO`        | `OF=1`        | Overflow signed | `cmps r1,r2; jo error` |
 | `JNO`       | `OF=0`        | No overflow     | `cmps r1,r2; jno ok`   |
 ## **5. Salto incondicional**
-|Instrucción|**Condición**|**Assembly**|
-|---|---|---|
-|`JMP`|Siempre|`jmp loop`|
+| Instrucción | **Condición** | **Assembly** |
+| ----------- | ------------- | ------------ |
+| [[JMP]]     | Siempre       | `jmp loop`   |
 
 | Instrucción                          | opcode1 | opcode2 |     1byte     |       1byte       | 1byte | 1byte | 1byte | 1byte | total bytes |
 | :----------------------------------- | :-----: | :-----: | :-----------: | :---------------: | :---: | :---: | :---: | :---: | :---------: |

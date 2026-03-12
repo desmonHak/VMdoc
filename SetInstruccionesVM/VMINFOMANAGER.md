@@ -1,8 +1,8 @@
 Permite obtener información general del manager de instancias de VM.
 
-|    instrucción    | opcode1 | opcode2 | extensión de instrucción | extensión de instrucción | total bytes |
-| :---------------: | :-----: | :-----: | :----------------------: | :----------------------: | :---------: |
-| ``VmInfoManager`` |   0x0   |   0x8   |        0b00000000        |           reg            |      4      |
+|    instrucción    | opcode1 | extensión de instrucción | total bytes |
+| :---------------: | :-----: | :----------------------: | :---------: |
+| ``VmInfoManager`` |   0x2   |           reg            |      4      |
 
 ```c
 typedef struct VmInfoManagerData {
@@ -18,8 +18,6 @@ typedef struct VmInfoManagerData {
 		} 
 		uint16_t raw;
 	} flags1;
-	
-
 	
 } VmInfoManagerData;
 ```

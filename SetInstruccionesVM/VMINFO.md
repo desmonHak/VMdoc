@@ -1,8 +1,8 @@
 Permite obtener información relevante de la instancia virtual actual
 
-| instrucción | opcode1 | opcode2 | extensión de instrucción | extensión de instrucción | total bytes |
-| :---------: | :-----: | :-----: | :----------------------: | :----------------------: | :---------: |
-| ``VmInfo``  |   0x0   |   0x8   |        0b00000001        |           reg            |      4      |
+| instrucción | opcode1 | extensión de instrucción | total bytes |
+| :---------: | :-----: | :----------------------: | :---------: |
+| ``VmInfo``  |   0x1   |           reg            |      2      |
 ```c
 typedef struct VmInstanceInfoData {
 	uint8_t  version[2];        // version.subversion
