@@ -1,0 +1,1 @@
+Crea un stack frame, se puede salir de el usando [[LEAVE]]

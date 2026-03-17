@@ -1,1 +1,1 @@
-Crea un stack-frame
+Sale de un stack-frame creado con [[ENTER]]

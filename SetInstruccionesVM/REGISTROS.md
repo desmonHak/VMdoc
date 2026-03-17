@@ -41,5 +41,57 @@ RP = 0x0000000000002000 => IDP = 0x0000000000002 DP = 0x000 // pagina 3
  ```
  >Puede obtener información de la pagina usando [[PAGEINFO]]
  
- Puede reservar nuevas paginas usando la instrucción RESBP
+ Puede reservar nuevas paginas usando la instrucción [[RESBP]]
 # IP: Puntero de instrucciones (``Instruction Pointer``)
+-
+
+# Registros generales
+d = ``DWORD`` = ``32bits``
+w = ``WORD`` = ``16bits``
+b = ``BYTE`` = ``8 bit``
+
+| Registro de 64 bits | 32 bits inferiores | 16 bits inferiores | 8 bits inferiores |
+| ------------------- | ------------------ | ------------------ | ----------------- |
+| r0                  | r0d                | r0w                | r0b               |
+| r1                  | r1d                | r1w                | r1b               |
+| r2                  | r2d                | r2w                | r2b               |
+| r3                  | r3d                | r3w                | r3b               |
+| r4                  | r4d                | r4w                | r4b               |
+| r5                  | r5d                | r5w                | r5b               |
+| r6                  | r6d                | r6w                | r6b               |
+| r7                  | r7d                | r7w                | r7b               |
+| r8                  | r8d                | r8w                | r8b               |
+| r9                  | r9d                | r9w                | r9b               |
+| r10                 | r10d               | r10w               | r10b              |
+| r11                 | r11d               | r11w               | r11b              |
+| r12                 | r12d               | r12w               | r12b              |
+| r13                 | r13d               | r13w               | r13b              |
+| r14                 | r14d               | r14w               | r14b              |
+| r15                 | r15d               | r15w               | r15b              |
+```c
+reg  = 0b0001 = r01
+mode = 0b00   = 8bits
+r01b = 0b00 0001
+
+reg  = 0b0001 = r01
+mode = 0b01   = 16bits
+r01w = 0b01 0001
+ 
+reg  = 0b0001 = r01
+mode = 0b10   = 32bits
+r01d = 0b10 0001
+
+reg  = 0b0001 = r01
+mode = 0b10   = 64bits
+r01  = 0b11 0001
+```
+
+Modos de los registros:
+
+| 64 bits  | 32 bits  | 16 bits  |  8 bits  |
+| :------: | :------: | :------: | :------: |
+| ``0b11`` | ``0b10`` | ``0b01`` | ``0b00`` |
+
+# Registro de bandera (RFLAG)
+
+## Flag de DM (Modo distribuido)

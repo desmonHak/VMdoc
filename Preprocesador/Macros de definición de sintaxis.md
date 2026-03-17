@@ -64,7 +64,7 @@ Agrega atributos a símbolos no terminales y reglas semánticas en llaves `{ }`:
 
 **`<decls> ::= <decl> <decls> { decls.bytecode = decl.bytecode + decls.bytecode }`**
 - Recursiva: procesa primera `<decl>`, luego el resto `<decls>`.
-- **Orden**: decl1 → decls_resto → concatenar al final.
+- **Orden**: decl1 -> decls_resto -> concatenar al final.
 - Para `int x; int y;` genera: `"field public static x I"` + `"field public static y I"`.
 
 **`<decls> ::= ε { decls.bytecode = "" } | ...`**
@@ -73,7 +73,7 @@ Agrega atributos a símbolos no terminales y reglas semánticas en llaves `{ }`:
 **`<decl> ::= "int" <id> ';' { decl.bytecode = "field public static " + id.text + " I" }`**
 
 - Crea campo estático JVM con nombre de `<id>.text`.
-- Para `int x;` → `id.text = "x"` → `"field public static x I"`.
+- Para `int x;` -> `id.text = "x"` -> `"field public static x I"`.
 
 
 **`<stmts> ::= <stmt> <stmts> { stmts.bytecode = stmt.bytecode + stmts.bytecode }`**
@@ -102,13 +102,14 @@ Agrega atributos a símbolos no terminales y reglas semánticas en llaves `{ }`:
 
 ```
 x = 5 + 3;
-↓
+|
+v
 <stmt>
-├── <id> ("x") → getstatic x/I
+├── <id> ("x") -> getstatic x/I
 ├── <exp>
 │   └── <exp> + <term>
-│       ├── <term>(5) → ldc 5
-│       ├── <term>(3) → ldc 3
+│       ├── <term>(5) -> ldc 5
+│       ├── <term>(3) -> ldc 3
 │       └── iadd
 └── putstatic x/I
 
@@ -210,9 +211,9 @@ function emitMultiArch(dag, target) {
   }
 }
 ```
-1. Gramática → Bytecode: TEMP t1 = 5 + 3 \n x = t1
-2. BFS → Orden: CONST_5, CONST_3, ADD(t1), ASSIGN(x)  
-3. Backend → Código máquina nativo (x86/ARM/RISCV)
+1. Gramática -> Bytecode: TEMP t1 = 5 + 3 \n x = t1
+2. BFS -> Orden: CONST_5, CONST_3, ADD(t1), ASSIGN(x)  
+3. Backend -> Código máquina nativo (x86/ARM/RISCV)
 
 Este bytecode **NO es para VM** (como JVM), sino **intermedio de alto nivel** (como LLVM IR) que genera código máquina nativo:
 ```dart
@@ -223,11 +224,13 @@ x = t1             <- (independiente de x86/ARM)
 
 ```dart
 Programa: x = 5 + 3
-↓ Árbol Sintáctico
+|
+v Árbol Sintáctico
     +
    / \
   5   3
-↓ DAG (Directed Acyclic Graph)
+|
+v DAG (Directed Acyclic Graph)
 CONST_5 ─┐
          ADD ── t1 ── ASSIGN ── x
 CONST_3 ─┘
@@ -246,7 +249,7 @@ nodos = {
 
 #### **Paso 2: BFS con Cola**
 ```dart
-Cola inicial: ["CONST_5", "CONST_3"]  ← pendientes = 0 (sin dependencias)
+Cola inicial: ["CONST_5", "CONST_3"]  <- pendientes = 0 (sin dependencias)
 
 Iteración 1:
 - Procesa CONST_5
@@ -255,12 +258,12 @@ Iteración 1:
 
 Iteración 2:
 - Procesa CONST_3  
-- ADD_t1.pendientes = 1-1 = 0 → Añade ADD_t1 a cola
+- ADD_t1.pendientes = 1-1 = 0 -> Añade ADD_t1 a cola
 - Cola: ["ADD_t1"]
 
 Iteración 3:
 - Procesa ADD_t1
-- ASSIGN_x.pendientes = 1-1 = 0 → Añade ASSIGN_x
+- ASSIGN_x.pendientes = 1-1 = 0 -> Añade ASSIGN_x
 - Cola: ["ASSIGN_x"]
 
 Iteración 4:
@@ -297,21 +300,21 @@ x = t1
 #### 5. Backend Multi-Arquitectura (Real)
 ```dart
 // Orden BFS: CONST_5, CONST_3, ADD_t1, ASSIGN_x
-emit("x86") → 
-mov eax, 5      ; ← CONST_5
-mov ebx, 3      ; ← CONST_3
-add eax, ebx    ; ← ADD_t1  
-mov [x], eax    ; ← ASSIGN_x
+emit("x86") -> 
+mov eax, 5      ; <- CONST_5
+mov ebx, 3      ; <- CONST_3
+add eax, ebx    ; <- ADD_t1  
+mov [x], eax    ; <- ASSIGN_x
 
-emit("ARM") → 
-MOV R0, #5      ; ← CONST_5  
-MOV R1, #3      ; ← CONST_3
-ADD R0, R0, R1  ; ← ADD_t1
-STR R0, [x]     ; ← ASSIGN_x
+emit("ARM") -> 
+MOV R0, #5      ; <- CONST_5  
+MOV R1, #3      ; <- CONST_3
+ADD R0, R0, R1  ; <- ADD_t1
+STR R0, [x]     ; <- ASSIGN_x
 ```
 
 #### 6. ¿Por qué NO DFS aquí?
 ```dart
-DFS iría: CONST_5 → ADD_t1 → ASSIGN_x → (¡stuck! falta CONST_3)
+DFS iría: CONST_5 -> ADD_t1 -> ASSIGN_x -> (¡stuck! falta CONST_3)
 BFS garantiza: todas las dependencias resueltas antes
 ```

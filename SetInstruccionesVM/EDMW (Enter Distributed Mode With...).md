@@ -25,3 +25,5 @@ opcode|    2001:0db8:85a3:0000:0000:8a2e:0370:7334      |   80
 Es necesario salirse de este modo para seguir ejecutando código en la maquina Host usando la instrucción [[EDM (Exit distributed mode)]].
 
 Al salirse del modo, las instrucciones descritas desde el momento en el que se entro en este modo anterior, serán enviadas al host descrito, con metadatos como el ID de la instancia actual de la VM, la dirección IP y el puerto de la instancia y otro conjunto de datos.
+
+Se puede saber si esta en modo distribuido  consultado la flag [[REGISTROS#Flag de DM (Modo distribuido)|DM]] del registro de FLAGS

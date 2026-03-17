@@ -10,7 +10,7 @@ La instrucción permite reservar una nueva pagina de memoria. O mapear una direc
 
 | opcode1 | opcode2 |
 | :-----: | :-----: |
-|   0x0   |   0xA   |
+|   0x0   |  0x20   |
 
 ## Reservar nueva memoria a nivel de instancia en local (privado)
 
