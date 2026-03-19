@@ -43,17 +43,17 @@ Permite decrementar un registro en 1
 | Instrucción                          | opcode1 | opcode2 |           1byte           |       1byte       | 1byte | 1byte | 1byte | 1byte | total bytes |
 | :----------------------------------- | :-----: | :-----: | :-----------------------: | :---------------: | :---: | :---: | :---: | :---: | :---------: |
 | ``ADDU reg1, reg2``                  |   0x0   |   0x5   |  0b`mode`0d0000<br>d = 0  | ``reg2`` ``reg1`` |       |       |       |       |      4      |
-| ``ADDS reg2, reg1``                  |   0x0   |   0x5   |  0b`mode`0d0000<br>d = 1  | ``reg2`` ``reg1`` |       |       |       |       |      4      |
-| ``ADDU reg1, [index*scalar + base]`` |   0x0   |   0x5   | 0b`mode`1d`reg1`<br>d = 0 |      ``SIB``      |       |       |       |       |      4      |
-| ``ADDU [index*scalar + base], reg1`` |   0x0   |   0x5   | 0b`mode`1d`reg1`<br>d = 1 |      ``SIB``      |       |       |       |       |      4      |
+| TODO                                 |   0x0   |   0x5   | 0b`mode`0d`reg1`<br>d = 1 |                   |       |       |       |       |             |
+| ``ADDS reg2, reg1``                  |   0x0   |   0x5   |  0b`mode`1d0000<br>d = 0  | ``reg2`` ``reg1`` |       |       |       |       |      4      |
+| TODO                                 |   0x0   |   0x5   | 0b`mode`1d`reg1`<br>d = 1 |                   |       |       |       |       |             |
 | ``ADDU reg1, [mem]``                 |   0x0   |   0x6   | 0b`mode`0d`reg1`<br>d = 0 |       0xFF        | 0xFF  | 0xFF  | 0xFF  | 0xFF  |      8      |
 | ``ADDU [mem], reg1``                 |   0x0   |   0x6   | 0b`mode`0d`reg1`<br>d = 1 |       0xFF        | 0xFF  | 0xFF  | 0xFF  | 0xFF  |      8      |
-| ``ADDS reg1, [index*scalar + base]`` |   0x0   |   0x6   | 0b`mode`1d`reg1`<br>d = 0 |      ``SIB``      |       |       |       |       |      4      |
-| ``ADDS [index*scalar + base], reg1`` |   0x0   |   0x6   | 0b`mode`1d`reg1`<br>d = 1 |      ``SIB``      |       |       |       |       |      4      |
-| ``ADDS reg1, [mem]``                 |   0x0   |   0x7   | 0b`mode`0d`reg1`<br>d = 0 |       0xFF        | 0xFF  | 0xFF  | 0xFF  | 0xFF  |      8      |
-| ``ADDS [mem], reg1``                 |   0x0   |   0x7   | 0b`mode`0d`reg1`<br>d = 1 |       0xFF        | 0xFF  | 0xFF  | 0xFF  | 0xFF  |      8      |
-| TODO                                 |   0x0   |   0x7   | 0b`mode`1d`reg1`<br>d = 0 |                   |       |       |       |       |             |
-| TODO                                 |   0x0   |   0x7   | 0b`mode`1d`reg1`<br>d = 1 |                   |       |       |       |       |             |
+| ``ADDS reg1, [mem]``                 |   0x0   |   0x6   | 0b`mode`1d`reg1`<br>d = 0 |       0xFF        | 0xFF  | 0xFF  | 0xFF  | 0xFF  |      8      |
+| ``ADDS [mem], reg1``                 |   0x0   |   0x6   | 0b`mode`1d`reg1`<br>d = 1 |       0xFF        | 0xFF  | 0xFF  | 0xFF  | 0xFF  |      8      |
+| ``ADDU reg1, [index*scalar + base]`` |   0x0   |   0x7   | 0b`mode`0d`reg1`<br>d = 0 |      ``SIB``      |       |       |       |       |      4      |
+| ``ADDU [index*scalar + base], reg1`` |   0x0   |   0x7   | 0b`mode`0d`reg1`<br>d = 1 |      ``SIB``      |       |       |       |       |      4      |
+| ``ADDS reg1, [index*scalar + base]`` |   0x0   |   0x7   | 0b`mode`1d`reg1`<br>d = 0 |      ``SIB``      |       |       |       |       |      4      |
+| ``ADDS [index*scalar + base], reg1`` |   0x0   |   0x7   | 0b`mode`1d`reg1`<br>d = 1 |      ``SIB``      |       |       |       |       |      4      |
 
 
 
@@ -61,51 +61,51 @@ Permite decrementar un registro en 1
 | Instrucción                        | opcode1 | opcode2 |            1byte            |     1byte     | 1byte | 1byte | 1byte | 1byte | total bytes |
 | :--------------------------------- | :-----: | :-----: | :-------------------------: | :-----------: | :---: | :---: | :---: | :---: | :---------: |
 | `SUBU reg1, reg2`                  |   0x0   |   0x8   |  0b`mode`0d0000  <br>d = 0  | `reg2` `reg1` |       |       |       |       |      4      |
-| `SUBS reg2, reg1`                  |   0x0   |   0x8   |  0b`mode`0d0000  <br>d = 1  | `reg2` `reg1` |       |       |       |       |      4      |
-| `SUBU reg1, [index*scalar + base]` |   0x0   |   0x8   | 0b`mode`1d`reg1`  <br>d = 0 |     `SIB`     |       |       |       |       |      4      |
-| `SUBU [index*scalar + base], reg1` |   0x0   |   0x8   | 0b`mode`1d`reg1`  <br>d = 1 |     `SIB`     |       |       |       |       |      4      |
+| TODO                               |   0x0   |   0x8   | 0b`mode`0d`reg1`  <br>d = 1 |               |       |       |       |       |             |
+| `SUBS reg2, reg1`                  |   0x0   |   0x8   |  0b`mode`1d0000  <br>d = 0  | `reg2` `reg1` |       |       |       |       |      4      |
+| TODO                               |   0x0   |   0x8   | 0b`mode`1d`reg1`  <br>d = 1 |               |       |       |       |       |             |
 | `SUBU reg1, [mem]`                 |   0x0   |   0x9   | 0b`mode`0d`reg1`  <br>d = 0 |     0xFF      | 0xFF  | 0xFF  | 0xFF  | 0xFF  |      8      |
 | `SUBU [mem], reg1`                 |   0x0   |   0x9   | 0b`mode`0d`reg1`  <br>d = 1 |     0xFF      | 0xFF  | 0xFF  | 0xFF  | 0xFF  |      8      |
-| `SUBS reg1, [index*scalar + base]` |   0x0   |   0x9   | 0b`mode`1d`reg1`  <br>d = 0 |     `SIB`     |       |       |       |       |      4      |
-| `SUBS [index*scalar + base], reg1` |   0x0   |   0x9   | 0b`mode`1d`reg1`  <br>d = 1 |     `SIB`     |       |       |       |       |      4      |
-| `SUBS reg1, [mem]`                 |   0x0   |   0xA   | 0b`mode`0d`reg1`  <br>d = 0 |     0xFF      | 0xFF  | 0xFF  | 0xFF  | 0xFF  |      8      |
-| `SUBS [mem], reg1`                 |   0x0   |   0xA   | 0b`mode`0d`reg1`  <br>d = 1 |     0xFF      | 0xFF  | 0xFF  | 0xFF  | 0xFF  |      8      |
-| TODO                               |   0x0   |   0xA   | 0b`mode`1d`reg1`  <br>d = 0 |               |       |       |       |       |             |
-| TODO                               |   0x0   |   0xA   | 0b`mode`1d`reg1`  <br>d = 1 |               |       |       |       |       |             |
+| `SUBS reg1, [mem]`                 |   0x0   |   0x9   | 0b`mode`1d`reg1`  <br>d = 0 |     0xFF      | 0xFF  | 0xFF  | 0xFF  | 0xFF  |      8      |
+| `SUBS [mem], reg1`                 |   0x0   |   0x9   | 0b`mode`1d`reg1`  <br>d = 1 |     0xFF      | 0xFF  | 0xFF  | 0xFF  | 0xFF  |      8      |
+| `SUBS reg1, [index*scalar + base]` |   0x0   |   0xA   | 0b`mode`0d`reg1`  <br>d = 0 |     `SIB`     |       |       |       |       |      4      |
+| `SUBS [index*scalar + base], reg1` |   0x0   |   0xA   | 0b`mode`0d`reg1`  <br>d = 1 |     `SIB`     |       |       |       |       |      4      |
+| `SUBU reg1, [index*scalar + base]` |   0x0   |   0xA   | 0b`mode`1d`reg1`  <br>d = 0 |     `SIB`     |       |       |       |       |      4      |
+| `SUBU [index*scalar + base], reg1` |   0x0   |   0xA   | 0b`mode`1d`reg1`  <br>d = 1 |     `SIB`     |       |       |       |       |      4      |
 
 
 # MUL - Con signo (S) y sin signo (U)
 | Instrucción                        | opcode1 | opcode2 |            1byte            |     1byte     | 1byte | 1byte | 1byte | 1byte |
 | :--------------------------------- | :-----: | :-----: | :-------------------------: | :-----------: | :---: | :---: | :---: | :---: |
 | `MULU reg1, reg2`                  |   0x0   |   0xB   |  0b`mode`0d0000  <br>d = 0  | `reg2` `reg1` |       |       |       |       |
-| `MULS reg2, reg1`                  |   0x0   |   0xB   |  0b`mode`0d0000  <br>d = 1  | `reg2` `reg1` |       |       |       |       |
-| `MULU reg1, [index*scalar + base]` |   0x0   |   0xB   | 0b`mode`1d`reg1`  <br>d = 0 |     `SIB`     |       |       |       |       |
-| `MULU [index*scalar + base], reg1` |   0x0   |   0xB   | 0b`mode`1d`reg1`  <br>d = 1 |     `SIB`     |       |       |       |       |
+| TODO                               |   0x0   |   0xB   | 0b`mode`0d`reg1`  <br>d = 1 |               |       |       |       |       |
+| `MULS reg2, reg1`                  |   0x0   |   0xB   |  0b`mode`1d0000  <br>d = 0  | `reg2` `reg1` |       |       |       |       |
+| TODO                               |   0x0   |   0xB   | 0b`mode`1d`reg1`  <br>d = 1 |               |       |       |       |       |
 | `MULU reg1, [mem]`                 |   0x0   |   0xC   | 0b`mode`0d`reg1`  <br>d = 0 |     0xFF      | 0xFF  | 0xFF  | 0xFF  | 0xFF  |
 | `MULU [mem], reg1`                 |   0x0   |   0xC   | 0b`mode`0d`reg1`  <br>d = 1 |     0xFF      | 0xFF  | 0xFF  | 0xFF  | 0xFF  |
-| `MULS reg1, [index*scalar + base]` |   0x0   |   0xC   | 0b`mode`1d`reg1`  <br>d = 0 |     `SIB`     |       |       |       |       |
-| `MULS [index*scalar + base], reg1` |   0x0   |   0xC   | 0b`mode`1d`reg1`  <br>d = 1 |     `SIB`     |       |       |       |       |
-| `MULS reg1, [mem]`                 |   0x0   |   0xD   | 0b`mode`0d`reg1`  <br>d = 0 |     0xFF      | 0xFF  | 0xFF  | 0xFF  | 0xFF  |
-| `SUBS [mem], reg1`                 |   0x0   |   0xD   | 0b`mode`0d`reg1`  <br>d = 1 |     0xFF      | 0xFF  | 0xFF  | 0xFF  | 0xFF  |
-| TODO                               |   0x0   |   0xD   | 0b`mode`1d`reg1`  <br>d = 0 |               |       |       |       |       |
-| TODO                               |   0x0   |   0xD   | 0b`mode`1d`reg1`  <br>d = 1 |               |       |       |       |       |
+| `MULS reg1, [mem]`                 |   0x0   |   0xC   | 0b`mode`1d`reg1`  <br>d = 0 |     0xFF      | 0xFF  | 0xFF  | 0xFF  | 0xFF  |
+| `SUBS [mem], reg1`                 |   0x0   |   0xC   | 0b`mode`1d`reg1`  <br>d = 1 |     0xFF      | 0xFF  | 0xFF  | 0xFF  | 0xFF  |
+| `MULU reg1, [index*scalar + base]` |   0x0   |   0xD   | 0b`mode`0d`reg1`  <br>d = 0 |     `SIB`     |       |       |       |       |
+| `MULU [index*scalar + base], reg1` |   0x0   |   0xD   | 0b`mode`0d`reg1`  <br>d = 1 |     `SIB`     |       |       |       |       |
+| `MULS reg1, [index*scalar + base]` |   0x0   |   0xD   | 0b`mode`1d`reg1`  <br>d = 0 |     `SIB`     |       |       |       |       |
+| `MULS [index*scalar + base], reg1` |   0x0   |   0xD   | 0b`mode`1d`reg1`  <br>d = 1 |     `SIB`     |       |       |       |       |
 
 # DIV - Con signo (S) y sin signo (U)
 
 | Instrucción                        | opcode1 | opcode2 |            1byte            |     1byte     | 1byte | 1byte | 1byte | 1byte |
 | :--------------------------------- | :-----: | :-----: | :-------------------------: | :-----------: | :---: | :---: | :---: | :---: |
 | `DIVU reg1, reg2`                  |   0x0   |   0xE   |  0b`mode`0d0000  <br>d = 0  | `reg2` `reg1` |       |       |       |       |
-| `DIVS reg2, reg1`                  |   0x0   |   0xE   |  0b`mode`0d0000  <br>d = 1  | `reg2` `reg1` |       |       |       |       |
-| `DIVU reg1, [index*scalar + base]` |   0x0   |   0xE   | 0b`mode`1d`reg1`  <br>d = 0 |     `SIB`     |       |       |       |       |
-| `DIVU [index*scalar + base], reg1` |   0x0   |   0xE   | 0b`mode`1d`reg1`  <br>d = 1 |     `SIB`     |       |       |       |       |
+| TODO                               |   0x0   |   0xE   | 0b`mode`0d`reg1`  <br>d = 1 |               |       |       |       |       |
+| `DIVS reg2, reg1`                  |   0x0   |   0xE   |  0b`mode1d0000  <br>d = 0   | `reg2` `reg1` |       |       |       |       |
+| TODO                               |   0x0   |   0xE   | 0b`mode`1d`reg1`  <br>d = 1 |               |       |       |       |       |
 | `DIVU reg1, [mem]`                 |   0x0   |   0xF   | 0b`mode`0d`reg1`  <br>d = 0 |     0xFF      | 0xFF  | 0xFF  | 0xFF  | 0xFF  |
 | `DIVU [mem], reg1`                 |   0x0   |   0xF   | 0b`mode`0d`reg1`  <br>d = 1 |     0xFF      | 0xFF  | 0xFF  | 0xFF  | 0xFF  |
-| `DIVS reg1, [index*scalar + base]` |   0x0   |   0xF   | 0b`mode`1d`reg1`  <br>d = 0 |     `SIB`     |       |       |       |       |
-| `DIVS [index*scalar + base], reg1` |   0x0   |   0xF   | 0b`mode`1d`reg1`  <br>d = 1 |     `SIB`     |       |       |       |       |
-| `DIVS reg1, [mem]`                 |   0x0   |  0x10   | 0b`mode`0d`reg1`  <br>d = 0 |     0xFF      | 0xFF  | 0xFF  | 0xFF  | 0xFF  |
-| `DIVS [mem], reg1`                 |   0x0   |  0x10   | 0b`mode`0d`reg1`  <br>d = 1 |     0xFF      | 0xFF  | 0xFF  | 0xFF  | 0xFF  |
-| TODO                               |   0x0   |  0x10   | 0b`mode`1d`reg1`  <br>d = 0 |               |       |       |       |       |
-| TODO                               |   0x0   |  0x10   | 0b`mode`1d`reg1`  <br>d = 1 |               |       |       |       |       |
+| `DIVS reg1, [mem]`                 |   0x0   |   0xF   | 0b`mode`1d`reg1`  <br>d = 0 |     0xFF      | 0xFF  | 0xFF  | 0xFF  | 0xFF  |
+| `DIVS [mem], reg1`                 |   0x0   |   0xF   | 0b`mode`1d`reg1`  <br>d = 1 |     0xFF      | 0xFF  | 0xFF  | 0xFF  | 0xFF  |
+| `DIVU reg1, [index*scalar + base]` |   0x0   |  0x10   | 0b`mode`0d`reg1`  <br>d = 0 |     `SIB`     |       |       |       |       |
+| `DIVU [index*scalar + base], reg1` |   0x0   |  0x10   | 0b`mode`0d`reg1`  <br>d = 1 |     `SIB`     |       |       |       |       |
+| `DIVS reg1, [index*scalar + base]` |   0x0   |  0x10   | 0b`mode`1d`reg1`  <br>d = 0 |     `SIB`     |       |       |       |       |
+| `DIVS [index*scalar + base], reg1` |   0x0   |  0x10   | 0b`mode`1d`reg1`  <br>d = 1 |     `SIB`     |       |       |       |       |
 
 
 # Operaciones logicas a nivel de bits
@@ -232,17 +232,17 @@ struct Flags {
 | Instrucción                        | opcode1 | opcode2 |            1byte            |     1byte     | 1byte | 1byte | 1byte | 1byte |
 | :--------------------------------- | :-----: | :-----: | :-------------------------: | :-----------: | :---: | :---: | :---: | :---: |
 | `CMPU reg1, reg2`                  |   0x0   |  0x11   |  0b`mode`0d0000  <br>d = 0  | `reg2` `reg1` |       |       |       |       |
-| `CMPS reg2, reg1`                  |   0x0   |  0x11   |  0b`mode`0d0000  <br>d = 1  | `reg2` `reg1` |       |       |       |       |
-| `CMPU reg1, [index*scalar + base]` |   0x0   |  0x11   | 0b`mode`1d`reg1`  <br>d = 0 |     `SIB`     |       |       |       |       |
-| `CMPU [index*scalar + base], reg1` |   0x0   |  0x11   | 0b`mode`1d`reg1`  <br>d = 1 |     `SIB`     |       |       |       |       |
+| TODO                               |   0x0   |  0x11   | 0b`mode`0d`reg1`  <br>d = 0 |               |       |       |       |       |
+| `CMPS reg2, reg1`                  |   0x0   |  0x11   |  0b`mode`1d0000  <br>d = 0  | `reg2` `reg1` |       |       |       |       |
+| TODO                               |   0x0   |  0x11   | 0b`mode`1d`reg1`  <br>d = 1 |               |       |       |       |       |
 | `CMPU reg1, [mem]`                 |   0x0   |  0x12   | 0b`mode`0d`reg1`  <br>d = 0 |     0xFF      | 0xFF  | 0xFF  | 0xFF  | 0xFF  |
 | `CMPU [mem], reg1`                 |   0x0   |  0x12   | 0b`mode`0d`reg1`  <br>d = 1 |     0xFF      | 0xFF  | 0xFF  | 0xFF  | 0xFF  |
-| `CMPS reg1, [index*scalar + base]` |   0x0   |  0x12   | 0b`mode`1d`reg1`  <br>d = 0 |     `SIB`     |       |       |       |       |
-| `CMPS [index*scalar + base], reg1` |   0x0   |  0x12   | 0b`mode`1d`reg1`  <br>d = 1 |     `SIB`     |       |       |       |       |
-| `CMPS reg1, [mem]`                 |   0x0   |  0x13   | 0b`mode`0d`reg1`  <br>d = 0 |     0xFF      | 0xFF  | 0xFF  | 0xFF  | 0xFF  |
-| `CMPS [mem], reg1`                 |   0x0   |  0x13   | 0b`mode`0d`reg1`  <br>d = 1 |     0xFF      | 0xFF  | 0xFF  | 0xFF  | 0xFF  |
-| TODO                               |   0x0   |  0x13   | 0b`mode`1d`reg1`  <br>d = 0 |               |       |       |       |       |
-| TODO                               |   0x0   |  0x13   | 0b`mode`1d`reg1`  <br>d = 1 |               |       |       |       |       |
+| `CMPS reg1, [mem]`                 |   0x0   |  0x12   | 0b`mode`1d`reg1`  <br>d = 0 |     0xFF      | 0xFF  | 0xFF  | 0xFF  | 0xFF  |
+| `CMPS [mem], reg1`                 |   0x0   |  0x12   | 0b`mode`1d`reg1`  <br>d = 1 |     0xFF      | 0xFF  | 0xFF  | 0xFF  | 0xFF  |
+| `CMPU reg1, [index*scalar + base]` |   0x0   |  0x13   | 0b`mode`0d`reg1`  <br>d = 0 |     `SIB`     |       |       |       |       |
+| `CMPU [index*scalar + base], reg1` |   0x0   |  0x13   | 0b`mode`0d`reg1`  <br>d = 1 |     `SIB`     |       |       |       |       |
+| `CMPS reg1, [index*scalar + base]` |   0x0   |  0x13   | 0b`mode`1d`reg1`  <br>d = 0 |     `SIB`     |       |       |       |       |
+| `CMPS [index*scalar + base], reg1` |   0x0   |  0x13   | 0b`mode`1d`reg1`  <br>d = 1 |     `SIB`     |       |       |       |       |
 
 |  Flag  | **Condición**          | **`op1 < op2`** | **`op1 = op2`** | **`op1 > op2`** |
 | :----: | :--------------------- | :-------------: | :-------------: | :-------------: |

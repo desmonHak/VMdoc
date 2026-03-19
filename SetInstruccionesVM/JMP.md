@@ -2,7 +2,7 @@
 
 | instrucción | opcode1 | dirección (56bits) | tamaño  |
 | :---------: | :-----: | :----------------: | :-----: |
-|     JMP     |  0x23   | 0xFFFFFFFFFFFFFFF  | 8 bytes |
+|     JMP     |  0x11   | 0xFFFFFFFFFFFFFFF  | 8 bytes |
 ## CALL dentro de la VM usando registros.
 
 | instrucción | opcode1 | opcode2 |   byte1    | byte2          | tamaño  |

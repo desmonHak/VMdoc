@@ -1,10 +1,12 @@
 
 Permite indicar que se quiere entrar en el modo distribuido contra un Host.
 
+# Modo IPv4
+ingresar la dirección IPv4 en un registro,`0x12345678`.
 
-| opcode1 | opcode2 |    IPv4    |  port  |
-| :-----: | :-----: | :--------: | :----: |
-|   0x0   |   0x0   | 0x12345678 | 0x0000 |
+| opcode1 | opcode2 |  port  |  size   |
+| :-----: | :-----: | :----: | :-----: |
+|   0x0   |   0x0   | 0x0000 | 4 bytes |
 ```
 00 00  | C0 A8 00 01| 00  50
 opcode | 192.168.0.1|   80
@@ -12,9 +14,13 @@ opcode | 192.168.0.1|   80
 8bytes
 ```
 
-| opcode1 | opcode2 |                  IPv6                   |  port  |
-| :-----: | :-----: | :-------------------------------------: | :----: |
-|   0x0   |   0x1   | 2001:0db8:85a3:0000:0000:8a2e:0370:7334 | 0x0000 |
+
+# Modo IPv6
+ingresar la dirección IPv6 en registros `2001:0db8:85a3:0000:0000:8a2e:0370:7334`
+
+| opcode1 | opcode2 |  port  |  size   |
+| :-----: | :-----: | :----: | :-----: |
+|   0x0   |   0x1   | 0x0000 | 4 bytes |
 ```
 00 01 | 20 01 0D B8 85 A3 00 00 00 00 8A 2E 03 70 73 34 | 00 50
 opcode|    2001:0db8:85a3:0000:0000:8a2e:0370:7334      |   80

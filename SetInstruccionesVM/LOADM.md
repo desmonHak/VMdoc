@@ -12,9 +12,9 @@ Permite cargar un valor de la memoria en uno o varios registros.
 LOADM r01, [r00] 
 ```
 
-|opcode1 |opcode2 |     reg1        |       reg2       
-|:------:|:------:|:---------------:|:----------------:|
-|  0x00  |  0x24  | `0b0000 0000` |  `0b00` ``reg2`` | 
+| opcode1 | opcode2 |     reg1      |      reg2       |
+| :-----: | :-----: | :-----------: | :-------------: |
+|  0x00   |  0x24   | `0b0000 0000` | `0b00` ``reg2`` |
 
 ```c
 LOADM r01w, [r00w + 0x12345678] // suma 0x1234 a la direcion base, max disp32

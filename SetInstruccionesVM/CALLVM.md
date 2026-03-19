@@ -5,7 +5,7 @@ Lea el apartado [[ConvenciónDeLlamadas]] para saber como hacer llamadas a funci
 
 | instrucción | opcode1 | dirección (56bits) | tamaño  |
 | :---------: | :-----: | :----------------: | :-----: |
-|   CALLVM    |  0x21   | 0xFFFFFFFFFFFFFFF  | 8 bytes |
+|   CALLVM    |  0x10   | 0xFFFFFFFFFFFFFFF  | 8 bytes |
 ## CALL dentro de la VM usando registros.
 
 | instrucción | opcode1 | opcode2 |   byte1    | byte2          | tamaño  |
