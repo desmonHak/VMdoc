@@ -24,6 +24,7 @@ data:
      */
     methods:
         number_methods      dq  1
+        number_constructors dq  1
         methodTest1:
             name_field1     db  "methodTest1\0"
             flags1          dw  0b00000001      // no-static public int campo1 = 2
@@ -106,6 +107,18 @@ data:
                 */
             end_handlers_methodTest1:
         end_methodTest1:
+        constructor_1_Class1Example:
+            name_field1     db  "<init>\0" // el constructor se distingue por la firma
+            
+            flags1          dw  0b00001001      // public constructor int campo1 = 2
+
+            type_return     ptr 0    // tipo de retorno, en el caso de un constructor, siempre devuelve self
+            code            ptr code_constructor_1_Class1Example
+            size_code       dw  end_code_constructor_1_Class1Example - code_constructor_1_Class1Example
+            owner_class     ptr Class1ExampleInfo
+
+            handler_count   dw 0 
+        end_constructor_1_Class1Example:
     end_methods:
 
     class:
@@ -200,6 +213,10 @@ data:
 
             // tabla de punteros a metodos, se puede reemplazar métodos en runtime (hot swap)
             methods:
+                // los contructos son metodos especiales, pero al fin y al cabo 
+                // son metodos, por lo que se pueden reemplazar en runtime, y 
+                // por eso los ponemos aqui, en la tabla de metodos, y no en otro sitio
+                useconstructor_1_Class1Example ptr constructor_1_Class1Example   
                 usemethodTest1 ptr methodTest1   // puntero al metodo, no usamos el offset por que si queremos crear un nuevo metodo, no tiene por que estar aqui en run time
             end_methods:
         end_Class1ExampleInfo:
@@ -222,13 +239,19 @@ data:
 
             mov r15, ExceptionInfo // invocamos un error aposta
             throw
+            mov r00, r01
             ret
 
             code_methodTest1_catch:
-                mov r00, 0
+                mov r00, r01 // solo devuelvo self
                 ret
-
         end_code_methodTest1:
+                
+        code_constructor_1_Class1Example:
+            mov r00, r01 // solo devuelvo self
+	        ret
+        end_code_constructor_1_Class1Example:
+        
 
     end_code_method:
 
@@ -238,3 +261,37 @@ end_data:
 mov r01, Class1ExampleInfo
 class.create
 ```
+
+# Methods
+
+## Flags
+
+|                bit 1-2                |                             bit 3                              | bit 4                 | bit 4 - 32 |
+| :-----------------------------------: | :------------------------------------------------------------: | --------------------- | ---------- |
+| [[Metadatos#Visibilidad\|visibility]] | [[Metadatos#static or no-static (bit 3)\|static or no-static]] | method or constructor |            |
+
+### Visibilidad (bit 1-2)
+
+| valor | tipo de visibilidad |
+| ----- | ------------------- |
+| 0     | default             |
+| 1     | public              |
+| 2     | private             |
+| 3     | protect             |
+
+### static or no-static (bit 3)
+Esta valor solo aplica si el método no es un constructor, es decir, si [[Metadatos#method or constructor|el bit 4]] es diferente a ``1``
+
+| valor | tipo                     |
+| ----- | ------------------------ |
+| 0     | Es metodo es estatico    |
+| 1     | El método no es estático |
+
+
+
+### method or constructor
+
+| valor | tipo                |
+| ----- | ------------------- |
+| 0     | Es metodo un metodo |
+| 1     | Ez                  |
