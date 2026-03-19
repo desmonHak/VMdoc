@@ -28,15 +28,15 @@ Sin embargo, estas pueden usar un registro de ``64bits``(`RP`) para acceder a ot
 # INC
 Permite incrementar un registro en 1
 
-| Instrucción | opcode1 | opcode2 |    flag    | byte (relleno o extensión o registro) | total bytes |
-| :---------: | :-----: | :-----: | :--------: | :-----------------------------------: | :---------: |
-|     INC     |   0x0   |   0x4   | 0b00000000 |             `0b01` `reg`              |      4      |
+| Instrucción | opcode1 | byte (relleno o extensión o registro) | total bytes |
+| :---------: | :-----: | :-----------------------------------: | :---------: |
+|     INC     |   0x4   |             `0b00` `reg`              |      2      |
 # DEC
 Permite decrementar un registro en 1
 
-| Instrucción | opcode1 | opcode2 |    flag    | byte (relleno o extensión o registro) | total bytes |
-| :---------: | :-----: | :-----: | :--------: | :-----------------------------------: | :---------: |
-|     DEC     |   0x0   |   0x4   | 0b00000000 |             `0b01` `reg`              |      4      |
+| Instrucción | opcode1 | byte (relleno o extensión o registro) | total bytes |
+| :---------: | :-----: | :-----------------------------------: | :---------: |
+|     DEC     |   0x4   |             `0b01` `reg`              |      2      |
 
 # ADD - Con signo (S) y sin signo (U)
 
