@@ -35,7 +35,8 @@ typedef enum FieldKind {
     FIELD_PRIMITIVE,
     FIELD_CLASS,
     FIELD_STRUCT,
-    FIELD_TYPEDEF
+    FIELD_TYPEDEF,
+    FIELD_ENUM
 } Fie
 
 
@@ -331,3 +332,6 @@ v
 
 
 ```
+
+
+

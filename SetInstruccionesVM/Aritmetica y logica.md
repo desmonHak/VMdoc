@@ -9,16 +9,16 @@
 |    Incrementar     |               |               |    INC    |
 |    Decrementar     |               |               |    DEC    |
 
-# Nomenclatura
+# Nomenclaruta
 - ``reg1``, ``reg2``: se usa 6bits para expresar cada registro general, revise [[REGISTROS#Registros generales|Registros generales y su codificación.]] En caso de que la instrucción use dos registros, como ``ADD``, ``CMP`` y etc, el modo(2bits) puede indicarse en otro lado y los registros se pueden expresar ambos en un byte usando 4 bits para cada uno.
 
 # Modos de direccionamiento
 Actualmente solo hay dos modos de direccionamiento, un modo básico de reg-reg
-## Modo Básico
+## Modo Basico
 
 El modo básico agrupa el direccionamiento de registro a registro, de memoria a registro y de registro a memoria, sirve para operaciones básicas e intercambio.
 ## Modo SIB (Scalar + Indice * Base)
-Este modo de acceso sirve principalmente para el acceso a array y estructuras de tipo índice
+Este modo de acceso sirve principalmente para el acceso a array y estructuras de tipo indice
 
 ![[direccionamiento.png]]
 # peculiaridades de las instrucciones aritméticas y lógicas

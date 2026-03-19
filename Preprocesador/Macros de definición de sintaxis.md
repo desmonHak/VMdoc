@@ -301,16 +301,16 @@ x = t1
 ```dart
 // Orden BFS: CONST_5, CONST_3, ADD_t1, ASSIGN_x
 emit("x86") -> 
-mov eax, 5      ; <- CONST_5
-mov ebx, 3      ; <- CONST_3
-add eax, ebx    ; <- ADD_t1  
-mov [x], eax    ; <- ASSIGN_x
+mov eax, 5      ; ← CONST_5
+mov ebx, 3      ; ← CONST_3
+add eax, ebx    ; ← ADD_t1  
+mov [x], eax    ; ← ASSIGN_x
 
 emit("ARM") -> 
-MOV R0, #5      ; <- CONST_5  
-MOV R1, #3      ; <- CONST_3
-ADD R0, R0, R1  ; <- ADD_t1
-STR R0, [x]     ; <- ASSIGN_x
+MOV R0, #5      ; ← CONST_5  
+MOV R1, #3      ; ← CONST_3
+ADD R0, R0, R1  ; ← ADD_t1
+STR R0, [x]     ; ← ASSIGN_x
 ```
 
 #### 6. ¿Por qué NO DFS aquí?

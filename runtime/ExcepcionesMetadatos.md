@@ -1,0 +1,240 @@
+Se usa la direccion `0x1 0000 0000` para cargar el codigo en esa seccion, esta direccion por defecto puede cambiarse con la directiva `org`, como tal no es una instruccion de la VM pero permite notificarle ciertas acciones.
+vea mas en [[EspacioDeDireccionesDeLaMemoria]]
+
+
+```c
+org 0x100000000
+
+jmp end_data
+data:
+
+    fieldTypes: // FieldInfo*
+        type_int:
+            size            db 4         // un int son 4 bytes
+            nameType        db "int\0"
+            FieldKind       db 0    /**
+                                     * 0 (FIELD_PRIMITIVE), 1 (FIELD_CLASS), 3 (FIELD_STRUCT), 4 (FIELD_TYPEDEF), 5 (FIELD_ENUM)
+                                     */
+            type_class      ptr 0x0 // (ClassInfo*) si es FIELD_CLASS o FIELD_STRUCT 
+        end_type_int:
+    endfieldTypes:
+
+    /**
+     * Todos los metodos de clase pueden ir aqui y ser cargado por las clases
+     */
+    methods:
+        number_methods      dq  1
+        methodTest1:
+            name_field1     db  "methodTest1\0"
+            flags1          dw  0b00000001      // no-static public int campo1 = 2
+
+            type_return     ptr type_int    // tipo de retorno para la funcion
+            code            ptr code_methodTest1
+            size_code       dw  end_code_methodTest1 - code_methodTest1
+            owner_class     ptr Class1ExampleInfo   // es necesario saber la clase a la que pertenece el metodo para usar
+                                                    // el mecanismo de try-catch
+
+            handler_count   dw 2    // el metodo usa dos "try-catch"
+            handlers_methodTest1:
+                type        ptr 0x0 // (ClassInfo*) // null = catch-all // aqui va la clase que maneja la excepcion
+                start_pc    dw  code_methodTest1 - code_methodTest1 /**
+                                                                     * Aqui describimos que todo el metodo esta cibierto por un try catch
+                                                                     */
+                end_pc      dw  code_methodTest1_catch  - code_methodTest1 // donde acabe el try (offset)
+                handler_pc  dw  code_methodTest1_catch  - code_methodTest1 // donde empieza el catch (normalmente donde acabe el try)
+                /* 
+                * el end y handler_pc normalmente estan uno despues de otro (el catch normalmente va despues de un try), pero no siempre, puede darse casos
+                * como:
+                * try {
+                *     A
+                *     B
+                * } catch (X e) {
+                *     H
+                * } catch (Z e) {
+                *     H1
+                * }
+                * C
+                * D
+                * 
+                * Aqui el PC de inicio y final es el mismo para el handler de X como para el de Z por que ambos usan un mismo try que acaba e inicia 
+                * en el mismo sitio, pero sus handler_pc son distintos ya que sus catch estan en lugares distintos.
+                *
+                * El caso en el que pc no coincide, es por que los try son varios y estan en lugares distintos
+                * try {
+                *    Z
+                *     try {
+                *         A
+                *     } catch (X e) {
+                *         H1
+                *     }
+                * } catch (Y e) {
+                *     H2
+                * }
+                * 
+                * En Java, C#, etc., un finally se compila como un handler con type = null (catch all). significa que el finally se 
+                * ejecuta SIEMPRE, tanto si hay excepción como si no.
+                * Eso significa:
+                *   no se hace instanceof
+                *   se captura cualquier excepción
+                *   se salta al bloque finally
+                * Luego, dentro del bloque finally, tú decides:
+                *   si relanzas la excepción
+                *   o si continúas normalmente
+                * 
+                * cuando ocurre una excepción?
+                *   Busca handlers en orden:
+                *   ¿coincide con A? -> salta a catch A
+                *   ¿coincide con B? -> salta a catch B
+                *   ¿type = NULL? -> salta al finally
+                * 
+                * cuando se genera el codigo final,l y el codigo de origen tiene varios catch y finaly se realiza lo siguiente:
+                * try {
+                *     A
+                *     goto LafterFinally
+                * }
+                * 
+                * Lcatch:
+                *     H
+                *     goto Lfinally
+                * 
+                * Lfinally:
+                *     F
+                * LafterFinally:
+                * 
+                * En la practica, todos los catch al final saltar a el finally indicado
+                * 
+                */
+            end_handlers_methodTest1:
+        end_methodTest1:
+    end_methods:
+
+    class:
+        number_class            dq 4
+
+        // 0
+        ThrowableInfo:
+            nameClass db "Throwable\0"
+            flagsClass dq 0b10000001
+
+            number_fields dq 0
+            number_supers dq 0
+            number_interfaces dq 0
+            number_methods dq 0
+        end_ThrowableInfo:
+
+        // 1
+        ExceptionInfo:
+            nameClass db "Exception\0"
+            flagsClass dq 0b10000001
+
+            number_fields dq 0
+            number_supers dq 1
+            number_interfaces dq 0
+            number_methods dq 0
+
+            supers:
+                Throwable       dq ThrowableInfo
+            end_supers:
+
+        end_ExceptionInfo:
+
+
+        // 2
+        IOExceptionInfo:
+            nameClass           db "IOException\0"
+            flagsClass          dq 0b10000001      // public
+            // marca especial para excepciones
+
+            number_fields       dq 0                // no tiene campos propios
+            number_supers       dq 1                // hereda de Exception
+            number_interfaces   dq 0
+            number_methods      dq 0
+
+            fields:
+            end_fields:
+
+            supers:
+                Exception       dq ExceptionInfo    // puntero a la superclase
+            end_supers:
+
+            interfaces:
+            end_interfaces:
+
+            methods:
+            end_methods:         
+        end_IOExceptionInfo:
+
+        // 3
+        Class1ExampleInfo:
+            nameClass           db "Class1Example\0"
+            flagsClass          dq 0b00000001       /**
+                    * 0b0000 0000
+                    * bit 1-2 (visibility): default(0), public(1), private(2), protect(3)
+                    * bit 3 (static-no): static = 1, no static = 0 (no aplicado a una clase, se aplica sus metodos y etc)
+                    * 
+                    * bit 7 (is_exception?) 1 = true,   0 = false
+                    */
+
+            number_fields       dq 2
+            number_supers       dq 0                // sin herencia
+            number_interfaces   dq 0                // sin interfaces
+            number_methods      dq 0                // numero de metodos
+
+            fields: // ClassInfo*
+                name_field1     db  "campo1\0"
+                flags1          dw  0b00000001      // no-static public int campo1 = 2
+                typeFieldKind1  ptr type_int
+                value_init      dq  2               // si el campo esta inicializado y cabe en un dq, si es struct, se pone puntero a datos inicializado.
+
+                name_field1     db  "campo2\0"
+                flags1          dw  0b00000101      // static public int campo2 = 1
+                typeFieldKind1  ptr type_int
+                value_init      ptr 1               // si el campo esta inicializado y cabe en un dq, si es struct, se pone puntero a datos inicializado.
+            end_field:
+
+            interfaces:
+            end_interfaces:
+
+            supers:
+            end_supers:
+
+            // tabla de punteros a metodos, se puede reemplazar métodos en runtime (hot swap)
+            methods:
+                usemethodTest1 ptr methodTest1   // puntero al metodo, no usamos el offset por que si queremos crear un nuevo metodo, no tiene por que estar aqui en run time
+            end_methods:
+        end_Class1ExampleInfo:
+    end_class:
+
+    code_method:
+
+        /** 
+         * Cuando entras a un método, creas un frame.
+         * Ese frame guarda un puntero a MethodInfo.
+         * Cuando haces throw, la VM mira el frame actual.
+         * Y por tanto se sabe qué método se está ejecutando.
+         * El PC plano no importa, porque el frame ya contiene el método.
+         */
+        code_methodTest1:
+            mov r10, 1
+            mov r11, 2
+            add r10, r11
+            mov r00, r10
+
+            mov r15, ExceptionInfo // invocamos un error aposta
+            throw
+            ret
+
+            code_methodTest1_catch:
+                mov r00, 0
+                ret
+
+        end_code_methodTest1:
+
+    end_code_method:
+
+
+end_data:
+
+mov r01, Class1ExampleInfo
+class.create
+```
