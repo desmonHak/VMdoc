@@ -24,9 +24,9 @@
 
 ```c
 /*
- * vmproject.c - Máquina Virtual Distribuida
+ * VestaVM - Máquina Virtual Distribuida
  * 
- * Copyright © 2026 David López T. (Castilla y León, ES)
+ * Copyright © 2026 David López.T (DesmonHak) (Castilla y León, ES)
  * Licencia VMProject
  * 
  * USO LIBRE NO COMERCIAL con atribución obligatoria.
