@@ -25,6 +25,34 @@ Este modo de acceso sirve principalmente para el acceso a array y estructuras de
 La mayoría de instrucciones de este tipo que operan con memoria, usan solo ``5bytes * 8 = 40bits`` para acceder a memoria, por tanto ``0x000000000000 - 0xFFFFFFFFFFFF`` es su rango de operación (Si el Registro de paginado (`RP`) esta configurado en 0).
 Sin embargo, estas pueden usar un registro de ``64bits``(`RP`) para acceder a otras partes de la memoria si es que esto fuera realmente necesario.
 
+----
+# peculiaridades de las instrucciones de acceso a memoria
+Algunas instrucciones como los `mov` y las instrucciones aritmeticológicas permiten el acceso a memoria para cambiar u obtener valores, véase por ejemplo:
+
+```c
+mov r0, 0x123456789abcdef  
+adds [r0w], 0x1000
+```
+Aquí lo que esta ocurriendo es que estamos accediendo a la dirección virtual `0x123456789abcdef`
+y estamos sumando un WORD (valor de 16 bits) el cual es ``0x1000``, esto es equivalente a hacer ene C:
+```c
+uint8_t* mem[...] = { 0 }; // supongamos que esto es memoria.
+
+// en el interprete, la memoria empieza en 0x0 y acaba en 0xffffffffffffffff
+// mem[0x123456789abcdef] = 0; en esta posicion hay un 0 antes de la operacion
+
+// mov r0, 0x123456789abcdef
+int64_t r0 = mem + 0x123456789abcdef; // 0 + 0x123456789abcdef
+
+// adds [r0w], 0x1000
+r0 = *((int32_t*)r0) + 0x1000
+
+// mem[0x123456789abcdef] = 0x1000; se a sumado al valor de la posicion el valor 0x1000
+```
+Por tanto el tamaño del registro dentro de los ``brackets`` (corchetes `[]`) indica el tamaño de la operación. 
+
+----
+
 # INC
 Permite incrementar un registro en 1
 
