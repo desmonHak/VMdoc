@@ -42,11 +42,11 @@ MOVC r1, r2, SF // si r1 < r2 -> r1 = r2 (max)
 
 // Clamp negativo a cero
 CMP r1, 0
-MOVC r1, rZero, SF // si r1 < 0 → r1 = 0
+MOVC r1, rZero, SF // si r1 < 0 -> r1 = 0
 
 // Copiar si hubo acarreo (útil para unsigned)
 ADDU r1, r2
-MOVC r3, r4, CF // si hubo carry → r3 = r4
+MOVC r3, r4, CF // si hubo carry -> r3 = r4
 
 // Detección de overflow en suma sin signo
 ADDU rA, rB
