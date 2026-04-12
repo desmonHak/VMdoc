@@ -140,20 +140,20 @@ MOVCH rThreadID, [rBase], DM
 
 Permite los mismos modos de codificación que las [[Aritmetica y logica|instrucciones arimetico logicas]] 
 
-| Instrucción                          | opcode1 | opcode2 |           1byte           |       1byte       | 1byte | 1byte | 1byte |   4byte    | total bytes |
-| :----------------------------------- | :-----: | :-----: | :-----------------------: | :---------------: | :---: | :---: | :---: | :--------: | :---------: |
-| ``MOV reg1, reg2``                   |   0x0   |  0x14   |  0b`mode`0d0000<br>d = 0  | ``reg2`` ``reg1`` |       |       |       |            |      4      |
-| TODO                                 |   0x0   |  0x14   | 0b`mode`0d`reg1`<br>d = 1 |                   |       |       |       |            |             |
-|                                      |   0x0   |  0x14   |  0b`mode`1d0000<br>d = 0  |                   |       |       |       |            |      4      |
-| TODO                                 |   0x0   |  0x14   | 0b`mode`1d`reg1`<br>d = 1 |                   |       |       |       |            |             |
-| ``MOV reg1, inmmed``                 |   0x0   |  0x15   | 0b`mode`0d`reg1`<br>d = 0 |       0xFF        | 0xFF  | 0xFF  | 0xFF  | 0xFFFFFFFF |     10      |
-| ``MOV inmmed, reg1``                 |   0x0   |  0x15   | 0b`mode`0d`reg1`<br>d = 1 |       0xFF        | 0xFF  | 0xFF  | 0xFF  | 0xFFFFFFFF |     10      |
-| ``MOV [reg], inmmed``                |   0x0   |  0x15   | 0b`mode`1d`reg1`<br>d = 0 |       0xFF        | 0xFF  | 0xFF  | 0xFF  | 0xFFFFFFFF |     10      |
-| `MOV reg, rip`                       |   0x0   |  0x15   | 0b`mode`1d`reg1`<br>d = 1 |                   |       |       |       |            |     10      |
-| ``MOV reg1, [index*scalar + base]``  |   0x0   |  0x16   | 0b`mode`0d`reg1`<br>d = 0 |      ``SIB``      |       |       |       |            |      4      |
-| ``MOV [index*scalar + base], reg1``  |   0x0   |  0x16   | 0b`mode`0d`reg1`<br>d = 1 |      ``SIB``      |       |       |       |            |      4      |
-| ``MOVH reg1, [index*scalar + base]`` |   0x0   |  0x16   | 0b`mode`1d`reg1`<br>d = 0 |      ``SIB``      |       |       |       |            |      4      |
-| ``MOVH [index*scalar + base], reg1`` |   0x0   |  0x16   | 0b`mode`1d`reg1`<br>d = 1 |      ``SIB``      |       |       |       |            |      4      |
+| Instrucción                          | opcode1 | opcode2 |           1byte           |      1byte       | 1byte | 1byte | 1byte |   4byte    | total bytes |
+| :----------------------------------- | :-----: | :-----: | :-----------------------: | :--------------: | :---: | :---: | :---: | :--------: | :---------: |
+| ``MOV reg1, reg2``                   |   0x0   |  0x14   |  0b`mode`0d0000<br>d = 0  | `reg2`<br>`reg1` |       |       |       |            |      4      |
+| TODO                                 |   0x0   |  0x14   |  0b`mode`0d0000<br>d = 1  |                  |       |       |       |            |             |
+| ``MOV reg_ext, reg``                 |   0x0   |  0x14   |  0b`mode`1d0000<br>d = 0  |                  |       |       |       |            |      4      |
+| ``MOV reg, reg_ext``                 |   0x0   |  0x14   |  0b`mode`1d0000<br>d = 1  | `reg2`<br>`reg1` |       |       |       |            |             |
+| ``MOV reg1, inmmed``                 |   0x0   |  0x15   | 0b`mode`0d`reg1`<br>d = 0 |       0xFF       | 0xFF  | 0xFF  | 0xFF  | 0xFFFFFFFF |     10      |
+|                                      |   0x0   |  0x15   | 0b`mode`0d`reg1`<br>d = 1 |                  |       |       |       |            |     10      |
+| ``MOV [reg], inmmed``                |   0x0   |  0x15   | 0b`mode`1d`reg1`<br>d = 0 |       0xFF       | 0xFF  | 0xFF  | 0xFF  | 0xFFFFFFFF |     10      |
+| ``MOV reg_ext, inmmed``              |   0x0   |  0x15   | 0b`mode`1d`reg1`<br>d = 1 |       0xFF       | 0xFF  | 0xFF  | 0xFF  | 0xFFFFFFFF |     10      |
+| ``MOV reg1, [index*scalar + base]``  |   0x0   |  0x16   | 0b`mode`0d`reg1`<br>d = 0 |     ``SIB``      |       |       |       |            |      4      |
+| ``MOV [index*scalar + base], reg1``  |   0x0   |  0x16   | 0b`mode`0d`reg1`<br>d = 1 |     ``SIB``      |       |       |       |            |      4      |
+| ``MOVH reg1, [index*scalar + base]`` |   0x0   |  0x16   | 0b`mode`1d`reg1`<br>d = 0 |     ``SIB``      |       |       |       |            |      4      |
+| ``MOVH [index*scalar + base], reg1`` |   0x0   |  0x16   | 0b`mode`1d`reg1`<br>d = 1 |     ``SIB``      |       |       |       |            |      4      |
 
 >Posiblemente el introducir instrucciones de longitud variable dificulte implementar un modelo de "decodificación paralela estilo superscalar" en un futuro
 
