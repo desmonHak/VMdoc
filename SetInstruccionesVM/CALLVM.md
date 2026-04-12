@@ -1,5 +1,5 @@
 Permite ejecutar una llamada a una dirección, poniendo en la pila la dirección de retorno para volver después usando la instrucción [[RET]].
-Lea el apartado [[ConvenciónDeLlamadas]] para saber como hacer llamadas a funciones correctamente.
+
 
 ## CALL dentro de la VM con dirección. 
 
