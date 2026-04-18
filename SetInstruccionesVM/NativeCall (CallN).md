@@ -15,7 +15,7 @@ calln @Method("kernel32.dll:GetTickCount")
 // a llamar en el registro 14, es la forma mas corta de llamar a una instruccion.
 mov r15, 0 // este metodo no usa args
 mov r14, @Method("kernel32.dll:GetTickCount")
-calln
+callnr
 
 
 // LOADLIB + GETPROC -> reflexión nativa
@@ -24,7 +24,7 @@ calln
 LOADLIB r0, r14 // cargar el base addres de la dll en r0, r14 debe ser una direccion que apunte a la cadena con el nombre de la dll
 GETPROC r14, r12 // GETPROC espera que R0 contenga el base address de la dll que usar para obtener la funcion. en este caso r12 debe contener una direccion que apunte a una cadena del metodo a cargar. r14 en este caso es el registro que guardara el address obtenido.
 mov r15, 0 // llamamos a la funcion obtenida con 0 args.
-calln
+callnr
 ```
 
 - `r00` → retorno
@@ -36,7 +36,7 @@ calln
 | instrucción | opcode0 | opcode1 |     direccion     |  tamaño  |
 | :---------: | :-----: | :-----: | :---------------: | :------: |
 |    CALLN    |  0x00   |  0x55   | address (64 bits) | 10 bytes |
-|    CALLN    |  0x55   |         |                   |  1 byte  |
+|   CALLNR    |  0x55   |         |                   |  1 byte  |
 >La primera call es la que el usuario usa convencionalmente en la forma de:
 >`calln @Method("kernel32.dll:GetTickCount")`.
 >la segunda call es la que el usuario usa si no se especifica un @Method a llamar, en cuyo caso, la instrucción supone que la dirección del método nativo esta en el registro r14. 
