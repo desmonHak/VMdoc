@@ -94,6 +94,21 @@ Modos de los registros:
 # Registros de extensión
 Los registros de "extensión" son cualquier otro que no sea un registro de propósito general, por lo que los registros `rip`, `rbp`, `rsp`, registros cursores y demás se consideran de este tipo. No todas las instrucciones lo soportan o no tienen por que soportarlo completamente.
 
+
+|  REGISTRO  | CODIFICACIÓN |
+| :--------: | :----------: |
+|  ``cur0``  |  ``000000``  |
+|  ``cur1``  |  ``000001``  |
+|  ``cur2``  |  ``000010``  |
+|  ``cur3``  |  ``000011``  |
+|    ...     |  ``000100``  |
+|    ...     |  ``000101``  |
+|    ...     |  ``000110``  |
+|  ``rip``   |  ``001000``  |
+|  ``rbp``   |  ``001001``  |
+|  ``rsp``   |  ``001010``  |
+| ``rflags`` |  ``001011``  |
+
 # Registro cursor
 
 >Todo registro cursor es del tamaño de un puntero en la plataforma objetivo, excepto algún caso en especifico. Los registros cursores pueden contener cualquier tipo de valor ya que se considera un registro mas, pero se recomienda siempre que estos registros solo se usen con motivo de acceder a memoria del Host, usando direcciones conocidas. Por tanto se recomienda tener también direcciones validas en estos registros, o en caso de no usarse, tener el campo en 0 indicando que es "`NULL`" la dirección a acceder.
