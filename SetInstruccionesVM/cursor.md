@@ -1,83 +1,201 @@
-Permite acceder a direcciones reales del Host. La instrucción cursor tiene en general dos formas de operar, puede avanzar hacia delante, o puede retroceder posiciones de memoria para obtener valores. Las instrucciones cursor usan registros cursor.
+# Instrucciones cursor - acceso a memoria real del host
 
-----
+Las instrucciones cursor permiten leer y escribir directamente en memoria real del proceso host (no en la memoria virtual de la VM). Son el puente entre el bytecode Vesta y:
 
-## Registros cursores disponibles actualmente:
+- Bloques reservados con [[Allocator crudo para FFI  y memoria manual|ALLOC]] (punteros host reales).
+- Payloads de objetos gestionados por el [[Generacional (para objetos OOP)|GcHeap]] (accedidos mediante `GCDEREF`).
+- Cualquier dirección de host válida almacenada en un registro cursor.
 
->Todo registro cursor es del tamaño de un puntero en la plataforma objetivo, excepto algún caso en especifico. Los registros cursores pueden contener cualquier tipo de valor ya que se considera un registro mas, pero se recomienda siempre que estos registros solo se usen con motivo de acceder a memoria del Host, usando direcciones conocidas. Por tanto se recomienda tener también direcciones validas en estos registros, o en caso de no usarse, tener el campo en 0 indicando que es "`NULL`" la dirección a acceder.
+> **¿Por qué hace falta esto?**
+> La memoria virtual de la VM se gestiona a través de una capa TLB/VirtualMemory propia. Las instrucciones MOV, ADD, etc. operan sobre registros. Para acceder a un bloque de RAM del host (por ejemplo para rellenar un buffer antes de una llamada nativa), se necesita un mecanismo que desreferencie directamente la dirección host - eso son las instrucciones cursor.
 
-| registro(``reg_cur``) | codificacion |
-| :-------------------: | :----------: |
-|       ``cur0``        |    ``00``    |
-|       ``cur1``        |    ``01``    |
-|       ``cur2``        |    ``10``    |
-|       ``cur3``        |    ``11``    |
+---
 
-----
-## Modos de operación del cursor (`byte flag2`)
+## Registros cursor
 
-### tamaño del desplazamiento
+Los cuatro registros cursor son registros especiales de 64 bits que contienen **direcciones del espacio de host**. Se codifican igual que el resto de registros especiales y pueden usarse con `XCHG` y `MOV` para cargar/guardar direcciones.
 
-| cursor_mode |                       codificación                        |
-| :---------: | :-------------------------------------------------------: |
-|      0      |      desplazamiento de cursor por tamaño de registro      |
-|      1      | desplazamiento de cursor por aritmética de desplazamiento |
->Si `cursor_mode == 0`, no es necesario indicar el tamaño del avance/retroceso del cursor, pues se calculara automáticamente en base al tamaño del registro general usado. Si el tamaño del registro general es de 1 bytes, al registro cursor de le desplaza en un byte, si el registro general es de 8 bytes, el registro cursor se desplaza 8 bytes. 
->
->`cursor_mode == 1`, en caso de activar el bit se deberá indicar en un registro general(`reg_disp`) la cantidad de desplazamiento a aplicar. Se puede aplicar un desplazamiento de 0, en ese caso, el cursor nunca avanzara ni retrocederá.
+| Registro | Codificación |
+| :------: | :----------: |
+| `cur0`   |   `0b000000` |
+| `cur1`   |   `0b000001` |
+| `cur2`   |   `0b000010` |
+| `cur3`   |   `0b000011` |
 
-### Tipos de desplazamiento del cursor.
+> Se recomienda que los registros cursor **solo contengan direcciones host válidas**. Cuando no se usen deben valer `0` (equivalente a `NULL`). Desreferenciar un cursor nulo o una dirección inválida produce comportamiento indefinido.
 
-| direction | codificación                                                                                                                     |
-| :-------: | :------------------------------------------------------------------------------------------------------------------------------- |
-|     0     | Desplazamiento hacia delante. Este desplazamiento suma el tamaño indicado a la dirección almacenada en el registro cursor.       |
-|     1     | Desplazamiento hacia la izquierda. Este desplazamiento resta el tamaño indicado a la dirección almacenada en el registro cursor. |
+---
 
+## Instrucciones
 
-----
+### `readcur` - leer desde memoria host
 
-| opcode1 |         byte flag1         |            byte flag2            |   byte flag3    |
-| :-----: | :------------------------: | :------------------------------: | :-------------: |
-|   0x3   | ``modo`` `reg` ``reg_cur`` | `direction` `cursor_mode`00 0000 | `reg_disp` 0000 |
->El campo byte flag1 se compone por un campo modo de 2 bits, donde se indica si el registro general se E/S de datos es de 1, 2, 4 u 8 bytes. El campo `reg` indica el [[REGISTROS#Registros generales|registro general]] que se quiere usar como E/S de los datos, este campo permite usar registros de `r0` a `r15`. El campo `reg_cur` indica que registro cursor usar, el cual puede ir de `cur0` a `cur3`.
-
->En caso de que `cursor_mode == 1` el `byte flag3` se tendrá en cuenta para indicar el desplazamiento a realizar, indicando el registro general a usar, este campo hace uso de 4bits para describir el registro a usar.
->En caso de que `cursor_mode == 0` el campo `reg_disp` no se tendrá en cuenta, se espera que sea 0000
-
-
-**Auto‑decrementar 4 bytes (leer 32 bits) y retroceder:**
 ```c
-// leemos el valor actual, almacenamos en r2 y retrocedemos el cursor
-cursor.advanced.r cur1, r2d   // r2d = [cur1]; cur1 -= 4
+readcur  dest_reg, curN
 ```
 
-**Auto‑incrementar 8 bytes (leer 64 bits) y avanzar:**
+Lee N bytes de la dirección host almacenada en `curN` y los escribe en `dest_reg`. El tamaño viene determinado por el sufijo del registro destino (b=1, w=2, d=4, q=8 bytes).
+
+| Opcode1 | Opcode2 | ctrl_byte              | reg_byte          | Total |
+| :-----: | :-----: | :--------------------- | :---------------- | :---: |
+| `0x00`  | `0xC0`  | `mm cc 00 00`          | `0000 rrrr`       |  4 B  |
+
+- `mm` = tamaño: `00`=byte, `01`=word, `10`=dword, `11`=qword
+- `cc` = índice del cursor (0–3)
+- `rrrr` = registro general destino (R0–R15)
+
+**Ejemplo:**
 ```c
-cursor.advanced.r cur0, r0   // r0 = [cur0]; cur0 += 8
+alloc  r1q          // reservar memoria - R0 = ptr host
+xchg   cur0, r0     // cur0 = ptr host
+readcur r2q, cur0   // r2 = *(uint64_t*)cur0
+readcur r3b, cur0   // r3 = *(uint8_t*)cur0  (solo el primer byte)
 ```
 
-**desplazar cursor en base a un registro(resta):**
+---
+
+### `writecur` - escribir en memoria host
+
 ```c
-cursor.advanced.r.addi cur0, r0, r1   // r0 = [cur0]; cur0 += r1
+writecur  curN, src_reg
 ```
 
-**Escritura con auto‑increment 64 bits**
-escribe 8 bytes desde `r0` en la dirección contenida en `cur0`, luego suma 8 a `cur0`.
+Escribe N bytes del registro `src_reg` en la dirección host almacenada en `curN`. El tamaño viene determinado por el sufijo del registro fuente.
+
+| Opcode1 | Opcode2 | ctrl_byte              | reg_byte          | Total |
+| :-----: | :-----: | :--------------------- | :---------------- | :---: |
+| `0x00`  | `0xC1`  | `mm cc 00 00`          | `0000 rrrr`       |  4 B  |
+
+Misma codificación que `readcur`; el primer operando es el cursor (destino en memoria) y el segundo es el registro fuente.
+
+**Ejemplo:**
 ```c
-// *(uint64_t*)cur0 = r0; cur0 += 8
-cursor.advanced.w cur0, r0
+mov    r5, 0xFF00FF00   // valor a escribir
+writecur cur0, r5       // *(uint64_t*)cur0 = r5
+writecur cur1, r6d      // *(uint32_t*)cur1 = r6d (solo 32 bits)
 ```
 
-**Escritura con auto‑decrement 32 bits**
-escribe 4 bytes (registro de 32 bits `r2d`) en `cur1`, luego resta 4 a `cur1`.
+---
+
+### `gcderef` - desreferenciar handle del GC -> cursor
+
 ```c
-// *(uint32_t*)cur1 = r2d; cur1 -= 4
-cursor.advanced.w cur1, r2d
+gcderef  curN, handle_reg
 ```
 
-**Escritura usando desplazamiento desde registro (cursor_mode = 1)**
+Toma el `GcHandle` contenido en `handle_reg`, lo desreferencia mediante la `HandleTable` del GC y almacena el puntero raw al payload del objeto en `curN`. A partir de ese momento `curN` contiene una dirección host válida que puede usarse con `readcur` / `writecur`.
+
+| Opcode1 | Opcode2 | ctrl_byte              | reg_byte          | Total |
+| :-----: | :-----: | :--------------------- | :---------------- | :---: |
+| `0x00`  | `0xC2`  | `00 cc 00 00`          | `0000 rrrr`       |  4 B  |
+
+- `cc` = índice del cursor destino (0–3)
+- `rrrr` = registro general que contiene el handle
+
+> **⚠ Advertencia de invalidación**
+> El puntero obtenido con `gcderef` **puede quedar inválido** tras cualquier ciclo de GC (`GCRUN`, o asignación que dispare un minor GC). Si el GC mueve el objeto la dirección en el cursor queda obsoleta. Úsalo solo en fragmentos cortos de código donde no haya asignaciones intermedias, o llama a `gcderef` de nuevo tras cada posible ciclo.
+
+**Ejemplo:**
 ```c
-// *(uint64_t*)cur0 = r0; cur0 += r3
-// r3 contiene desplazamiento en bytes (puede ser positivo o negativo)
-cursor.advanced.w.addi cur0, r0, r3
+mov    r1, 64        // 64 bytes de payload
+newobj r1            // R0 = GcHandle
+gcderef cur2, r0     // cur2 = puntero al payload del objeto
+writecur cur2, r3    // escribe el primer campo (qword)
+readcur  r4, cur2    // lee el primer campo de vuelta
 ```
+
+---
+
+## Avanzar el cursor manualmente
+
+Las instrucciones cursor no incluyen auto-incremento. Para iterar sobre campos de una estructura, avanza el cursor con `XCHG` + `ADDU` + `XCHG`:
+
+```c
+; Leer dos campos qword consecutivos de un objeto GC
+gcderef cur0, r0          // cur0 -> inicio del payload
+
+readcur r1, cur0          // r1 = campo[0]
+
+xchg    r10, cur0         // r10 = cur0
+addu    r10, 8            // r10 += 8 (saltar 8 bytes)
+xchg    cur0, r10         // cur0 = r10
+
+readcur r2, cur0          // r2 = campo[1]
+```
+
+---
+
+## Patrones de uso completos
+
+### Leer/escribir un buffer de raw allocator
+
+```c
+// Reservar buffer de 256 bytes
+mov    r1, 256
+alloc  r1               // R0 = ptr host
+
+// Guardar puntero en cursor
+xchg   cur0, r0
+
+// Escribir 8 bytes en el inicio
+mov    r5, 0xDEADBEEFCAFEBABE
+writecur cur0, r5
+
+// Leer de vuelta
+readcur r6, cur0        // r6 = 0xDEADBEEFCAFEBABE
+
+// Liberar
+xchg   r0, cur0
+free   r0
+```
+
+### Inicializar un objeto GC campo a campo
+
+```c
+mov    r1, 24           // objeto de 3 campos qword (24 bytes)
+newobj r1               // R0 = GcHandle (guardarlo en r8)
+mov    r8, r0
+
+gcderef cur1, r8        // cur1 -> payload
+
+// campo 0 (offset 0)
+mov    r2, 42
+writecur cur1, r2
+
+// campo 1 (offset 8)
+xchg   r9, cur1
+addu   r9, 8
+xchg   cur1, r9
+mov    r2, 100
+writecur cur1, r2
+
+// campo 2 (offset 16)
+xchg   r9, cur1
+addu   r9, 8
+xchg   cur1, r9
+mov    r2, 0
+writecur cur1, r2
+```
+
+---
+
+## Codificación detallada
+
+Todas las instrucciones cursor son **extensiones de opcode** (opcode1 = `0x00`) de **4 bytes** fijos:
+
+```
+┌────────┬────────┬────────────────────┬────────────────────┐
+│ 0x00   │ opcode │    ctrl_byte       │    reg_byte        │
+│        │        │ mm cc 00 00        │ 0000 rrrr          │
+└────────┴────────┴────────────────────┴────────────────────┘
+          ↑         ↑↑  ↑↑               ↑↑↑↑
+          │         ││  └─ cursor (0–3)  └─── registro gral (0–15)
+          │         └─ modo/tamaño: 00=byte 01=word 10=dword 11=qword
+          └ C0=readcur  C1=writecur  C2=gcderef
+```
+
+Para `gcderef` los bits de modo (`mm`) no se usan (siempre se lee el handle como qword).
+
+---
+
+Ver también: [[GC]], [[Generacional (para objetos OOP)|GcHeap]], [[Allocator crudo para FFI  y memoria manual|RawAllocator]], [[NativeCall (CallN)]], [[XCHG - Exchange]]

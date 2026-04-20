@@ -27,11 +27,11 @@ mov r15, 0 // llamamos a la funcion obtenida con 0 args.
 callnr
 ```
 
-- `r00` → retorno
-- `r01–r12` → argumentos
-- `r15` → argc
-- `r14` → índice dinámico de función nativa, address al momento de ejecutar la instruccion.
-- `r13` → libre para VM
+- `r00` -> retorno
+- `r01–r12` -> argumentos
+- `r15` -> argc
+- `r14` -> índice dinámico de función nativa, address al momento de ejecutar la instruccion.
+- `r13` -> libre para VM
 
 | instrucción | opcode0 | opcode1 |     direccion     |  tamaño  |
 | :---------: | :-----: | :-----: | :---------------: | :------: |

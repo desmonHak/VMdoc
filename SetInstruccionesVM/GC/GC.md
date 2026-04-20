@@ -1,4 +1,4 @@
-# Gestión de memoria — Sistema GC de VestaVM
+# Gestión de memoria - Sistema GC de VestaVM
 
 ## ¿Qué es la memoria y por qué hay que gestionarla?
 
@@ -43,7 +43,7 @@ Sí. Mientras el GC analiza qué objetos están vivos, el programa hace una pequ
 
 En la gestión manual el programador pide memoria con `ALLOC` y la devuelve con `FREE` cuando ya no la necesita. Es más rápido porque no hay análisis automático, pero requiere disciplina: olvidar un `FREE` produce una fuga; hacer `FREE` dos veces sobre el mismo bloque produce corrupción.
 
-Este modo es imprescindible cuando el programa necesita pasar punteros de memoria a funciones externas escritas en C (llamadas **FFI** — *Foreign Function Interface*), porque esas funciones esperan la dirección real de un bloque de bytes en la RAM del host, no un identificador abstracto.
+Este modo es imprescindible cuando el programa necesita pasar punteros de memoria a funciones externas escritas en C (llamadas **FFI** - *Foreign Function Interface*), porque esas funciones esperan la dirección real de un bloque de bytes en la RAM del host, no un identificador abstracto.
 
 ---
 
@@ -63,9 +63,9 @@ Cada proceso tiene sus propias instancias. No se comparten entre procesos, lo qu
 
 | Característica           | GcHeap (generacional)                | RawAllocator (manual)                 |
 | :----------------------- | :----------------------------------- | :------------------------------------ |
-| Instrucción de reserva   | `NEWOBJ size`  → `GcHandle`          | `ALLOC size`  → ptr host real         |
+| Instrucción de reserva   | `NEWOBJ size`  -> `GcHandle`          | `ALLOC size`  -> ptr host real         |
 | Instrucción de liberación | `DROP handle` (opcional)            | `FREE reg` (obligatorio)              |
-| GC automático            | Sí — minor + major                   | No                                    |
+| GC automático            | Sí - minor + major                   | No                                    |
 | Tipo de retorno          | Handle opaco (no es un puntero)      | Puntero host real (`uint64_t`)        |
 | Compatible con FFI       | No                                   | Sí                                    |
 | Uso ideal                | Objetos OOP, grafos, closures        | Buffers C, strings, llamadas nativas  |
@@ -102,9 +102,9 @@ Resultado: **pausas cortas y frecuentes** (Nursery) en lugar de una pausa larga 
 En el GcHeap, el programador nunca recibe la dirección real del objeto en memoria. En su lugar recibe un **handle**: un número entero opaco que actúa como identificador.
 
 ```
-Bytecode:   NEWOBJ 64   →  R0 = 3       (handle, no dirección)
+Bytecode:   NEWOBJ 64   ->  R0 = 3       (handle, no dirección)
                              ↓
-HandleTable:   [3]  →  0x7f3a0000       (dirección real, interna al GC)
+HandleTable:   [3]  ->  0x7f3a0000       (dirección real, interna al GC)
 ```
 
 ¿Por qué? Porque el GC puede necesitar **mover** objetos (por ejemplo, al compactar el heap o al copiar un objeto joven a OldGen). Si el bytecode guardase la dirección directa y el GC mueve el objeto, esa dirección quedaría inválida. Con handles, solo hay que actualizar la entrada en la `HandleTable`; el bytecode no cambia nada.
@@ -134,9 +134,67 @@ En el `RawAllocator` no existe este problema porque el bloque nunca se mueve: la
 
 ---
 
+## Sintaxis en ensamblador Vesta
+
+Todas las instrucciones de memoria están disponibles directamente en los archivos `.vel`. El ensamblador las compila a su bytecode correspondiente.
+
+### GcHeap
+
+```c
+// Crear un objeto de 64 bytes - handle retornado en R0
+mov    r1, 64
+newobj r1            // R0 = GcHandle
+
+// Leer y escribir el payload con instrucciones cursor
+gcderef cur0, r0     // cur0 = puntero raw al payload
+mov     r5, 42
+writecur cur0, r5    // escribe 42 en el primer campo
+readcur  r6, cur0    // r6 = primer campo
+
+// Forzar un ciclo de GC ahora
+gcrun
+
+// Ajustar el umbral de OldGen (umbral en bytes)
+mov    r2, 16777216   // 16 MB
+gcconfig r2
+
+// Liberar el handle cuando ya no se necesite
+mov    r3, r0          // guardar el handle en r3
+drop   r3              // el GC recogerá el objeto en el próximo ciclo
+```
+
+### RawAllocator
+
+```c
+// Reservar un buffer de 256 bytes - ptr host retornado en R0
+mov    r1, 256
+alloc  r1             // R0 = puntero host real
+
+// Guardar puntero y acceder al buffer
+xchg   cur1, r0
+mov    r5, 0xFF
+writecur cur1, r5
+
+// Redimensionar el buffer
+xchg   r0, cur1
+mov    r2, 1024
+realloc r0, r2      // R0 = nuevo puntero (puede cambiar de dirección)
+
+// Liberar
+free   r0
+```
+
+> Los registros se escriben con sufijo de tamaño: `b`=byte, `w`=word, `d`=dword, `q`=qword.
+> Para `newobj`, `gcconfig`, `drop`, `alloc` y `free` se usa un único registro.
+> Para `realloc` se usan dos registros del mismo tamaño: `realloc reg_ptr, reg_size`.
+> `gcrun` no toma operandos.
+
+---
+
 ## Documentación detallada
 
-- [[Generacional (para objetos OOP)]] — Cómo funciona el GcHeap internamente: Nursery, minor GC, major GC, tri-color mark, write barrier, handles, estadísticas.
-- [[Allocator crudo para FFI  y memoria manual]] — Cómo funciona el RawAllocator: contiguidad, FFI, ALLOC/FREE/REALLOC, estadísticas.
+- [[Generacional (para objetos OOP)]] - Cómo funciona el GcHeap internamente: Nursery, minor GC, major GC, tri-color mark, write barrier, handles, estadísticas.
+- [[Allocator crudo para FFI  y memoria manual]] - Cómo funciona el RawAllocator: contiguidad, FFI, ALLOC/FREE/REALLOC, estadísticas.
+- [[cursor]] - Instrucciones `readcur`, `writecur` y `gcderef` para acceder a memoria host desde bytecode.
 
 Ver también: [[VmInstance]], [[NativeCall (CallN)]], [[VmManager]]

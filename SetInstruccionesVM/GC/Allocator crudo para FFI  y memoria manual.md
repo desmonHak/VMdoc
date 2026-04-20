@@ -1,4 +1,4 @@
-# RawAllocator — Memoria cruda para FFI y gestión manual
+# RawAllocator - Memoria cruda para FFI y gestión manual
 
 Allocator manual por proceso sin GC automático. Retorna **punteros host reales** que se pueden pasar directamente a funciones nativas (C/C++, Win32 API, OpenSSL, etc.) a través de [[NativeCall (CallN)]].
 
@@ -8,7 +8,7 @@ Allocator manual por proceso sin GC automático. Retorna **punteros host reales*
 
 ## ¿Qué es FFI y por qué necesita punteros reales?
 
-**FFI** (*Foreign Function Interface*) es el mecanismo por el que VestaVM llama a funciones escritas en otro lenguaje — normalmente C. Ejemplos: llamar a `WriteFile` de Windows, usar OpenSSL para cifrado, invocar una biblioteca de gráficos, etc.
+**FFI** (*Foreign Function Interface*) es el mecanismo por el que VestaVM llama a funciones escritas en otro lenguaje - normalmente C. Ejemplos: llamar a `WriteFile` de Windows, usar OpenSSL para cifrado, invocar una biblioteca de gráficos, etc.
 
 El problema es que esas funciones esperan recibir **la dirección real de un bloque de bytes en la RAM del proceso**. No entienden handles, no entienden objetos con cabeceras, no entienden la `HandleTable` del GC. Solo entienden "dame un puntero a N bytes contiguos".
 
@@ -27,7 +27,7 @@ El `GcHeap` no puede satisfacer esto directamente: los handles son índices, no 
 
 Un bloque de N bytes es **contiguo** cuando `byte[0]`, `byte[1]`, ..., `byte[N-1]` están en posiciones consecutivas de memoria sin huecos ni saltos. La mayoría de las funciones C que reciben buffers asumen esto.
 
-Si la memoria no fuera contigua, una función como `memcpy` que copia desde la dirección dada hasta `dirección + N` leería memoria que no pertenece al buffer — con resultados impredecibles (datos incorrectos, crash, vulnerabilidad de seguridad).
+Si la memoria no fuera contigua, una función como `memcpy` que copia desde la dirección dada hasta `dirección + N` leería memoria que no pertenece al buffer - con resultados impredecibles (datos incorrectos, crash, vulnerabilidad de seguridad).
 
 ---
 
@@ -44,7 +44,7 @@ Vista host (fisica):       [  pagina A en RAM  ][  pagina B en RAM  ]
 
 Si una función C recibe `0x1000` y lee 8192 bytes, lee pagina A + pagina B. Si en el host esas páginas no son adyacentes, la lectura accede a memoria ajena.
 
-`RawAllocator` llama directamente a `VirtualAlloc` (Windows) o `mmap` (POSIX) mediante `vm::allocate_memory()`, que garantiza un **rango contiguo único** en el espacio de direcciones real del proceso host — equivalente a `malloc(3)` pero sin fragmentador intermedio.
+`RawAllocator` llama directamente a `VirtualAlloc` (Windows) o `mmap` (POSIX) mediante `vm::allocate_memory()`, que garantiza un **rango contiguo único** en el espacio de direcciones real del proceso host - equivalente a `malloc(3)` pero sin fragmentador intermedio.
 
 ---
 
@@ -80,92 +80,104 @@ Si el proceso termina con bloques sin liberar, el destructor de `RawAllocator` l
 
 ## Instrucciones bytecode
 
-| Instrucción          | Opcode1 | Opcode2 | Descripción                                               |
-| :------------------- | :-----: | :-----: | :-------------------------------------------------------- |
-| `ALLOC size`         |  `0x00` |  `0xB0` | Reserva `size` bytes contiguos; retorna ptr host en `R0`  |
-| `FREE reg`           |  `0x00` |  `0xB1` | Libera el bloque cuyo ptr está en `reg`                   |
-| `REALLOC reg, size`  |  `0x00` |  `0xB2` | Redimensiona el bloque; retorna nuevo ptr en `R0`         |
+| Instrucción            | Opcode1 | Opcode2 | Descripción                                               |
+| :--------------------- | :-----: | :-----: | :-------------------------------------------------------- |
+| `alloc reg_size`       |  `0x00` |  `0xB0` | Reserva `size` bytes contiguos; retorna ptr host en `R0`  |
+| `free reg_ptr`         |  `0x00` |  `0xB1` | Libera el bloque cuyo ptr está en `reg`                   |
+| `realloc reg_ptr, reg_size` | `0x00` | `0xB2` | Redimensiona el bloque; retorna nuevo ptr en `R0`    |
 
-### Codificación — ALLOC
+Todas son instrucciones de **4 bytes** con opcode extendido (`0x00`):
 
-| opcode1 | opcode2 | bytes 3-6 (size, 32 bits) | total |
-| :-----: | :-----: | :-----------------------: | :---: |
-|  `0x00` |  `0xB0` |       `0xFFFFFFFF`        |   6   |
+```
+[0x00][opcode][ctrl_byte][reg_byte]
+ctrl_byte: bits 7-6 = modo (tamaño del registro), bits 5-0 = 0
+reg_byte:  bits 7-4 = reg2 (solo realloc), bits 3-0 = reg1
+```
 
-Retorna el puntero host real en `R0`. El bloque se inicializa a cero. Si la asignación del sistema operativo falla (sin RAM disponible), retorna `0`.
+### Codificación - `alloc` y `free`
 
-### Codificación — FREE
+| opcode1 | opcode2 | ctrl_byte        | reg_byte          | total |
+| :-----: | :-----: | :--------------- | :---------------- | :---: |
+| `0x00`  | `0xB0`/`0xB1` | `mm 000000` | `0000 rrrr` |   4   |
 
-| opcode1 | opcode2 |      byte3      | total |
-| :-----: | :-----: | :-------------: | :---: |
-|  `0x00` |  `0xB1` | `0b0000`\|`reg` |   3   |
+- `mm` = tamaño del registro (`11` = qword recomendado)
+- `rrrr` = registro fuente (contiene el tamaño en `alloc`, el puntero en `free`)
 
-El registro indicado contiene el puntero retornado por `ALLOC` o `REALLOC`. Si el puntero no fue asignado por este proceso, la instrucción no hace nada — no hay crash por double-free.
+`alloc` retorna el puntero host real en `R0`. Si la asignación falla, `R0 = 0`. El bloque se inicializa a cero.  
+`free` no hace nada si el puntero no fue asignado por este proceso - no hay crash por double-free.
 
-### Codificación — REALLOC
+### Codificación - `realloc`
 
-| opcode1 | opcode2 |      byte3      | bytes 4-7 (new_size, 32 bits) | total |
-| :-----: | :-----: | :-------------: | :---------------------------: | :---: |
-|  `0x00` |  `0xB2` | `0b0000`\|`reg` |          `0xFFFFFFFF`         |   7   |
+| opcode1 | opcode2 | ctrl_byte    | reg_byte                  | total |
+| :-----: | :-----: | :----------- | :------------------------ | :---: |
+| `0x00`  | `0xB2`  | `mm 000000`  | `reg_size\|reg_ptr`       |   4   |
 
-`REALLOC` siempre crea un bloque nuevo, copia los datos y libera el original. El nuevo puntero puede ser distinto del original; el bytecode debe usar el valor de `R0` a partir de ese momento.
+Ambos registros deben ser del mismo tamaño (qword recomendado). Retorna el nuevo puntero en `R0`.
 
 | Caso                    | Resultado                              |
 | :---------------------- | :------------------------------------- |
-| `REALLOC 0, N`          | Equivalente a `ALLOC N`                |
-| `REALLOC ptr, 0`        | Equivalente a `FREE ptr`; R0 = 0       |
+| `realloc r0, r1` donde r0=0  | Equivalente a `alloc`         |
+| `realloc r0, r1` donde r1=0  | Equivalente a `free`; R0=0    |
 | `new_size > old_size`   | Bytes extra inicializados a cero       |
 | `new_size < old_size`   | Bytes sobrantes descartados            |
 
 ---
 
-## Ejemplos en bytecode Vesta
+## Ejemplos en ensamblador Vesta (.vel)
 
 ### Patrón básico: buffer para una función nativa
 
-```vesta
-; Reservar 256 bytes para pasar a una función C
-ALLOC  256         ; R0 = ptr host (ej. 0x7F3A0000)
-mov    r2, r0      ; guardar el puntero en r2
+```c
+// Reservar 256 bytes para pasar a una función C
+mov    r1, 256
+alloc  r1           // R0 = ptr host (ej. 0x7F3A0000)
+mov    r2, r0       // guardar el puntero en r2
 
-; Escribir datos en el buffer
-; (con STOREM o instrucciones de acceso a memoria del host)
+// Cargar el cursor y escribir datos en el buffer
+xchg   cur0, r2
+mov    r5, 0x48656C6C6F000000   // "Hello\0\0\0" en little-endian
+writecur cur0, r5
 
-; Pasar el buffer a la función nativa
-CALLN  SomeNativeFunc, r2
+// Pasar el buffer a la función nativa
+calln  SomeNativeFunc   // r2 debe estar en R0..R15 segun convencion
 
-; Liberar al terminar
-FREE   r2          ; ptr invalido a partir de aqui
+// Liberar al terminar
+free   r2q           // ptr invalido a partir de aqui
 ```
 
 ### Patrón: crecer el buffer según necesidad
 
-```vesta
-ALLOC  512         ; R0 = buffer inicial de 512 bytes
+```c
+mov    r1, 512
+alloc  r1           // R0 = buffer inicial de 512 bytes
 mov    r5, r0
 
-; ... mas adelante, el buffer se queda pequeño ...
+// ... mas adelante, el buffer se queda pequeño ...
 
-REALLOC r5, 2048   ; R0 = nuevo ptr de 2048 bytes (r5 ya no es valido)
-mov     r5, r0     ; actualizar r5 con el nuevo puntero
+mov    r6, 2048
+realloc r5, r6       // R0 = nuevo ptr de 2048 bytes (r5 ya no es valido)
+mov    r5, r0        // actualizar r5 con el nuevo puntero
 
-; ... seguir usando r5 ...
+// ... seguir usando r5 ...
 
-FREE   r5
+free   r5
 ```
 
 ### Patrón: tabla de strings para interop con C
 
-```vesta
-ALLOC  1024        ; R0 = buffer de 1 KiB para strings
+```c
+mov    r1, 1024
+alloc  r1            // R0 = buffer de 1 KiB para strings
 mov    r8, r0
 
-; ... rellenar strings con instrucciones de memoria ...
+// Cargar el cursor y rellenar strings
+xchg   cur0, r8
+// ... writecur para cada campo ...
 
 ; Pasar a funcion que espera un array de char*
-CALLN  ParseArgs, r8
+calln  ParseArgs
 
-FREE   r8
+free   r8
 ```
 
 ---
@@ -177,7 +189,7 @@ Usa `RawAllocator` cuando:
 - Necesitas pasar un buffer a una función C/Win32/POSIX via [[NativeCall (CallN)|CALLN]].
 - La dirección del bloque debe ser estable (no puede cambiar mientras está en uso).
 - El ciclo de vida es conocido y acotado: hay un punto claro donde el bloque ya no se necesita y puedes llamar a `FREE`.
-- Trabajas con estructuras de datos C que contienen punteros internos (listas enlazadas C, structs anidados) — el GC no puede seguir esos punteros para determinar si están vivos.
+- Trabajas con estructuras de datos C que contienen punteros internos (listas enlazadas C, structs anidados) - el GC no puede seguir esos punteros para determinar si están vivos.
 
 Usa `GcHeap` cuando:
 
