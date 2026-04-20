@@ -1,6 +1,9 @@
 Permite ejecutar una llamada a una dirección, poniendo en la pila la dirección de retorno para volver después usando la instrucción [[RET]].
 
+----
+La convencion de llamada dentro de la VM para hacer llamadas a codigo dentro de la VM se encuentra en [[ConvenciónDeLlamadas]]
 
+----
 ## CALL dentro de la VM con dirección. 
 
 | instrucción | opcode1 |     byte2      | tamaño  |

@@ -3,7 +3,7 @@ reg es un registro que contiene una direccion.
 
 | instrucción | opcode1 |     byte2      | tamaño  |
 | :---------: | :-----: | :------------: | :-----: |
-|   CALLVM    |  0x10   | ``0b0001``reg1 | 2 bytes |
+|    JMPF     |  0x10   | ``0b0001``reg1 | 2 bytes |
 >Si se pone `0b0000` en `byte2` la instrucción se convierte en un [[CALLVM]] en lugar de un salto (`JMP`),
 
 ## JMP dentro de la VM con dirección (JUMP FAR). 
