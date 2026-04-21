@@ -117,12 +117,13 @@ En el `RawAllocator` no existe este problema porque el bloque nunca se mueve: la
 
 ### GcHeap
 
-| Instrucción          | Opcode1 | Opcode2 | Descripción                                 |
-| :------------------- | :-----: | :-----: | :------------------------------------------ |
-| `NEWOBJ size`        | `0x00`  | `0xA0`  | Crea objeto; retorna `GcHandle` en `R0`     |
-| `GCRUN`              | `0x00`  | `0xA1`  | Fuerza un ciclo de GC ahora                 |
-| `GCCONFIG threshold` | `0x00`  | `0xA2`  | Ajusta el umbral de OldGen                  |
-| `DROP handle`        | `0x00`  | `0xA3`  | Libera el handle (el GC recogerá el objeto) |
+| Instrucción          | Opcode1 | Opcode2 | Descripción                                           |
+| :------------------- | :-----: | :-----: | :---------------------------------------------------- |
+| `NEWOBJ size`        | `0x00`  | `0xA0`  | Crea objeto; retorna `GcHandle` en `R0`               |
+| `GCRUN`              | `0x00`  | `0xA1`  | Fuerza un ciclo de GC ahora                           |
+| `GCCONFIG threshold` | `0x00`  | `0xA2`  | Ajusta el umbral de OldGen                            |
+| `DROP handle`        | `0x00`  | `0xA3`  | Libera el handle (el GC recogerá el objeto)           |
+| `GCWB old_handle`    | `0x00`  | `0xA4`  | Registra una referencia OLD->YOUNG en el remembered set |
 
 ### RawAllocator
 
@@ -161,6 +162,12 @@ gcconfig r2
 // Liberar el handle cuando ya no se necesite
 mov    r3, r0          // guardar el handle en r3
 drop   r3              // el GC recogerá el objeto en el próximo ciclo
+
+// Grafo de objetos: A (OLD) referencia a B (YOUNG)
+// Obligatorio llamar gcwb después de escribir el handle de B en el payload de A
+gcderef cur0, r_handle_A
+writecur cur0, r_handle_B   // A.campo = B
+gcwb    r_handle_A           // registrar referencia OLD->YOUNG en el remembered set
 ```
 
 ### RawAllocator

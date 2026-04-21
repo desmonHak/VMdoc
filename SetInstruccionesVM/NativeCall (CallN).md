@@ -28,7 +28,7 @@ callnr
 ```
 
 - `r00` -> retorno
-- `r01–r12` -> argumentos
+- `r01-r12` -> argumentos
 - `r15` -> argc
 - `r14` -> índice dinámico de función nativa, address al momento de ejecutar la instruccion.
 - `r13` -> libre para VM
@@ -120,7 +120,7 @@ void VM::exec_CALLN(uint64_t index) {
     int argc = regs[15];
     uint64_t args[12];
     for (int i = 0; i < argc && i < 12; i++)
-        args[i] = regs[i + 1]; // r01–r12
+        args[i] = regs[i + 1]; // r01-r12
 
     // Llamada real
     uint64_t ret = call_native(imp.ptr, args, argc);

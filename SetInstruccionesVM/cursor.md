@@ -41,8 +41,8 @@ Lee N bytes de la dirección host almacenada en `curN` y los escribe en `dest_re
 | `0x00`  | `0xC0`  | `mm cc 00 00`          | `0000 rrrr`       |  4 B  |
 
 - `mm` = tamaño: `00`=byte, `01`=word, `10`=dword, `11`=qword
-- `cc` = índice del cursor (0–3)
-- `rrrr` = registro general destino (R0–R15)
+- `cc` = índice del cursor (0-3)
+- `rrrr` = registro general destino (R0-R15)
 
 **Ejemplo:**
 ```c
@@ -89,7 +89,7 @@ Toma el `GcHandle` contenido en `handle_reg`, lo desreferencia mediante la `Hand
 | :-----: | :-----: | :--------------------- | :---------------- | :---: |
 | `0x00`  | `0xC2`  | `00 cc 00 00`          | `0000 rrrr`       |  4 B  |
 
-- `cc` = índice del cursor destino (0–3)
+- `cc` = índice del cursor destino (0-3)
 - `rrrr` = registro general que contiene el handle
 
 > **⚠ Advertencia de invalidación**
@@ -189,7 +189,7 @@ Todas las instrucciones cursor son **extensiones de opcode** (opcode1 = `0x00`) 
 │        │        │ mm cc 00 00        │ 0000 rrrr          │
 └────────┴────────┴────────────────────┴────────────────────┘
           ↑         ↑↑  ↑↑               ↑↑↑↑
-          │         ││  └─ cursor (0–3)  └─── registro gral (0–15)
+          │         ││  └─ cursor (0-3)  └─── registro gral (0-15)
           │         └─ modo/tamaño: 00=byte 01=word 10=dword 11=qword
           └ C0=readcur  C1=writecur  C2=gcderef
 ```
