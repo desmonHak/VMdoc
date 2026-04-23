@@ -1,311 +1,369 @@
 
-|     Operación      | **Sin signo** | **Con signo** | No aplica |
+|     Operacion      | **Sin signo** | **Con signo** | No aplica |
 | :----------------: | :-----------: | :-----------: | :-------: |
 |      **Suma**      |    `ADDU`     |    `ADDS`     |           |
 |     **Resta**      |    `SUBU`     |    `SUBS`     |           |
-| **Multiplicación** |    `MULU`     |    `MULS`     |           |
-|    **División**    |    `DIVU`     |    `DIVS`     |           |
-|  **Comparación**   |    `CMPU`     |    `CMPS`     |           |
+| **Multiplicacion** |    `MULU`     |    `MULS`     |           |
+|    **Division**    |    `DIVU`     |    `DIVS`     |           |
+|  **Comparacion**   |    `CMPU`     |    `CMPS`     |           |
 |    Incrementar     |               |               |    INC    |
 |    Decrementar     |               |               |    DEC    |
+|      AND bit       |               |               |    AND    |
+|       OR bit       |               |               |     OR    |
+|      XOR bit       |               |               |    XOR    |
+|      NOT bit       |               |               |    NOT    |
+| Despl. izquierda   |               |               |    SHL    |
+|  Despl. logico der |               |               |    SHR    |
+| Despl. arit. der   |               |               |    SAR    |
 
-# Nomenclaruta
-- ``reg1``, ``reg2``: se usa 6bits para expresar cada registro general, revise [[REGISTROS#Registros generales|Registros generales y su codificación.]] En caso de que la instrucción use dos registros, como ``ADD``, ``CMP`` y etc, el modo(2bits) puede indicarse en otro lado y los registros se pueden expresar ambos en un byte usando 4 bits para cada uno.
+# Nomenclatura
+- `reg1`, `reg2`: se usa 6 bits para expresar cada registro general, revise [[REGISTROS#Registros generales|Registros generales y su codificacion.]] En caso de que la instruccion use dos registros, como `ADD`, `CMP` y etc, el modo (2 bits) puede indicarse en otro lado y los registros se pueden expresar ambos en un byte usando 4 bits para cada uno.
 
 # Modos de direccionamiento
-Actualmente solo hay dos modos de direccionamiento, un modo básico de reg-reg
+Actualmente solo hay dos modos de direccionamiento, un modo basico de reg-reg
 ## Modo Basico
 
-El modo básico agrupa el direccionamiento de registro a registro, de memoria a registro y de registro a memoria, sirve para operaciones básicas e intercambio.
+El modo basico agrupa el direccionamiento de registro a registro, de memoria a registro y de registro a memoria, sirve para operaciones basicas e intercambio.
 ## Modo SIB (Scalar + Indice * Base)
 Este modo de acceso sirve principalmente para el acceso a array y estructuras de tipo indice
 
-![[direccionamiento.png]]
-# peculiaridades de las instrucciones aritméticas y lógicas
-La mayoría de instrucciones de este tipo que operan con memoria, usan solo ``5bytes * 8 = 40bits`` para acceder a memoria, por tanto ``0x000000000000 - 0xFFFFFFFFFFFF`` es su rango de operación (Si el Registro de paginado (`RP`) esta configurado en 0).
-Sin embargo, estas pueden usar un registro de ``64bits``(`RP`) para acceder a otras partes de la memoria si es que esto fuera realmente necesario.
+# Peculiaridades de las instrucciones aritmeticas y logicas
+La mayoria de instrucciones de este tipo que operan con memoria, usan solo `5bytes * 8 = 40bits` para acceder a memoria, por tanto `0x000000000000 - 0xFFFFFFFFFFFFFF` es su rango de operacion (Si el Registro de paginado (`RP`) esta configurado en 0).
+Sin embargo, estas pueden usar un registro de `64bits` (`RP`) para acceder a otras partes de la memoria si es que esto fuera realmente necesario.
 
 ----
-# peculiaridades de las instrucciones de acceso a memoria
-Algunas instrucciones como los `mov` y las instrucciones aritmeticológicas permiten el acceso a memoria para cambiar u obtener valores, véase por ejemplo:
+# Peculiaridades de las instrucciones de acceso a memoria
+Algunas instrucciones como los `mov` y las instrucciones aritmetico-logicas permiten el acceso a memoria para cambiar u obtener valores, vease por ejemplo:
 
 ```c
 mov r0, 0x123456789abcdef  
 adds [r0w], 0x1000
 ```
-Aquí lo que esta ocurriendo es que estamos accediendo a la dirección virtual `0x123456789abcdef`
-y estamos sumando un WORD (valor de 16 bits) el cual es ``0x1000``, esto es equivalente a hacer ene C:
+Aqui lo que esta ocurriendo es que estamos accediendo a la direccion virtual `0x123456789abcdef`
+y estamos sumando un WORD (valor de 16 bits) el cual es `0x1000`, esto es equivalente a hacer en C:
 ```c
 uint8_t* mem[...] = { 0 }; // supongamos que esto es memoria.
 
-// en el interprete, la memoria empieza en 0x0 y acaba en 0xffffffffffffffff
-// mem[0x123456789abcdef] = 0; en esta posicion hay un 0 antes de la operacion
-
 // mov r0, 0x123456789abcdef
-int64_t r0 = mem + 0x123456789abcdef; // 0 + 0x123456789abcdef
+int64_t r0 = mem + 0x123456789abcdef;
 
 // adds [r0w], 0x1000
-r0 = *((int32_t*)r0) + 0x1000
-
-// mem[0x123456789abcdef] = 0x1000; se a sumado al valor de la posicion el valor 0x1000
+r0 = *((int32_t*)r0) + 0x1000;
 ```
-Por tanto el tamaño del registro dentro de los ``brackets`` (corchetes `[]`) indica el tamaño de la operación. 
+Por tanto el tamanio del registro dentro de los `brackets` (corchetes `[]`) indica el tamanio de la operacion. 
 
 ----
 
 # INC
 Permite incrementar un registro en 1
 
-| Instrucción | opcode1 | byte (relleno o extensión o registro) | total bytes |
+| Instruccion | opcode1 | byte (relleno o extension o registro) | total bytes |
 | :---------: | :-----: | :-----------------------------------: | :---------: |
 |     INC     |   0x4   |             `0b00` `reg`              |      2      |
 # DEC
 Permite decrementar un registro en 1
 
-| Instrucción | opcode1 | byte (relleno o extensión o registro) | total bytes |
+| Instruccion | opcode1 | byte (relleno o extension o registro) | total bytes |
 | :---------: | :-----: | :-----------------------------------: | :---------: |
 |     DEC     |   0x4   |             `0b01` `reg`              |      2      |
 
 # ADD - Con signo (S) y sin signo (U)
 
-| Instrucción                          | opcode1 | opcode2 |           1byte           |       1byte       | 1byte | 1byte | 1byte |   4byte    | total bytes |
+| Instruccion                          | opcode1 | opcode2 |           1byte           |       1byte       | 1byte | 1byte | 1byte |   4byte    | total bytes |
 | :----------------------------------- | :-----: | :-----: | :-----------------------: | :---------------: | :---: | :---: | :---: | :--------: | :---------: |
-| ``ADDU reg1, reg2``                  |   0x0   |   0x5   |  0b`mode`0d0000<br>d = 0  | ``reg2`` ``reg1`` |       |       |       |            |      4      |
-| TODO                                 |   0x0   |   0x5   | 0b`mode`0d`reg1`<br>d = 1 |                   |       |       |       |            |             |
-| ``ADDS reg2, reg1``                  |   0x0   |   0x5   |  0b`mode`1d0000<br>d = 0  | ``reg2`` ``reg1`` |       |       |       |            |      4      |
-| TODO                                 |   0x0   |   0x5   | 0b`mode`1d`reg1`<br>d = 1 |                   |       |       |       |            |             |
-| ``ADDU reg1, inmmed``                |   0x0   |   0x6   | 0b`mode`0d`reg1`<br>d = 0 |       0xFF        | 0xFF  | 0xFF  | 0xFF  | 0xFFFFFFFF |     10      |
-| ``ADDU [reg], inmmed``               |   0x0   |   0x6   | 0b`mode`0d`reg1`<br>d = 1 |       0xFF        | 0xFF  | 0xFF  | 0xFF  | 0xFFFFFFFF |     10      |
-| ``ADDS reg1, inmmed``                |   0x0   |   0x6   | 0b`mode`1d`reg1`<br>d = 0 |       0xFF        | 0xFF  | 0xFF  | 0xFF  | 0xFFFFFFFF |     10      |
-| ``ADDS [reg], inmmed``               |   0x0   |   0x6   | 0b`mode`1d`reg1`<br>d = 1 |       0xFF        | 0xFF  | 0xFF  | 0xFF  | 0xFFFFFFFF |     10      |
-| ``ADDU reg1, [index*scalar + base]`` |   0x0   |   0x7   | 0b`mode`0d`reg1`<br>d = 0 |      ``SIB``      |       |       |       |            |      4      |
-| ``ADDU [index*scalar + base], reg1`` |   0x0   |   0x7   | 0b`mode`0d`reg1`<br>d = 1 |      ``SIB``      |       |       |       |            |      4      |
-| ``ADDS reg1, [index*scalar + base]`` |   0x0   |   0x7   | 0b`mode`1d`reg1`<br>d = 0 |      ``SIB``      |       |       |       |            |      4      |
-| ``ADDS [index*scalar + base], reg1`` |   0x0   |   0x7   | 0b`mode`1d`reg1`<br>d = 1 |      ``SIB``      |       |       |       |            |      4      |
-
-
+| `ADDU reg1, reg2`                    |   0x0   |   0x5   |  0b`mode`0d0000 d = 0     | `reg2` `reg1`     |       |       |       |            |      4      |
+| `ADDS reg1, reg2`                    |   0x0   |   0x5   |  0b`mode`1d0000 d = 0     | `reg2` `reg1`     |       |       |       |            |      4      |
+| `ADDU reg1, inmmed`                  |   0x0   |   0x6   | 0b`mode`0d`reg1` d = 0    |       0xFF        | 0xFF  | 0xFF  | 0xFF  | 0xFFFFFFFF |     10      |
+| `ADDU [reg], inmmed`                 |   0x0   |   0x6   | 0b`mode`0d`reg1` d = 1    |       0xFF        | 0xFF  | 0xFF  | 0xFF  | 0xFFFFFFFF |     10      |
+| `ADDS reg1, inmmed`                  |   0x0   |   0x6   | 0b`mode`1d`reg1` d = 0    |       0xFF        | 0xFF  | 0xFF  | 0xFF  | 0xFFFFFFFF |     10      |
+| `ADDS [reg], inmmed`                 |   0x0   |   0x6   | 0b`mode`1d`reg1` d = 1    |       0xFF        | 0xFF  | 0xFF  | 0xFF  | 0xFFFFFFFF |     10      |
 
 # SUB - Con signo (S) y sin signo (U)
-| Instrucción                        | opcode1 | opcode2 |            1byte            |     1byte     | 1byte | 1byte | 1byte |   4byte    | total bytes |
+| Instruccion                        | opcode1 | opcode2 |            1byte            |     1byte     | 1byte | 1byte | 1byte |   4byte    | total bytes |
 | :--------------------------------- | :-----: | :-----: | :-------------------------: | :-----------: | :---: | :---: | :---: | :--------: | :---------: |
-| `SUBU reg1, reg2`                  |   0x0   |   0x8   |  0b`mode`0d0000  <br>d = 0  | `reg2` `reg1` |       |       |       |            |      4      |
-| TODO                               |   0x0   |   0x8   | 0b`mode`0d`reg1`  <br>d = 1 |               |       |       |       |            |             |
-| `SUBS reg2, reg1`                  |   0x0   |   0x8   |  0b`mode`1d0000  <br>d = 0  | `reg2` `reg1` |       |       |       |            |      4      |
-| TODO                               |   0x0   |   0x8   | 0b`mode`1d`reg1`  <br>d = 1 |               |       |       |       |            |             |
-| `SUBU reg1, inmmed`                |   0x0   |   0x9   | 0b`mode`0d`reg1`  <br>d = 0 |     0xFF      | 0xFF  | 0xFF  | 0xFF  | 0xFFFFFFFF |     10      |
-| `SUBU [reg], inmmed`               |   0x0   |   0x9   | 0b`mode`0d`reg1`  <br>d = 1 |     0xFF      | 0xFF  | 0xFF  | 0xFF  | 0xFFFFFFFF |     10      |
-| `SUBS reg1, inmmed`                |   0x0   |   0x9   | 0b`mode`1d`reg1`  <br>d = 0 |     0xFF      | 0xFF  | 0xFF  | 0xFF  | 0xFFFFFFFF |     10      |
-| `SUBS [reg], inmmed`               |   0x0   |   0x9   | 0b`mode`1d`reg1`  <br>d = 1 |     0xFF      | 0xFF  | 0xFF  | 0xFF  | 0xFFFFFFFF |     10      |
-| `SUBS reg1, [index*scalar + base]` |   0x0   |   0xA   | 0b`mode`0d`reg1`  <br>d = 0 |     `SIB`     |       |       |       |            |      4      |
-| `SUBS [index*scalar + base], reg1` |   0x0   |   0xA   | 0b`mode`0d`reg1`  <br>d = 1 |     `SIB`     |       |       |       |            |      4      |
-| `SUBU reg1, [index*scalar + base]` |   0x0   |   0xA   | 0b`mode`1d`reg1`  <br>d = 0 |     `SIB`     |       |       |       |            |      4      |
-| `SUBU [index*scalar + base], reg1` |   0x0   |   0xA   | 0b`mode`1d`reg1`  <br>d = 1 |     `SIB`     |       |       |       |            |      4      |
-
+| `SUBU reg1, reg2`                  |   0x0   |   0x8   |  0b`mode`0d0000 d = 0       | `reg2` `reg1` |       |       |       |            |      4      |
+| `SUBS reg1, reg2`                  |   0x0   |   0x8   |  0b`mode`1d0000 d = 0       | `reg2` `reg1` |       |       |       |            |      4      |
+| `SUBU reg1, inmmed`                |   0x0   |   0x9   | 0b`mode`0d`reg1` d = 0      |     0xFF      | 0xFF  | 0xFF  | 0xFF  | 0xFFFFFFFF |     10      |
+| `SUBU [reg], inmmed`               |   0x0   |   0x9   | 0b`mode`0d`reg1` d = 1      |     0xFF      | 0xFF  | 0xFF  | 0xFF  | 0xFFFFFFFF |     10      |
+| `SUBS reg1, inmmed`                |   0x0   |   0x9   | 0b`mode`1d`reg1` d = 0      |     0xFF      | 0xFF  | 0xFF  | 0xFF  | 0xFFFFFFFF |     10      |
+| `SUBS [reg], inmmed`               |   0x0   |   0x9   | 0b`mode`1d`reg1` d = 1      |     0xFF      | 0xFF  | 0xFF  | 0xFF  | 0xFFFFFFFF |     10      |
 
 # MUL - Con signo (S) y sin signo (U)
-| Instrucción                        | opcode1 | opcode2 |            1byte            |     1byte     | 1byte | 1byte |   4byte    | total bytes |
+| Instruccion                        | opcode1 | opcode2 |            1byte            |     1byte     | 1byte | 1byte |   4byte    | total bytes |
 | :--------------------------------- | :-----: | :-----: | :-------------------------: | :-----------: | :---: | :---: | :--------: | :---------: |
-| `MULU reg1, reg2`                  |   0x0   |   0xB   |  0b`mode`0d0000  <br>d = 0  | `reg2` `reg1` |       |       |            |      4      |
-| TODO                               |   0x0   |   0xB   | 0b`mode`0d`reg1`  <br>d = 1 |               |       |       |            |             |
-| `MULS reg2, reg1`                  |   0x0   |   0xB   |  0b`mode`1d0000  <br>d = 0  | `reg2` `reg1` |       |       |            |      4      |
-| TODO                               |   0x0   |   0xB   | 0b`mode`1d`reg1`  <br>d = 1 |               |       |       |            |             |
-| `MULU reg, inmmed`                 |   0x0   |   0xC   | 0b`mode`0d`reg1`  <br>d = 0 |     0xFF      | 0xFF  | 0xFF  | 0xFFFFFFFF |     10      |
-| `MULU [reg], inmmed`               |   0x0   |   0xC   | 0b`mode`0d`reg1`  <br>d = 1 |     0xFF      | 0xFF  | 0xFF  | 0xFFFFFFFF |     10      |
-| `MULS reg, inmmed`                 |   0x0   |   0xC   | 0b`mode`1d`reg1`  <br>d = 0 |     0xFF      | 0xFF  | 0xFF  | 0xFFFFFFFF |     10      |
-| `SUBS [reg], inmmed`               |   0x0   |   0xC   | 0b`mode`1d`reg1`  <br>d = 1 |     0xFF      | 0xFF  | 0xFF  | 0xFFFFFFFF |     10      |
-| `MULU reg1, [index*scalar + base]` |   0x0   |   0xD   | 0b`mode`0d`reg1`  <br>d = 0 |     `SIB`     |       |       |            |      4      |
-| `MULU [index*scalar + base], reg1` |   0x0   |   0xD   | 0b`mode`0d`reg1`  <br>d = 1 |     `SIB`     |       |       |            |      4      |
-| `MULS reg1, [index*scalar + base]` |   0x0   |   0xD   | 0b`mode`1d`reg1`  <br>d = 0 |     `SIB`     |       |       |            |      4      |
-| `MULS [index*scalar + base], reg1` |   0x0   |   0xD   | 0b`mode`1d`reg1`  <br>d = 1 |     `SIB`     |       |       |            |      4      |
+| `MULU reg1, reg2`                  |   0x0   |   0xB   |  0b`mode`0d0000 d = 0       | `reg2` `reg1` |       |       |            |      4      |
+| `MULS reg1, reg2`                  |   0x0   |   0xB   |  0b`mode`1d0000 d = 0       | `reg2` `reg1` |       |       |            |      4      |
+| `MULU reg, inmmed`                 |   0x0   |   0xC   | 0b`mode`0d`reg1` d = 0      |     0xFF      | 0xFF  | 0xFF  | 0xFFFFFFFF |     10      |
+| `MULU [reg], inmmed`               |   0x0   |   0xC   | 0b`mode`0d`reg1` d = 1      |     0xFF      | 0xFF  | 0xFF  | 0xFFFFFFFF |     10      |
+| `MULS reg, inmmed`                 |   0x0   |   0xC   | 0b`mode`1d`reg1` d = 0      |     0xFF      | 0xFF  | 0xFF  | 0xFFFFFFFF |     10      |
+| `MULS [reg], inmmed`               |   0x0   |   0xC   | 0b`mode`1d`reg1` d = 1      |     0xFF      | 0xFF  | 0xFF  | 0xFFFFFFFF |     10      |
 
 # DIV - Con signo (S) y sin signo (U)
 
-| Instrucción                        | opcode1 | opcode2 |            1byte            |     1byte     | 1byte | 1byte | 1byte |   4byte    | total bytes |
+| Instruccion                        | opcode1 | opcode2 |            1byte            |     1byte     | 1byte | 1byte | 1byte |   4byte    | total bytes |
 | :--------------------------------- | :-----: | :-----: | :-------------------------: | :-----------: | :---: | :---: | :---: | :--------: | :---------: |
-| `DIVU reg1, reg2`                  |   0x0   |   0xE   |  0b`mode`0d0000  <br>d = 0  | `reg2` `reg1` |       |       |       |            |      4      |
-| TODO                               |   0x0   |   0xE   | 0b`mode`0d`reg1`  <br>d = 1 |               |       |       |       |            |             |
-| `DIVS reg2, reg1`                  |   0x0   |   0xE   |  0b`mode1d0000  <br>d = 0   | `reg2` `reg1` |       |       |       |            |      4      |
-| TODO                               |   0x0   |   0xE   | 0b`mode`1d`reg1`  <br>d = 1 |               |       |       |       |            |             |
-| `DIVU reg, inmmed`                 |   0x0   |   0xF   | 0b`mode`0d`reg1`  <br>d = 0 |     0xFF      | 0xFF  | 0xFF  | 0xFF  | 0xFFFFFFFF |     10      |
-| `DIVU [reg], inmmed`               |   0x0   |   0xF   | 0b`mode`0d`reg1`  <br>d = 1 |     0xFF      | 0xFF  | 0xFF  | 0xFF  | 0xFFFFFFFF |     10      |
-| `DIVS reg, inmmed`                 |   0x0   |   0xF   | 0b`mode`1d`reg1`  <br>d = 0 |     0xFF      | 0xFF  | 0xFF  | 0xFF  | 0xFFFFFFFF |     10      |
-| `DIVS [reg], inmmed`               |   0x0   |   0xF   | 0b`mode`1d`reg1`  <br>d = 1 |     0xFF      | 0xFF  | 0xFF  | 0xFF  | 0xFFFFFFFF |     10      |
-| `DIVU reg1, [index*scalar + base]` |   0x0   |  0x10   | 0b`mode`0d`reg1`  <br>d = 0 |     `SIB`     |       |       |       |            |      4      |
-| `DIVU [index*scalar + base], reg1` |   0x0   |  0x10   | 0b`mode`0d`reg1`  <br>d = 1 |     `SIB`     |       |       |       |            |      4      |
-| `DIVS reg1, [index*scalar + base]` |   0x0   |  0x10   | 0b`mode`1d`reg1`  <br>d = 0 |     `SIB`     |       |       |       |            |      4      |
-| `DIVS [index*scalar + base], reg1` |   0x0   |  0x10   | 0b`mode`1d`reg1`  <br>d = 1 |     `SIB`     |       |       |       |            |      4      |
-
-
-# Operaciones logicas a nivel de bits
-
-- Básicas
-    - AND
-    - OR
-    - XOR
-    - NOT
-
-- Desplazamientos
-    - SHL
-    - SHR
-    - SAR
-
-- Opcionales
-    - ROL
-    - ROR
-
-## AND
-
-```c
-and r01, r02
-```
-
-```c
-and r01, 0xffffffffffffffff
-```
-
-## OR
-
-```c
-or r01, r02      // activar el bit 7
-```
-
-```c
-or r01, 0x80      // activar el bit 7
-```
-
-## XOR
-
-```c
-xor r01, r02    
-```
-
-```c
-xor r01, 0x80     // r01 = 0 (más rápido que MOV)
-```
-
-## NOT
-
-```c
-not r01           // 0x0000FFFF -> 0xFFFF0000
-```
-
-## SHL / SAL - Desplazamiento lógico/arimético a la izquierda
-Multiplica por 2.
-Mueve bits hacia la izquierda.
-```c
-shl r01, 1
-```
-
-## SHR - Desplazamiento lógico a la derecha
-Divide por 2 sin signo
-```c
-shr r01, 1
-```
-
-## SAR - Desplazamiento aritmético a la derecha
-Divide por 2 con signo
-Mantiene el bit de signo
-```c
-sar r01, 1
-```
+| `DIVU reg1, reg2`                  |   0x0   |   0xE   |  0b`mode`0d0000 d = 0       | `reg2` `reg1` |       |       |       |            |      4      |
+| `DIVS reg1, reg2`                  |   0x0   |   0xE   |  0b`mode`1d0000 d = 0       | `reg2` `reg1` |       |       |       |            |      4      |
+| `DIVU reg, inmmed`                 |   0x0   |   0xF   | 0b`mode`0d`reg1` d = 0      |     0xFF      | 0xFF  | 0xFF  | 0xFF  | 0xFFFFFFFF |     10      |
+| `DIVU [reg], inmmed`               |   0x0   |   0xF   | 0b`mode`0d`reg1` d = 1      |     0xFF      | 0xFF  | 0xFF  | 0xFF  | 0xFFFFFFFF |     10      |
+| `DIVS reg, inmmed`                 |   0x0   |   0xF   | 0b`mode`1d`reg1` d = 0      |     0xFF      | 0xFF  | 0xFF  | 0xFF  | 0xFFFFFFFF |     10      |
+| `DIVS [reg], inmmed`               |   0x0   |   0xF   | 0b`mode`1d`reg1` d = 1      |     0xFF      | 0xFF  | 0xFF  | 0xFF  | 0xFFFFFFFF |     10      |
 
 # CMP - Con signo (S) y sin signo (U)
-| Flag              | **Condición**          | **Uso típico**       |
+| Flag              | **Condicion**          | **Uso tipico**       |
 | ----------------- | ---------------------- | -------------------- |
 | **ZF** (Zero)     | `op1 == op2`           | `JE/JZ`, `JNE/JNZ`   |
 | **CF** (Carry)    | `op1 < op2` (unsigned) | `JB/JC`, `JAE/JNC`   |
 | **SF** (Sign)     | `op1 < op2` (signed)   | `JL/JNGE`, `JGE/JNL` |
 | **OF** (Overflow) | Overflow signed        | `JO`, `JNO`          |
 
-```c
-struct Flags {
-    bool ZF;  // Zero Flag     -> JE/JNE
-    bool CF;  // Carry Flag    -> JB/JAE (unsigned)
-    bool SF;  // Sign Flag     -> JL/JGE (signed)  
-    bool OF;  // Overflow Flag -> JO/JNO (signed)
-};
-```
+| Instruccion                        | opcode1 | opcode2 |            1byte            |     1byte     | 1byte | 1byte | 1byte |   4byte    | total bytes |
+| :--------------------------------- | :-----: | :-----: | :-------------------------: | :-----------: | :---: | :---: | :---: | :--------: | :---------: |
+| `CMPU reg1, reg2`                  |   0x0   |  0x11   |  0b`mode`0d0000 d = 0       | `reg2` `reg1` |       |       |       |            |      4      |
+| `CMPS reg1, reg2`                  |   0x0   |  0x11   |  0b`mode`1d0000 d = 0       | `reg2` `reg1` |       |       |       |            |      4      |
+| `CMPU reg, inmmed`                 |   0x0   |  0x12   | 0b`mode`0d`reg1` d = 0      |     0xFF      | 0xFF  | 0xFF  | 0xFF  | 0xFFFFFFFF |     10      |
+| `CMPU [reg], inmmed`               |   0x0   |  0x12   | 0b`mode`0d`reg1` d = 1      |     0xFF      | 0xFF  | 0xFF  | 0xFF  | 0xFFFFFFFF |     10      |
+| `CMPS reg, inmmed`                 |   0x0   |  0x12   | 0b`mode`1d`reg1` d = 0      |     0xFF      | 0xFF  | 0xFF  | 0xFF  | 0xFFFFFFFF |     10      |
+| `CMPS [reg], inmmed`               |   0x0   |  0x12   | 0b`mode`1d`reg1` d = 1      |     0xFF      | 0xFF  | 0xFF  | 0xFF  | 0xFFFFFFFF |     10      |
 
-## **1. Saltos por IGUALDAD (ZF)**
+## Saltos por IGUALDAD (ZF)
 
-| Instrucción | **Condición** | **Uso**           | **Assembly**           |
+| Instruccion | **Condicion** | **Uso**           | **Assembly**           |
 | ----------- | ------------- | ----------------- | ---------------------- |
 | `JE/JZ`     | `ZF=1`        | Igual/Cero        | `cmp r1,r2; je ok`     |
 | `JNE/JNZ`   | `ZF=0`        | Diferente/No cero | `cmp r1,r2; jne error` |
-## **2. Saltos UNSIGNED (CF)**
 
-| Instrucción | **Condición**  | **Uso**                | **Assembly**            |
+## Saltos UNSIGNED (CF)
+
+| Instruccion | **Condicion**  | **Uso**                | **Assembly**            |
 | ----------- | -------------- | ---------------------- | ----------------------- |
 | `JB/JC`     | `CF=1`         | Menor (unsigned)       | `cmpu r1,r2; jb menor`  |
 | `JAE/JNC`   | `CF=0`         | Mayor/Igual (unsigned) | `cmpu r1,r2; jae mayor` |
-| `JBE/JNA`   | CF=1 \|\| ZF=1 | Menor/Igual (unsigned) | `cmpu r1,r2; jbe mayor` |
+| `JBE/JNA`   | CF=1 || ZF=1   | Menor/Igual (unsigned) | `cmpu r1,r2; jbe mayor` |
 | `JA/JNBE`   | `CF=0 && ZF=0` | Mayor (unsigned)       | `cmpu r1,r2; ja loop`   |
-## **3. Saltos SIGNED (SF, OF)**
-| Instrucción | **Condición**      | **Uso**              | **Assembly**          |
+
+## Saltos SIGNED (SF, OF)
+| Instruccion | **Condicion**      | **Uso**              | **Assembly**          |
 | ----------- | ------------------ | -------------------- | --------------------- |
-| `JL/JNGE`   | `SF ≠ OF`          | Menor (signed)       | `cmps r1,r2; jl neg`  |
+| `JL/JNGE`   | `SF != OF`         | Menor (signed)       | `cmps r1,r2; jl neg`  |
 | `JGE/JNL`   | `SF == OF`         | Mayor/Igual (signed) | `cmps r1,r2; jge pos` |
-| `JLE/JNG`   | CF=1 \|\| SF≠OF    | Menor/Igual (signed) | `cmps r1,r2; jle pos` |
+| `JLE/JNG`   | CF=1 || SF!=OF     | Menor/Igual (signed) | `cmps r1,r2; jle pos` |
 | `JG/JNLE`   | `ZF=0 && SF == OF` | Mayor (signed)       | `cmps r1,r2; jg max`  |
-## **4. Saltos especiales (OF)**
-| Instrucción | **Condición** | **Uso**         | **Assembly**           |
+
+## Saltos especiales (OF)
+| Instruccion | **Condicion** | **Uso**         | **Assembly**           |
 | ----------- | ------------- | --------------- | ---------------------- |
 | `JO`        | `OF=1`        | Overflow signed | `cmps r1,r2; jo error` |
 | `JNO`       | `OF=0`        | No overflow     | `cmps r1,r2; jno ok`   |
-## **5. Salto incondicional**
-| Instrucción | **Condición** | **Assembly** |
+
+## Salto incondicional
+| Instruccion | **Condicion** | **Assembly** |
 | ----------- | ------------- | ------------ |
 | [[JMP]]     | Siempre       | `jmp loop`   |
 
-| Instrucción                        | opcode1 | opcode2 |            1byte            |     1byte     | 1byte | 1byte | 1byte |   4byte    | total bytes |
-| :--------------------------------- | :-----: | :-----: | :-------------------------: | :-----------: | :---: | :---: | :---: | :--------: | :---------: |
-| `CMPU reg1, reg2`                  |   0x0   |  0x11   |  0b`mode`0d0000  <br>d = 0  | `reg2` `reg1` |       |       |       |            |      4      |
-| TODO                               |   0x0   |  0x11   | 0b`mode`0d`reg1`  <br>d = 0 |               |       |       |       |            |             |
-| `CMPS reg2, reg1`                  |   0x0   |  0x11   |  0b`mode`1d0000  <br>d = 0  | `reg2` `reg1` |       |       |       |            |      4      |
-| TODO                               |   0x0   |  0x11   | 0b`mode`1d`reg1`  <br>d = 1 |               |       |       |       |            |             |
-| `CMPU reg, inmmed`                 |   0x0   |  0x12   | 0b`mode`0d`reg1`  <br>d = 0 |     0xFF      | 0xFF  | 0xFF  | 0xFF  | 0xFFFFFFFF |     10      |
-| `CMPU [reg], inmmed`               |   0x0   |  0x12   | 0b`mode`0d`reg1`  <br>d = 1 |     0xFF      | 0xFF  | 0xFF  | 0xFF  | 0xFFFFFFFF |     10      |
-| `CMPS reg, inmmed`                 |   0x0   |  0x12   | 0b`mode`1d`reg1`  <br>d = 0 |     0xFF      | 0xFF  | 0xFF  | 0xFF  | 0xFFFFFFFF |     10      |
-| `CMPS [reg], inmmed`               |   0x0   |  0x12   | 0b`mode`1d`reg1`  <br>d = 1 |     0xFF      | 0xFF  | 0xFF  | 0xFF  | 0xFFFFFFFF |     10      |
-| `CMPU reg1, [index*scalar + base]` |   0x0   |  0x13   | 0b`mode`0d`reg1`  <br>d = 0 |     `SIB`     |       |       |       |            |      4      |
-| `CMPU [index*scalar + base], reg1` |   0x0   |  0x13   | 0b`mode`0d`reg1`  <br>d = 1 |     `SIB`     |       |       |       |            |      4      |
-| `CMPS reg1, [index*scalar + base]` |   0x0   |  0x13   | 0b`mode`1d`reg1`  <br>d = 0 |     `SIB`     |       |       |       |            |      4      |
-| `CMPS [index*scalar + base], reg1` |   0x0   |  0x13   | 0b`mode`1d`reg1`  <br>d = 1 |     `SIB`     |       |       |       |            |      4      |
+---
 
-|  Flag  | **Condición**          | **`op1 < op2`** | **`op1 = op2`** | **`op1 > op2`** |
-| :----: | :--------------------- | :-------------: | :-------------: | :-------------: |
-| **ZF** | `(op1 - op2) == 0`     |       `0`       |     **`1`**     |       `0`       |
-| **CF** | `op1 < op2` (unsigned) |     **`1`**     |       `0`       |       `0`       |
-| **SF** | `NO usado`             |       `-`       |       `-`       |       `-`       |
-| **OF** | `NO usado`             |       `-`       |       `-`       |       `-`       |
-```c
-void cmpu(uint32_t op1, uint32_t op2) {
-    uint32_t result = op1 - op2;
-    flags.ZF = (result == 0);
-    flags.CF = (op1 < op2);  // Carry si underflow unsigned
-    // SF y OF = NO modificados o definidos
-}
+# Operaciones logicas a nivel de bits
+
+## AND - Y logico bit a bit
+
+```asm
+and r1, r2          ; r1 = r1 & r2
 ```
 
-|  Flag  | **Condición**          | **`op1 < op2`** | **`op1 = op2`** | **`op1 > op2`** |
-| :----: | :--------------------- | :-------------: | :-------------: | :-------------: |
-| **ZF** | `(op1 - op2) == 0`     |       `0`       |     **`1`**     |       `0`       |
-| **CF** | `op1 < op2` (unsigned) |      `1*`       |       `0`       |       `0`       |
-| **SF** | `MSB(result) == 1`     |     **`1`**     |       `0`       |       `0`       |
-| **OF** | `Overflow signed`      |   **`varía`**   |       `0`       |   **`varía`**   |
-```c
-void cmps(uint32_t op1, uint32_t op2) {
-    int32_t s1 = (int32_t)op1;
-    int32_t s2 = (int32_t)op2;
-    int32_t result = s1 - s2;
-    
-    flags.ZF = (result == 0);
-    flags.SF = (result < 0);                    // Sign bit
-    
-    // Overflow signed
-    flags.OF = ((s1 ^ s2) & 0x80000000) &&  // CHECKEA SOLO BIT SIGNO (MSB)
-               ((s1 ^ result) & 0x80000000);  
-               
-    flags.CF = (op1 < op2);                     // Unsigned carry también
-}
+| Instruccion   | opcode1 | opcode2 | byte3                  | byte4          | total bytes |
+| :------------ | :-----: | :-----: | :--------------------: | :------------: | :---------: |
+| `AND r1, r2`  |  0x00   |  0x17   | 0b`mode`0d0000 d=0     | `r2<<4 | r1`   |      4      |
+
+No tiene variante con signo (los bits no tienen signo). Actualiza ZF y SF. CF y OF se ponen a 0.
+
+```asm
+mov r1, 0xFF
+mov r2, 0x0F
+and r1, r2          ; r1 = 0x0F (mascara de 4 bits bajos)
+
+mov r3, 0xAA        ; 1010 1010
+mov r4, 0x55        ; 0101 0101
+and r3, r4          ; r3 = 0x00 (bits no solapan)
 ```
+
+## OR - O logico bit a bit
+
+```asm
+or r1, r2           ; r1 = r1 | r2
+```
+
+| Instruccion   | opcode1 | opcode2 | byte3                  | byte4          | total bytes |
+| :------------ | :-----: | :-----: | :--------------------: | :------------: | :---------: |
+| `OR r1, r2`   |  0x00   |  0x18   | 0b`mode`0d0000 d=0     | `r2<<4 | r1`   |      4      |
+
+```asm
+mov r1, 0xF0
+mov r2, 0x0F
+or  r1, r2          ; r1 = 0xFF (union de bits)
+
+; Activar el bit 7:
+or  r1, 0x80        ; instruccion pendiente: or con inmediato (no implementado aun)
+```
+
+## XOR - O exclusivo bit a bit
+
+```asm
+xor r1, r2          ; r1 = r1 ^ r2
+```
+
+| Instruccion   | opcode1 | opcode2 | byte3                  | byte4          | total bytes |
+| :------------ | :-----: | :-----: | :--------------------: | :------------: | :---------: |
+| `XOR r1, r2`  |  0x00   |  0x19   | 0b`mode`0d0000 d=0     | `r2<<4 | r1`   |      4      |
+
+```asm
+mov r1, 0xAA
+mov r2, 0x55
+xor r1, r2          ; r1 = 0xFF (todos los bits distintos -> todos a 1)
+
+xor r3, r3          ; r3 = 0x00 (poner registro a cero, mas rapido que mov r3, 0)
+```
+
+## NOT - Complemento a 1 (negacion bit a bit)
+
+```asm
+not r1              ; r1 = ~r1
+```
+
+| Instruccion   | opcode1 | opcode2 | byte3          | byte4    | total bytes |
+| :------------ | :-----: | :-----: | :------------: | :------: | :---------: |
+| `NOT r1`      |  0x00   |  0x1A   | 0b`mode`000000 | `0 | r1` |      4      |
+
+NOT invierte todos los bits del registro. Actualiza ZF y SF. CF y OF se ponen a 0.
+
+```asm
+mov r1, 0
+not r1              ; r1 = 0xFFFFFFFFFFFFFFFF (todos los bits a 1)
+
+mov r2, 0xFFFFFFFFFFFFFFFF
+not r2              ; r2 = 0x00 (todos los bits a 0)
+
+; Mascara inversa:
+mov r3, 0x0F
+not r3              ; r3 = 0xFFFFFFFFFFFFFFF0
+```
+
+---
+
+# Desplazamientos de bits
+
+## SHL - Desplazamiento logico a la izquierda
+
+Multiplica por 2^n. Mueve bits hacia la izquierda, rellena con ceros por la derecha.
+
+```asm
+shl r1, r2          ; r1 = r1 << (r2 & 63)
+```
+
+| Instruccion   | opcode1 | opcode2 | byte3                  | byte4          | total bytes |
+| :------------ | :-----: | :-----: | :--------------------: | :------------: | :---------: |
+| `SHL r1, r2`  |  0x00   |  0x1B   | 0b`mode`0d0000 d=0     | `r2<<4 | r1`   |      4      |
+
+El segundo operando se enmascara con `& (sizeof(T)*8 - 1)` para evitar desplazamientos fuera de rango.
+CF recibe el ultimo bit desplazado fuera.
+
+```asm
+mov r1, 0x01
+mov r2, 7
+shl r1, r2          ; r1 = 0x80 (1 desplazado 7 posiciones a la izquierda)
+
+mov r1, 1
+mov r2, 3
+shl r1, r2          ; r1 = 8 (1 * 2^3)
+```
+
+## SHR - Desplazamiento logico a la derecha
+
+Divide por 2^n sin signo. Mueve bits hacia la derecha, rellena con ceros por la izquierda.
+
+```asm
+shr r1, r2          ; r1 = r1 >> (r2 & 63)  (relleno con 0)
+```
+
+| Instruccion   | opcode1 | opcode2 | byte3                  | byte4          | total bytes |
+| :------------ | :-----: | :-----: | :--------------------: | :------------: | :---------: |
+| `SHR r1, r2`  |  0x00   |  0x1C   | 0b`mode`0d0000 d=0     | `r2<<4 | r1`   |      4      |
+
+```asm
+mov r1, 0x80
+mov r2, 7
+shr r1, r2          ; r1 = 0x01
+
+mov r1, 0xFF00
+mov r2, 8
+shr r1, r2          ; r1 = 0xFF
+```
+
+## SAR - Desplazamiento aritmetico a la derecha
+
+Divide por 2^n con signo. Propaga el bit de signo (bit 63) hacia la izquierda.
+
+```asm
+sar r1, r2          ; r1 = r1 >> (r2 & 63)  (relleno con bit de signo)
+```
+
+| Instruccion   | opcode1 | opcode2 | byte3                  | byte4          | total bytes |
+| :------------ | :-----: | :-----: | :--------------------: | :------------: | :---------: |
+| `SAR r1, r2`  |  0x00   |  0x1D   | 0b`mode`0d0000 d=0     | `r2<<4 | r1`   |      4      |
+
+A diferencia de SHR, SAR mantiene el signo del valor:
+- Si el bit 63 era 1 (negativo), se rellena con 1s.
+- Si el bit 63 era 0 (positivo), se rellena con 0s (igual que SHR).
+
+```asm
+; Numero positivo: igual que SHR
+mov r1, 0x0F00
+mov r2, 4
+sar r1, r2          ; r1 = 0x00F0 (igual que SHR, bit signo era 0)
+
+; Numero negativo: propaga el signo
+mov r1, 0xFF00000000000000   ; int64 negativo (bit 63 = 1)
+mov r2, 55
+sar r1, r2          ; r1 = 0xFFFFFFFFFFFFFFFE (= -2 con signo)
+                    ; (0xFF00000000000000 como int64 = -72057594037927936; >> 55 = -2)
+```
+
+### Diferencia SHR vs SAR con valores negativos
+
+```asm
+mov r1, 0xFF00000000000000  ; mismo valor para ambas
+mov r2, 0xFF00000000000000
+mov r3, 55
+mov r4, 55
+
+shr r1, r3          ; r1 = 0x000000000000001F  (rellena con 0s, trata como unsigned)
+sar r2, r4          ; r2 = 0xFFFFFFFFFFFFFFFE  (rellena con 1s, propaga signo)
+```
+
+---
+
+# Codificacion binaria comun
+
+Todas las instrucciones logicas y de desplazamiento usan el formato de la tabla extendida (prefijo `0x00`):
+
+```
++--------+--------+--------------------+--------------------+
+| 0x00   | opcode | mode<<6 | 0 | 0000 |  reg2<<4 | reg1   |
++--------+--------+--------------------+--------------------+
+  byte 0   byte 1       byte 2               byte 3
+```
+
+- `mode` (2 bits, 7-6): 0=byte, 1=word, 2=dword, 3=qword
+- `reg1` (4 bits, 3-0): registro destino
+- `reg2` (4 bits, 7-4): registro fuente
+- Las instrucciones NOT usan reg2=0 (solo un operando)
+
+| Instruccion | opcode2 | Tipo     |
+| :---------- | :-----: | :------- |
+| `and`       |  0x17   | binaria  |
+| `or`        |  0x18   | binaria  |
+| `xor`       |  0x19   | binaria  |
+| `not`       |  0x1A   | unaria   |
+| `shl`       |  0x1B   | binaria  |
+| `shr`       |  0x1C   | binaria  |
+| `sar`       |  0x1D   | binaria  |

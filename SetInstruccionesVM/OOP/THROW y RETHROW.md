@@ -44,11 +44,23 @@ Si `reg_exc == 0`: segmentation fault (`EVT_ERROR`) inmediato.
 ```cpp
 struct HandlerException {
     ClassInfo *type;       // nullptr = catch-all (finally / catch(Exception))
-    uint64_t   start_pc;   // inicio del bloque try (offset desde code_vaddr)
-    uint64_t   end_pc;     // fin exclusivo del bloque try
-    uint64_t   handler_pc; // destino de salto (offset desde code_vaddr)
-};  // 32 bytes
+    uint32_t   start_pc;   // inicio del bloque try (offset desde code_vaddr)
+    uint32_t   end_pc;     // fin exclusivo del bloque try
+    uint32_t   handler_pc; // destino de salto (offset desde code_vaddr)
+};  // 24 bytes (type=8B + tres dwords=12B + 4B padding de alineacion)
 ```
+
+Layout en memoria:
+
+```
++0   type        (8B)  ClassInfo* (null = catch-all)
++8   start_pc    (4B)  uint32_t - offset inicio del bloque try
++12  end_pc      (4B)  uint32_t - offset fin exclusivo del bloque try
++16  handler_pc  (4B)  uint32_t - offset del bloque catch/finally
++20  --          (4B)  padding de alineacion
+```
+
+Total: 24 bytes por entrada.
 
 El campo `type` se compara con `is_instance_of(exc_class, h.type)`, que recorre recursivamente `supers[]` e `interfaces[]`: un handler de tipo `Exception` captura tanto `RuntimeException` como `IOException`.
 
