@@ -91,8 +91,8 @@ wmint 0x0F  // invocar la interrupcion virtual 0x0F que crea una syscall virtual
 En Windows 32-bit moderno, las funciones de `ntdll.dll` usan instrucciones como:
 ```js
 mov eax, syscall_number
-mov edx, fs:[0xC0]       ; dirección del KERNEL32.sys service dispatcher
-call edx                 ; (antiguamente era int 0x2e)
+mov edx, fs:[0xC0]       // dirección del KERNEL32.sys service dispatcher
+call edx                 // (antiguamente era int 0x2e)
 ```
 
 |Registro|Uso|
@@ -118,9 +118,9 @@ int 0x2E
 |`[RSP+8]`|Quinto argumento|
 |`[RSP+16]`|Sexto argumento|
 ```js
-mov     r10, rcx      ; Windows requiere que r10 contenga la dirección de retorno para syscall
-mov     eax, 0x3D     ; syscall number for NtWriteFile (puede variar)
-syscall               ; transición al kernel
+mov     r10, rcx      // Windows requiere que r10 contenga la dirección de retorno para syscall
+mov     eax, 0x3D     // syscall number for NtWriteFile (puede variar)
+syscall               // transición al kernel
 ```
 
 Lo mejor en este caso será hacer una syscall indirecta a alguna función NT de la ntdll. 

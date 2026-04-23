@@ -302,7 +302,7 @@ Si no puedes saber en tiempo de compilación si el objeto es OLD o YOUNG, **emit
 | `GCRUN`              |  `0x00` |  `0xA1` | Dispara minor + (si procede) major GC manualmente     |
 | `GCCONFIG threshold` |  `0x00` |  `0xA2` | Configura el umbral de OldGen para major GC           |
 | `DROP handle`        |  `0x00` |  `0xA3` | Libera el handle directo; el objeto puede morir en GC |
-| `GCWB old_handle`    |  `0x00` |  `0xA4` | Registra referencia OLD→YOUNG en el remembered set    |
+| `GCWB old_handle`    |  `0x00` |  `0xA4` | Registra referencia OLD->YOUNG en el remembered set    |
 
 ---
 
