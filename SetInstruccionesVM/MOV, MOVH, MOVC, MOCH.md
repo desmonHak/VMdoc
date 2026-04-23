@@ -1,6 +1,6 @@
 ## MOV
 
-Permite mover valores entre registros, necesita de [[LOADM]] y [[STOREM]] para cargar y dejar valores en la memoria. También permite mover valores inmediatos a registros.
+Permite mover valores entre registros. También permite mover valores inmediatos a registros.
 
 ## MOVH
 Permite mover valores entre los registros de la VM y direcciones de host arbitrarias.
@@ -138,49 +138,77 @@ MOVCH rThreadID, [rBase], DM
 
 ## Codificación
 
-Permite los mismos modos de codificación que las [[Aritmetica y logica|instrucciones arimetico logicas]] 
+Permite los mismos modos de codificación que las [[Aritmetica y logica|instrucciones arimetico logicas]], incluyendo el bit `has_index` del ctrl SIB (bit 1 de byte2 en formato SIB): cuando es 0 la dirección efectiva es solo `base`; cuando es 1 es `base + index*scale`.
 
-| Instrucción                          | opcode1 | opcode2 |           1byte           |      1byte       | 1byte | 1byte | 1byte |   4byte    | total bytes |
-| :----------------------------------- | :-----: | :-----: | :-----------------------: | :--------------: | :---: | :---: | :---: | :--------: | :---------: |
-| ``MOV reg1, reg2``                   |   0x0   |  0x14   |  0b`mode`0d0000<br>d = 0  | `reg2`<br>`reg1` |       |       |       |            |      4      |
-| TODO                                 |   0x0   |  0x14   |  0b`mode`0d0000<br>d = 1  |                  |       |       |       |            |             |
-| ``MOV reg_ext, reg``                 |   0x0   |  0x14   |  0b`mode`1d0000<br>d = 0  |                  |       |       |       |            |      4      |
-| ``MOV reg, reg_ext``                 |   0x0   |  0x14   |  0b`mode`1d0000<br>d = 1  | `reg2`<br>`reg1` |       |       |       |            |             |
-| ``MOV reg1, inmmed``                 |   0x0   |  0x15   | 0b`mode`0d`reg1`<br>d = 0 |       0xFF       | 0xFF  | 0xFF  | 0xFF  | 0xFFFFFFFF |     10      |
-|                                      |   0x0   |  0x15   | 0b`mode`0d`reg1`<br>d = 1 |                  |       |       |       |            |     10      |
-| ``MOV [reg], inmmed``                |   0x0   |  0x15   | 0b`mode`1d`reg1`<br>d = 0 |       0xFF       | 0xFF  | 0xFF  | 0xFF  | 0xFFFFFFFF |     10      |
-| ``MOV reg_ext, inmmed``              |   0x0   |  0x15   | 0b`mode`1d`reg1`<br>d = 1 |       0xFF       | 0xFF  | 0xFF  | 0xFF  | 0xFFFFFFFF |     10      |
-| ``MOV reg1, [index*scalar + base]``  |   0x0   |  0x16   | 0b`mode`0d`reg1`<br>d = 0 |     ``SIB``      |       |       |       |            |      4      |
-| ``MOV [index*scalar + base], reg1``  |   0x0   |  0x16   | 0b`mode`0d`reg1`<br>d = 1 |     ``SIB``      |       |       |       |            |      4      |
-| ``MOVH reg1, [index*scalar + base]`` |   0x0   |  0x16   | 0b`mode`1d`reg1`<br>d = 0 |     ``SIB``      |       |       |       |            |      4      |
-| ``MOVH [index*scalar + base], reg1`` |   0x0   |  0x16   | 0b`mode`1d`reg1`<br>d = 1 |     ``SIB``      |       |       |       |            |      4      |
+| Instrucción                          | opcode1 | opcode2 |           byte3 (ctrl)        |      byte4 (regs)      | byte5 | byte6 | byte7 |   bytes 8-11 | total bytes |
+| :----------------------------------- | :-----: | :-----: | :---------------------------: | :--------------------: | :---: | :---: | :---: | :----------: | :---------: |
+| ``MOV reg1, reg2``                   |   0x0   |  0x14   | 0b`mode` 0 d 0000  d=0        | `reg2<<4`\|`reg1`      |       |       |       |              |      4      |
+| ``MOV reg_ext, reg``                 |   0x0   |  0x14   | 0b`mode` 1 0 0000             | `(spc&0xF)<<4`\|`reg`  |       |       |       |              |      4      |
+| ``MOV reg, reg_ext``                 |   0x0   |  0x14   | 0b`mode` 1 1 0000             | `(spc&0xF)<<4`\|`reg`  |       |       |       |              |      4      |
+| ``MOV reg1, inmmed``                 |   0x0   |  0x15   | 0b`mode` 0 0 `reg1`           | 0xFF                   | 0xFF  | 0xFF  | 0xFF  | 0xFFFFFFFF   |     10      |
+| ``MOV [reg], inmmed``                |   0x0   |  0x15   | 0b`mode` 0 1 `reg1`           | 0xFF                   | 0xFF  | 0xFF  | 0xFF  | 0xFFFFFFFF   |     10      |
+| ``MOV reg_ext, inmmed``              |   0x0   |  0x15   | 0b`mode` 1 1 `reg1`           | 0xFF                   | 0xFF  | 0xFF  | 0xFF  | 0xFFFFFFFF   |     10      |
+| ``MOV reg1, [base+idx*sc]``          |   0x0   |  0x16   | 0b`mode` 0 `d` `sc`  d=0      | `reg1<<4`\|`base`      | `idx` | 0x00  |       |              |      6      |
+| ``MOV [base+idx*sc], reg1``          |   0x0   |  0x16   | 0b`mode` 0 `d` `sc`  d=1      | `reg1<<4`\|`base`      | `idx` | 0x00  |       |              |      6      |
+| ``MOV reg1, [base]``                 |   0x0   |  0x16   | 0b`mode` 0 `d` 00  d=0  hi=0  | `reg1<<4`\|`base`      | 0x00  | 0x00  |       |              |      6      |
+| ``MOVH reg1, [base+idx*sc]``         |   0x0   |  0x16   | 0b`mode` 1 `d` `sc`  d=0      | `reg1<<4`\|`base`      | `idx` | 0x00  |       |              |      6      |
+| ``MOVH [base+idx*sc], reg1``         |   0x0   |  0x16   | 0b`mode` 1 `d` `sc`  d=1      | `reg1<<4`\|`base`      | `idx` | 0x00  |       |              |      6      |
+
+### Codificacion de byte3 (ctrl) para MOV reg-reg
+
+```
+bits 7-6 = mode  (0=byte, 1=word, 2=dword, 3=qword)
+bit  5   = s     (0=reg estandar, 1=reg especial/ext)
+bit  4   = d     (0=destino es el reg general, 1=destino es mem o reg_ext)
+bits 3-0 = reg1  (registro general; para INMED contiene el numero de registro)
+```
+
+### Codificacion de reg_ext (s=1)
+
+Cuando `s=1` en byte3, el byte4 codifica:
+```
+bits 7-4 = spc & 0xF   (nibble bajo del codigo de registro especial)
+bits 3-0 = reg         (registro general fuente/destino)
+```
+
+El codigo especial completo se reconstruye como: `special = (mode << 4) | byte4[7:4]`
+
+- `d=0` -> `reg_ext <- reg`  (escribe en el registro especial)
+- `d=1` -> `reg <- reg_ext`  (lee del registro especial)
 
 >Posiblemente el introducir instrucciones de longitud variable dificulte implementar un modelo de "decodificación paralela estilo superscalar" en un futuro
 
 
-| Instrucción                  | op1 | op2  | byte3 (mode/d/reg1) | byte4 (flag/reg2) | bytes |
-| ---------------------------- | --- | ---- | ------------------- | ----------------- | ----- |
-| ``MOVC reg1, [reg2], flag``  | 0x0 | 0x17 | 0b00 0 reg1         | 0b00 flag reg2    | 4     |
-| ``MOVC [reg1], reg2, flag``  | 0x0 | 0x17 | 0b00 1 reg1         | 0b00 flag reg2    | 4     |
-| ``MOVCH reg1, [reg2], flag`` | 0x0 | 0x17 | 0b10 0 reg1         | 0b00 flag reg2    | 4     |
-| ``MOVCH [reg1], reg2, flag`` | 0x0 | 0x17 | 0b10 1 reg1         | 0b00 flag reg2    | 4     |
-| ``MOVC reg1, reg2, flag``    | 0x0 | 0x18 | 0b00 0 reg1         | 0b00 flag reg2    | 4     |
+| Instrucción                  | op1  | op2  | byte3 (ctrl)                   | byte4                    | bytes |
+| ---------------------------- | :--: | :--: | ------------------------------ | ------------------------ | :---: |
+| ``MOVC reg1, [reg2], flag``  | 0x00 | 0x1E | `0b00` \| `d=0` \| `reg1`      | `flag<<5` \| `reg2`      |   4   |
+| ``MOVC [reg1], reg2, flag``  | 0x00 | 0x1E | `0b00` \| `d=1` \| `reg2`      | `flag<<5` \| `reg1`      |   4   |
+| ``MOVCH reg1, [reg2], flag`` | 0x00 | 0x1E | `0b10` \| `d=0` \| `reg1`      | `flag<<5` \| `reg2`      |   4   |
+| ``MOVCH [reg1], reg2, flag`` | 0x00 | 0x1E | `0b10` \| `d=1` \| `reg2`      | `flag<<5` \| `reg1`      |   4   |
+| ``MOVC reg1, reg2, flag``    | 0x00 | 0x1F | `reg1 & 0xF`                   | `flag<<5` \| `reg2`      |   4   |
 
-permite mover a un registro dada una condicion
-### **Byte 3 (mode/d/reg1)**
+> **Nota:** Los opcodes `0x17` y `0x18` están tomados por `AND` y `OR`. MOVC/MOVCH usan `0x1E` (variante memoria) y `0x1F` (variante registro–registro).
 
-
-```
-bit7-6 = mode
-bit5   = d (0 = reg, 1 = [reg])
-bit4-0 = reg1 (destino)
-```
-
-### **Byte 4**
+### **Byte 3 (ctrl) — variante memoria (0x1E)**
 
 ```
-bit7-5 = flag selector (3 bits -> 8 flags posibles)
-bit4-0 = reg2 (fuente)
+bits 7-6 = host_bits  (0b00 = MOVC -> VM mem,  0b10 = MOVCH -> host mem)
+bit  5   = d          (0 = reg es destino / [] es fuente;  1 = [] es destino / reg es fuente)
+bits 4-0 = r_nonbracket  (registro que NO está entre corchetes, 5 bits)
 ```
 
-### **Total: 4 bytes**
+### **Byte 3 (ctrl) — variante registro (0x1F)**
+
+```
+bits 7-4 = 0000       (reservado)
+bits 3-0 = reg1       (registro destino)
+```
+
+### **Byte 4 (común a 0x1E y 0x1F)**
+
+```
+bits 7-5 = flag_code  (3 bits: SF=0, ZF=1, CF=2, OF=3, DM=4)
+bits 4-0 = r_bracket  (variante 0x1E: registro dentro de [];  variante 0x1F: registro fuente)
+```
+
+### **Total: 4 bytes** (`0x00` + `opcode2` + `ctrl` + `byte4`)

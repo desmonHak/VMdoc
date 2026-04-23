@@ -133,7 +133,7 @@ El `FrameHeader` empujado por `CALLVIRT`/`CALLSUPER` es lo que permite a `THROW`
 frame_stack:
   ┌─────────────────────────────┐
   │ FrameHeader (top)           │
-  │   method = MethodInfo*      │← handler_count, handlers[]
+  │   method = MethodInfo*      │<- handler_count, handlers[]
   │   return_pc = callvirt+4    │
   │   frame_base = RSP inicial  │
   │   prev ->  (frame anterior)  │
