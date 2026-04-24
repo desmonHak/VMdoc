@@ -1,5 +1,44 @@
 La VM usa su propia convención de llamadas para conocer cuántos parámetros se han usado al hacer la llamada a una función interna (código que está dentro de la VM) o una función externa (función real que no es parte de la VM).
 
+## Convencion para acceso a memoria VM desde funciones nativas
+
+Cuando una funcion nativa necesita leer o escribir datos en la **memoria
+virtual de la VM** (no en memoria del proceso host), se usa el patron
+`(proc_ptr, vm_addr, len)`:
+
+| registro | contenido                                       |
+| :------: | :---------------------------------------------- |
+| `r1`     | `proc_ptr` — resultado de la instruccion `getproc` |
+| `r2`     | `vm_addr`  — direccion virtual dentro de la VM  |
+| `r3`     | `len`      — numero de bytes a operar           |
+
+```asm
+getproc r1                              ; r1 = ProcessVM* del proceso actual
+mov     r2, @Absolute("all.buffer")    ; r2 = direccion virtual del dato en la VM
+mov     r3, 64                         ; r3 = longitud en bytes
+mov     r15, 3
+calln   @Method("mi_lib:mi_funcion")
+```
+
+En la funcion nativa (C) se usa `g_api->vm_read_bytes` / `vm_write_bytes`
+para traducir la direccion VM a memoria host:
+
+```c
+uint64_t mi_funcion(uint64_t proc_ptr, uint64_t vm_addr, uint64_t len) {
+    char buf[256];
+    g_api->vm_read_bytes(proc_ptr, vm_addr, buf, len);
+    /* ... procesar buf ... */
+    return 0;
+}
+```
+
+**No existe ningun argumento implicito** (sin `void *ctx`). El `proc_ptr`
+se pasa explicitamente como primer argumento cuando se necesita.
+
+Vease [[GETPROC_GETVM_GETMGR]] y [[NativePluginAPI]].
+
+---
+
 ## Convención para llamadas nativas / externas a la VM
 
 Registros:
