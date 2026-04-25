@@ -1,72 +1,98 @@
-La instrucción permite reservar una nueva pagina de memoria. O mapear una dirección real del host a dirección virtual.
+# RESBP - Reservar o mapear una pagina de memoria
 
-- `r00`: dirección virtual.
-- `r01`: flags para la instrucción.
+`RESBP` (Reserve/Map Block Page) permite a la VM pedir al runtime que reserve una nueva
+pagina de memoria virtual (4096 bytes) o que mapee una direccion real del host a una
+direccion virtual de la VM.
 
-| bit 7 |               bit 6                |                    bit 5                    |                   bit 4                    |         bit 3          |          bit 2           |         bit 1         |          bit 0          |
-| :---: | :--------------------------------: | :-----------------------------------------: | :----------------------------------------: | :--------------------: | :----------------------: | :-------------------: | :---------------------: |
-|       | mapear una dirección del host? (0) | Se quiere mapear una dirección virtual? (1) | solicita pagina nueva de memoria? (1) <br> | reserva remota manager | reserva remota instancia | reserva local manager | reserva local instancia |
+En sistemas operativos modernos, la memoria se gestiona en **paginas** de 4096 bytes.
+`RESBP` es la instruccion de bajo nivel para solicitar esas paginas, equivalente a
+`VirtualAlloc` en Windows o `mmap` en Linux, pero dentro del sistema de memoria virtual
+de VestaVM.
 
+| Instruccion | opcode0 | opcode1 | Tamano  | Descripcion                                     |
+| :---------: | :-----: | :-----: | :-----: | :---------------------------------------------- |
+| `resbp`     |  0x00   |  0x20   | 2 bytes | Reservar o mapear una pagina segun flags en R1  |
 
-| opcode1 | opcode2 |
-| :-----: | :-----: |
-|   0x0   |  0x20   |
+---
 
-## Reservar nueva memoria a nivel de instancia en local (privado)
+## Registros de entrada
 
-```c
-mov r00, 0x1000 // solicitamos reserbar una pagina de memoria y 
-				// asignarle la direccion virtual 0x1000, la 
-				// pagina abarca desde 0x1000 a 0x1FFF.
-mov r01, 0b00010000 // reserva memoria local instancia
-RESBP // intentamos hacer la reserba
-```
-Ahora la instancia puede usar las direcciones ``0x1000 - 0x1FFF`` para leer y guardar información.
-## Mapear nueva memoria a nivel de instancia en local (privado)
+| Registro | Rol                                                                   |
+| :------: | :-------------------------------------------------------------------- |
+| R0       | Direccion virtual deseada (la pagina comenzara aqui, alineada 4096B) |
+| R1       | Flags que indican el tipo de operacion (ver tabla)                   |
+| R2       | Direccion real del host a mapear (solo si bit 6 de R1 = 1)           |
 
-```c
-mov r00, 0x1000 // solicitamos reserbar una pagina de memoria y 
-				// asignarle la direccion virtual 0x1000, la 
-				// pagina abarca desde 0x1000 a 0x1FFF.
-mov r01, 0b01000000 // indicamos que sera a nivel de instancia y es un mapeo
-mov r02, 0xFFFFFFFFFFFF1234 // direcion real a mapear
-RESBP // intentamos hacer mapear
-```
-Ahora la instancia puede acceder a memoria de otros programas u direcciones no reservadas por la VM a través del rango `0x1000-0x1FFF`
+---
 
-## Reservar nueva memoria a nivel de manager en local (publico para las instancias locales)
-```c
-mov r00, 0x1000 // solicitamos reserbar una pagina de memoria y 
-				// asignarle la direccion virtual 0x1000, la 
-				// pagina abarca desde 0x1000 a 0x1FFF.
-mov r01, 0b00010010 // reserva memoria manager
-RESBP // intentamos hacer la reserba
+## Tabla de flags (R1)
 
-mov r01, 0b00100001 // mapeo a nivel de instancia, una 
-					// direccion del manager (direccion virtual de manager) 
+| Bit | Nombre                | Descripcion                                                  |
+| :-: | :-------------------- | :----------------------------------------------------------- |
+| 0   | reserva local instancia | Reservar pagina en la instancia actual (privada)           |
+| 1   | reserva local manager   | Reservar pagina en el manager (compartida entre instancias)|
+| 2   | reserva remota instancia| Reservar pagina en una instancia remota                    |
+| 3   | reserva remota manager  | Reservar pagina en un manager remoto                       |
+| 4   | solicitar pagina nueva  | 1 = pedir memoria nueva del SO                             |
+| 5   | mapear dir virtual      | 1 = mapear una dir virtual existente del manager           |
+| 6   | mapear dir host         | 1 = mapear una dir real del host (R2 = dir real)           |
+| 7   | reservado               | Debe ser 0                                                 |
 
-// en r00 se indica la direccion virtual del manager a mapear, como ya se configuro previamente no hace falta volver a hacerlo.
-mov r02, 0x1000 // direccion virtual para la instancia, no tiene por que ser la misma que la del manager
-RESBP
-```
-Ahora todas las instancias puede usar las direcciones ``0x1000 - 0x1FFF`` del manager para leer y guardar información. 
-> Deben reservar una dirección en la instancia también para. poder acceder a memoria del mapeada por el manager .
-## Mapear nueva memoria a nivel de manager en local (publico para las instancias locales)
+---
+
+## Ejemplos
+
+### Reservar memoria privada a nivel de instancia
 
 ```c
-mov r00, 0x1000 // solicitamos reserbar una pagina de memoria y 
-				// asignarle la direccion virtual 0x1000, la 
-				// pagina abarca desde 0x1000 a 0x1FFF.
-mov r01, 0b01000010 // indicamos que sera a nivel de instancia y es un mapeo
-mov r02, 0xFFFFFFFFFFFF1234 // direcion real a mapear
-RESBP // intentamos hacer mapear
+mov   r0, 0x1000          // la pagina empieza en 0x1000 (cubre 0x1000-0x1FFF)
+mov   r1, 0b00010000      // bit 4 = solicitar pagina nueva, bit 0 = instancia local
+resbp                     // reservar la pagina
 
-mov r01, 0b00100001 // mapeo a nivel de instancia, una 
-					// direccion del manager (direccion virtual de manager) 
-
-// en r00 se indica la direccion virtual del manager a mapear, como ya se configuro previamente no hace falta volver a hacerlo.
-mov r02, 0x1000 // direccion virtual para la instancia, no tiene por que ser la misma que la del manager
-RESBP
+// Ahora se puede usar el rango 0x1000-0x1FFF
+mov   r5, 42
+mov   [r0], r5            // escribir en la pagina recien reservada
 ```
-Ahora todas las instancias puede usar las direcciones ``0x1000 - 0x1FFF`` del manager para leer y guardar información. 
-> Deben reservar una dirección en la instancia también para. poder acceder a memoria del mapeada por el manager .
+
+### Mapear una direccion host a la VM
+
+```c
+mov   r0, 0x1000                    // dir virtual de destino en la VM
+mov   r1, 0b01000000                // bit 6 = mapear dir host
+mov   r2, 0xFFFFFFFFFFFF1234        // dir real del host a mapear
+resbp                               // mapear
+
+// Ahora acceder a 0x1000 en la VM lee/escribe en 0xFFFFFFFFFFFF1234 del host
+```
+
+### Reservar memoria compartida en el manager
+
+```c
+// Paso 1: reservar en el manager (visible para todas las instancias locales)
+mov   r0, 0x2000          // dir virtual en el manager
+mov   r1, 0b00010010      // bit 4 = nueva pagina, bit 1 = manager local
+resbp
+
+// Paso 2: mapear la dir del manager en esta instancia
+mov   r1, 0b00100001      // bit 5 = mapear dir virtual del manager, bit 0 = instancia
+mov   r2, 0x2000          // dir virtual del manager a mapear
+resbp
+
+// Ahora esta instancia puede acceder a la memoria compartida del manager via 0x2000
+```
+
+---
+
+## Notas
+
+- `RESBP` requiere el permiso correspondiente en `permissions` (ver [[VMINFO]]).
+- Las paginas de la VM tienen 4096 bytes (0x1000). La direccion en R0 se alinea
+  automaticamente a multiplos de 4096.
+- Para liberar una pagina reservada, usar [[FREEP]].
+- Para consultar el estado de una pagina, usar [[PAGEINFO]].
+- El mapeo de direcciones host (`bit 6`) da acceso directo a RAM del proceso host.
+  Usar con extrema precaucion: un acceso invalido tumba la VM.
+
+---
+
+Ver tambien: [[FREEP]], [[PAGEINFO]], [[VMINFO]]

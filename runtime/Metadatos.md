@@ -1,5 +1,22 @@
-Se usa la direccion `0x1 0000 0000` para cargar el codigo en esa seccion, esta direccion por defecto puede cambiarse con la directiva `org`, como tal no es una instruccion de la VM pero permite notificarle ciertas acciones.
-vea mas en [[EspacioDeDireccionesDeLaMemoria]]
+# Metadatos y estructura de clases en bytecode
+
+Los **metadatos** son la informacion que describe la estructura de las clases, metodos
+y campos de un programa OOP. En VestaVM, los metadatos se almacenan directamente en
+la seccion de datos del binario `.velb` y el loader los mapea en memoria al cargar el
+programa.
+
+Esta seccion documenta como se codifican las clases, metodos, campos y sus tablas de
+excepciones en el bytecode de la VM.
+
+**Referencia al espacio de direcciones:** los metadatos se cargan en la region
+`0x200000000000 - 0x2FFFFFFFFFFF` (zona de metadatos de codigo). Ver
+[[EspacioDeDireccionesDeLaMemoria.md]] para el mapa completo.
+
+---
+
+El codigo de esta seccion asume que el punto de inicio es `org 0x100000000`
+(la seccion de codigo). La directiva `org` no es una instruccion de la VM sino
+una anotacion para el ensamblador que indica donde cargar el binario.
 
 
 ```c
@@ -73,20 +90,20 @@ data:
                 * }
                 *
                 * En Java, C#, etc., un finally se compila como un handler con type = null (catch all). significa que el finally se
-                * ejecuta SIEMPRE, tanto si hay excepción como si no.
+                * ejecuta SIEMPRE, tanto si hay excepcion como si no.
                 * Eso significa:
                 *   no se hace instanceof
-                *   se captura cualquier excepción
+                *   se captura cualquier excepcion
                 *   se salta al bloque finally
-                * Luego, dentro del bloque finally, tú decides:
-                *   si relanzas la excepción
-                *   o si continúas normalmente
+                * Luego, dentro del bloque finally, tu decides:
+                *   si relanzas la excepcion
+                *   o si continuas normalmente
                 *
-                * cuando ocurre una excepción?
+                * cuando ocurre una excepcion?
                 *   Busca handlers en orden:
-                *   ¿coincide con A? -> salta a catch A
-                *   ¿coincide con B? -> salta a catch B
-                *   ¿type = NULL? -> salta al finally
+                *   ?coincide con A? -> salta a catch A
+                *   ?coincide con B? -> salta a catch B
+                *   ?type = NULL? -> salta al finally
                 *
                 * cuando se genera el codigo final,l y el codigo de origen tiene varios catch y finaly se realiza lo siguiente:
                 * try {
@@ -211,7 +228,7 @@ data:
             supers:
             end_supers:
 
-            // tabla de punteros a metodos, se puede reemplazar métodos en runtime (hot swap)
+            // tabla de punteros a metodos, se puede reemplazar metodos en runtime (hot swap)
             methods:
                 // los contructos son metodos especiales, pero al fin y al cabo
                 // son metodos, por lo que se pueden reemplazar en runtime, y
@@ -225,11 +242,11 @@ data:
     code_method:
 
         /**
-         * Cuando entras a un método, creas un frame.
+         * Cuando entras a un metodo, creas un frame.
          * Ese frame guarda un puntero a MethodInfo.
          * Cuando haces throw, la VM mira el frame actual.
-         * Y por tanto se sabe qué método se está ejecutando.
-         * El PC plano no importa, porque el frame ya contiene el método.
+         * Y por tanto se sabe que metodo se esta ejecutando.
+         * El PC plano no importa, porque el frame ya contiene el metodo.
          */
         code_methodTest1:
             mov r10, 1
@@ -280,12 +297,12 @@ mov r01, Class1ExampleInfo
 | 3     | protect             |
 
 ### static or no-static (bit 3)
-Esta valor solo aplica si el método no es un constructor, es decir, si [[Metadatos#method or constructor|el bit 4]] es diferente a ``1``
+Esta valor solo aplica si el metodo no es un constructor, es decir, si [[Metadatos#method or constructor|el bit 4]] es diferente a ``1``
 
 | valor | tipo                     |
 | ----- | ------------------------ |
 | 0     | Es metodo es estatico    |
-| 1     | El método no es estático |
+| 1     | El metodo no es estatico |
 
 
 

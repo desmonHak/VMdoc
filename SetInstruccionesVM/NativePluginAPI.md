@@ -73,12 +73,12 @@ estandar de VestaVM **sin cambios**:
 
 No existe ningun argumento implicito (no hay `void *ctx` ni similar).
 
-```asm
-; bytecode .vel
+```c
+// bytecode .vel
 mov     r1, 42
 mov     r15, 1
 calln   @Method("mi_lib:mi_funcion")
-; r0 = resultado
+// r0 = resultado
 ```
 
 ```c
@@ -100,8 +100,8 @@ la VM usan el patron `(proc_ptr, vm_addr, len)`:
    la longitud (`r3`).
 3. La funcion C llama a `g_api->vm_read_bytes` o `g_api->vm_write_bytes`.
 
-```asm
-; bytecode .vel
+```c
+// bytecode .vel
 getproc r1
 mov     r2, @Absolute("all.buffer")
 mov     r3, 64
@@ -225,8 +225,8 @@ VESTA_PLUGIN_EXPORT uint64_t suma(uint64_t a, uint64_t b) {
 }
 ```
 
-```asm
-; bytecode .vel
+```c
+// bytecode .vel
 @Import {
     @Method {
         @Lib("mi_plugin")
@@ -239,7 +239,7 @@ code:
     mov     r2, 32
     mov     r15, 2
     calln   @Method("mi_plugin:suma")
-    ; r0 = 42
+    // r0 = 42
     hlt
 end_code:
 ```

@@ -1,49 +1,69 @@
-# Gestión de memoria - Sistema GC de VestaVM
+# Gestion de memoria - Sistema GC de VestaVM
 
-## ¿Qué es la memoria y por qué hay que gestionarla?
+## Por que la memoria necesita gestion
 
-Cuando un programa crea una variable, un objeto o un buffer de datos, el sistema operativo le presta un trozo de memoria RAM para almacenarlo. Esa memoria es un recurso finito: si el programa pide más de la que hay disponible, falla.
+Cuando un programa crea una variable, un objeto o un buffer de datos, el sistema operativo
+le presta un trozo de memoria RAM para almacenarlo. Esa memoria es un recurso finito: si
+el programa pide mas de la que hay disponible, falla.
 
-El problema es que los programas crean y destruyen datos constantemente. Si cada trozo de memoria pedido nunca se devuelve, la memoria disponible se agota aunque los datos ya no sirvan para nada. Esto se llama **fuga de memoria** (*memory leak*), y es uno de los errores más comunes y difíciles de detectar en programación.
+El problema es que los programas crean y destruyen datos constantemente. Si cada trozo de
+memoria pedido nunca se devuelve, la memoria disponible se agota aunque los datos ya no
+sirvan para nada. Esto se llama **fuga de memoria** (memory leak), y es uno de los errores
+mas comunes y dificiles de detectar en programacion.
 
 Hay dos grandes enfoques para resolver esto:
 
-| Enfoque                    | Quién libera la memoria          | Ejemplo                        |
-| :------------------------- | :------------------------------- | :----------------------------- |
-| **Manual**                 | El programador, explícitamente   | C (`malloc` / `free`)          |
-| **Automático (GC)**        | El runtime, en segundo plano     | Java, Python, Go, C#           |
+| Enfoque                | Quien libera la memoria        | Ejemplo                    |
+| :--------------------- | :----------------------------- | :------------------------- |
+| **Manual**             | El programador, explicitamente | C (`malloc` / `free`)      |
+| **Automatico (GC)**    | El runtime, en segundo plano   | Java, Python, Go, C#       |
 
-VestaVM ofrece **ambos enfoques** a la vez, porque cada uno tiene su lugar según el caso de uso.
-
----
-
-## ¿Qué es un Garbage Collector?
-
-Un **Garbage Collector** (GC, recolector de basura) es un componente del runtime que observa qué objetos del programa siguen siendo accesibles (tienen al menos una referencia activa) y cuáles ya no lo son (son "basura"). Los objetos basura se destruyen automáticamente para liberar memoria.
-
-### Analogía: la habitación y los juguetes
-
-Imagina una habitación donde los niños sacan juguetes para jugar. Algunos juguetes se siguen usando; otros quedan abandonados en el suelo. El GC es como alguien que entra periódicamente, comprueba qué juguetes nadie está tocando y los recoge. Los niños no tienen que preocuparse por "devolver" los juguetes; simplemente dejan de usarlos y en algún momento desaparecen solos.
-
-### ¿Cuándo se ejecuta?
-
-El GC no corre constantemente (sería demasiado lento). Se activa cuando:
-
-1. Se intenta asignar memoria y no hay espacio libre suficiente.
-2. El programador lo solicita explícitamente con `GCRUN`.
-3. El volumen de objetos viejos supera un umbral configurable (`GCCONFIG`).
-
-### ¿Tiene coste?
-
-Sí. Mientras el GC analiza qué objetos están vivos, el programa hace una pequeña pausa. VestaVM minimiza esto con un diseño **generacional** (ver más abajo).
+VestaVM ofrece **ambos enfoques** a la vez, porque cada uno tiene su lugar segun el caso.
 
 ---
 
-## ¿Qué es la gestión manual?
+## Que es un Garbage Collector
 
-En la gestión manual el programador pide memoria con `ALLOC` y la devuelve con `FREE` cuando ya no la necesita. Es más rápido porque no hay análisis automático, pero requiere disciplina: olvidar un `FREE` produce una fuga; hacer `FREE` dos veces sobre el mismo bloque produce corrupción.
+Un **Garbage Collector** (GC, recolector de basura) es un componente del runtime que
+observa que objetos del programa siguen siendo accesibles (tienen al menos una referencia
+activa) y cuales ya no lo son (son "basura"). Los objetos basura se destruyen
+automaticamente para liberar memoria.
 
-Este modo es imprescindible cuando el programa necesita pasar punteros de memoria a funciones externas escritas en C (llamadas **FFI** - *Foreign Function Interface*), porque esas funciones esperan la dirección real de un bloque de bytes en la RAM del host, no un identificador abstracto.
+### Analogia: la habitacion y los juguetes
+
+Imagina una habitacion donde los ninos sacan juguetes para jugar. Algunos juguetes se
+siguen usando; otros quedan abandonados en el suelo. El GC es como alguien que entra
+periodicamente, comprueba que juguetes nadie esta tocando y los recoge. Los ninos no
+tienen que preocuparse por "devolver" los juguetes; simplemente dejan de usarlos y en
+algun momento desaparecen solos.
+
+### Cuando se ejecuta el GC
+
+El GC no corre constantemente (seria demasiado lento). Se activa cuando:
+
+1. Se intenta asignar memoria y no hay espacio libre suficiente en el heap.
+2. El programador lo solicita explicitamente con `GCRUN`.
+3. El volumen de objetos "viejos" supera un umbral configurable (`GCCONFIG`).
+
+### Tiene coste
+
+Si. Mientras el GC analiza que objetos estan vivos, el programa hace una pequena pausa.
+VestaVM minimiza esto con un diseno **generacional** (ver mas abajo).
+
+---
+
+## Que es la gestion manual
+
+En la gestion manual el programador pide memoria con `ALLOC` y la devuelve con `FREE`
+cuando ya no la necesita. Es mas rapido porque no hay analisis automatico, pero requiere
+disciplina:
+- Olvidar un `FREE` produce una fuga de memoria.
+- Hacer `FREE` dos veces sobre el mismo bloque produce corrupcion de memoria.
+
+Este modo es imprescindible cuando el programa necesita pasar punteros de memoria a
+funciones externas escritas en C (llamadas **FFI**, Foreign Function Interface), porque
+esas funciones esperan la direccion real de un bloque de bytes en la RAM, no un
+identificador abstracto del GC.
 
 ---
 
@@ -53,32 +73,35 @@ VestaVM separa los dos enfoques en componentes distintos, uno por cada proceso V
 
 ```
 ProcessVM
-  ├── GcHeap        -- GC automatico generacional  (objetos OOP, ciclo de vida automatico)
-  └── RawAllocator  -- Allocator manual             (buffers FFI, control explicito)
+  +-- GcHeap        -- GC automatico generacional  (objetos OOP, ciclo de vida automatico)
+  +-- RawAllocator  -- Allocator manual             (buffers FFI, control explicito)
 ```
 
-Cada proceso tiene sus propias instancias. No se comparten entre procesos, lo que significa que el GC de un proceso nunca bloquea a otro.
+Cada proceso tiene sus propias instancias independientes. No se comparten entre procesos,
+lo que significa que el GC de un proceso nunca bloquea a otro.
 
 ### Resumen comparativo
 
-| Característica           | GcHeap (generacional)                | RawAllocator (manual)                 |
-| :----------------------- | :----------------------------------- | :------------------------------------ |
-| Instrucción de reserva   | `NEWOBJ size`  -> `GcHandle`          | `ALLOC size`  -> ptr host real         |
-| Instrucción de liberación | `DROP handle` (opcional)            | `FREE reg` (obligatorio)              |
-| GC automático            | Sí - minor + major                   | No                                    |
-| Tipo de retorno          | Handle opaco (no es un puntero)      | Puntero host real (`uint64_t`)        |
-| Compatible con FFI       | No                                   | Sí                                    |
-| Uso ideal                | Objetos OOP, grafos, closures        | Buffers C, strings, llamadas nativas  |
+| Caracteristica           | GcHeap (generacional)             | RawAllocator (manual)               |
+| :----------------------- | :-------------------------------- | :---------------------------------- |
+| Instruccion de reserva   | `NEWOBJ r` -> `GcHandle`          | `ALLOC r` -> ptr host real          |
+| Instruccion de liberacion| `DROP handle` (opcional)          | `FREE reg` (obligatorio)            |
+| GC automatico            | Si - minor + major                | No                                  |
+| Tipo de retorno          | Handle opaco (no es una direccion)| Puntero host real (`uint64_t`)      |
+| Compatible con FFI       | No (el handle no es una dir. real)| Si                                  |
+| Uso ideal                | Objetos OOP, grafos, closures     | Buffers C, strings, llamadas nativas|
 
 ---
 
-## ¿Qué es un GC generacional?
+## GC generacional: por que los objetos "jovenes" mueren pronto
 
-La observación clave detrás del GC de VestaVM es la **hipótesis generacional**:
+La observacion clave detras del GC de VestaVM es la **hipotesis generacional**:
 
-> La mayoría de los objetos mueren jóvenes.
+> La mayoria de los objetos mueren jovenes.
 
-Es decir, la mayor parte de los objetos que un programa crea tienen una vida muy corta: se crean para hacer un cálculo, se usan y ya no se necesitan. Solo una minoría vive durante mucho tiempo (configuración global, cachés, estructuras persistentes).
+Es decir, la mayor parte de los objetos que un programa crea tienen una vida muy corta:
+se crean para hacer un calculo, se usan y ya no se necesitan. Solo una minoria vive
+durante mucho tiempo (configuracion global, caches, estructuras persistentes).
 
 Aprovechando esto, el heap se divide en dos zonas:
 
@@ -90,118 +113,127 @@ Aprovechando esto, el heap se divide en dos zonas:
 +---------------------------+------------------------------------+
 ```
 
-- **Nursery**: zona pequeña y rápida donde nacen todos los objetos. Limpiarla es barato porque casi todo está muerto; no hace falta analizar los objetos supervivientes en detalle.
-- **OldGen**: zona donde van los objetos que sobrevivieron al menos un ciclo de limpieza de la Nursery. Se limpia con un algoritmo más completo pero se activa con mucha menos frecuencia.
+- **Nursery**: zona pequena y rapida donde nacen todos los objetos. Limpiarla es barato
+  porque casi todo esta muerto; no hace falta analizar los objetos supervivientes en detalle.
+  Este ciclo de limpieza se llama **minor GC**.
+- **OldGen**: zona donde van los objetos que sobrevivieron al menos un ciclo de limpieza
+  de la Nursery. Se limpia con un algoritmo mas completo (**major GC**) pero se activa
+  con mucha menos frecuencia.
 
-Resultado: **pausas cortas y frecuentes** (Nursery) en lugar de una pausa larga y rara (todo el heap).
-
----
-
-## ¿Qué es un handle?
-
-En el GcHeap, el programador nunca recibe la dirección real del objeto en memoria. En su lugar recibe un **handle**: un número entero opaco que actúa como identificador.
-
-```
-Bytecode:   NEWOBJ 64   ->  R0 = 3       (handle, no dirección)
-                             ↓
-HandleTable:   [3]  ->  0x7f3a0000       (dirección real, interna al GC)
-```
-
-¿Por qué? Porque el GC puede necesitar **mover** objetos (por ejemplo, al compactar el heap o al copiar un objeto joven a OldGen). Si el bytecode guardase la dirección directa y el GC mueve el objeto, esa dirección quedaría inválida. Con handles, solo hay que actualizar la entrada en la `HandleTable`; el bytecode no cambia nada.
-
-En el `RawAllocator` no existe este problema porque el bloque nunca se mueve: la dirección retornada es permanente mientras no se llame a `FREE` o `REALLOC`.
+Resultado: **pausas cortas y frecuentes** (minor GC) en lugar de una pausa larga y rara.
 
 ---
 
-## Opcodes de referencia rápida
+## Que es un GcHandle
+
+En el GcHeap, el programador nunca recibe la direccion real del objeto en memoria. En su
+lugar recibe un **GcHandle**: un numero entero de 32 bits que actua como identificador.
+
+```
+Bytecode:   NEWOBJ r1    ->  R0 = 3          (handle, no es una direccion)
+
+HandleTable:   [3]  ->  0x7f3a0000       (direccion real, interna al GC)
+```
+
+Por que un handle y no una direccion directa? Porque el GC puede necesitar **mover**
+objetos (por ejemplo, al copiar un objeto joven a OldGen). Si el bytecode guardase la
+direccion directa y el GC mueve el objeto, esa direccion quedaria invalida. Con handles,
+solo hay que actualizar la entrada en la `HandleTable`; el bytecode no cambia nada.
+
+El valor especial `GC_NULL_HANDLE = 0xFFFFFFFF` indica fallo de asignacion o handle nulo.
+
+En el `RawAllocator` no existe este problema porque el bloque nunca se mueve: la direccion
+retornada es permanente mientras no se llame a `FREE` o `REALLOC`.
+
+---
+
+## Opcodes de referencia rapida
 
 ### GcHeap
 
-| Instrucción          | Opcode1 | Opcode2 | Descripción                                           |
-| :------------------- | :-----: | :-----: | :---------------------------------------------------- |
-| `NEWOBJ size`        | `0x00`  | `0xA0`  | Crea objeto; retorna `GcHandle` en `R0`               |
-| `GCRUN`              | `0x00`  | `0xA1`  | Fuerza un ciclo de GC ahora                           |
-| `GCCONFIG threshold` | `0x00`  | `0xA2`  | Ajusta el umbral de OldGen                            |
-| `DROP handle`        | `0x00`  | `0xA3`  | Libera el handle (el GC recogerá el objeto)           |
-| `GCWB old_handle`    | `0x00`  | `0xA4`  | Registra una referencia OLD->YOUNG en el remembered set |
+| Instruccion          | Opcode1 | Opcode2 | Descripcion                                             |
+| :------------------- | :-----: | :-----: | :------------------------------------------------------ |
+| `newobj r`           | `0x00`  | `0xA0`  | Crea objeto OOP; retorna `GcHandle` en R0               |
+| `gcalloc r`          | `0x00`  | `0xA5`  | Crea bloque GC sin ObjectHeader; retorna GcHandle en R0 |
+| `gcrun`              | `0x00`  | `0xA1`  | Fuerza un ciclo de GC ahora                             |
+| `gcconfig r`         | `0x00`  | `0xA2`  | Ajusta el umbral de OldGen                              |
+| `drop r`             | `0x00`  | `0xA3`  | Libera el handle (el GC recogera el objeto)             |
+| `gcwb r`             | `0x00`  | `0xA4`  | Registra referencia OLD->YOUNG en el remembered set     |
 
 ### RawAllocator
 
-| Instrucción         | Opcode1 | Opcode2 | Descripción                              |
-| :------------------ | :-----: | :-----: | :--------------------------------------- |
-| `ALLOC size`        |  `0x00` |  `0xB0` | Reserva bytes; retorna ptr real en `R0`  |
-| `FREE reg`          |  `0x00` |  `0xB1` | Libera el bloque en `reg` inmediatamente |
-| `REALLOC reg, size` |  `0x00` |  `0xB2` | Redimensiona; nuevo ptr en `R0`          |
+| Instruccion          | Opcode1 | Opcode2 | Descripcion                               |
+| :------------------- | :-----: | :-----: | :---------------------------------------- |
+| `alloc r`            | `0x00`  | `0xB0`  | Reserva bytes; retorna ptr real en R0     |
+| `free r`             | `0x00`  | `0xB1`  | Libera el bloque en `r` inmediatamente    |
+| `realloc r, r`       | `0x00`  | `0xB2`  | Redimensiona; nuevo ptr en R0             |
 
 ---
 
 ## Sintaxis en ensamblador Vesta
 
-Todas las instrucciones de memoria están disponibles directamente en los archivos `.vel`. El ensamblador las compila a su bytecode correspondiente.
-
 ### GcHeap
 
 ```c
-// Crear un objeto de 64 bytes - handle retornado en R0
+// Crear un bloque de 64 bytes bajo GC - el handle retorna en R0
 mov    r1, 64
-newobj r1            // R0 = GcHandle
+gcalloc r1           // R0 = GcHandle
 
-// Leer y escribir el payload con instrucciones cursor
-gcderef cur0, r0     // cur0 = puntero raw al payload
+// Para leer y escribir el payload, primero obtenemos el puntero real con gcderef:
+gcderef cur0, r0     // cur0 = puntero real al payload en memoria host
 mov     r5, 42
-writecur cur0, r5    // escribe 42 en el primer campo
-readcur  r6, cur0    // r6 = primer campo
+writecur cur0, r5    // escribe 42 en los primeros 8 bytes del bloque
+readcur  r6, cur0    // r6 = lee los primeros 8 bytes (debe ser 42)
 
-// Forzar un ciclo de GC ahora
+// Forzar un ciclo de GC ahora mismo
 gcrun
 
-// Ajustar el umbral de OldGen (umbral en bytes)
+// Ajustar el umbral de OldGen (en bytes):
 mov    r2, 16777216   // 16 MB
 gcconfig r2
 
-// Liberar el handle cuando ya no se necesite
+// Liberar el handle cuando ya no se necesite:
 mov    r3, r0          // guardar el handle en r3
-drop   r3              // el GC recogerá el objeto en el próximo ciclo
+drop   r3              // el GC recogera el objeto en el proximo ciclo
 
-// Grafo de objetos: A (OLD) referencia a B (YOUNG)
-// Obligatorio llamar gcwb después de escribir el handle de B en el payload de A
+// Write barrier: OBLIGATORIO cuando un objeto OLD referencia a uno YOUNG
+// (Si A esta en OldGen y B esta en Nursery, y escribimos handle_B en A):
 gcderef cur0, r_handle_A
-writecur cur0, r_handle_B   // A.campo = B
-gcwb    r_handle_A           // registrar referencia OLD->YOUNG en el remembered set
+writecur cur0, r_handle_B   // A.campo = handle_B
+gcwb r_handle_A             // notificar al GC de esta referencia OLD->YOUNG
 ```
 
 ### RawAllocator
 
 ```c
-// Reservar un buffer de 256 bytes - ptr host retornado en R0
+// Reservar un buffer de 256 bytes - se obtiene el puntero real directamente
 mov    r1, 256
-alloc  r1             // R0 = puntero host real
+alloc  r1             // R0 = puntero host real (no un handle)
 
-// Guardar puntero y acceder al buffer
-xchg   cur1, r0
+// Guardar el puntero y acceder al buffer con cursor:
+mov    r14, r0
+xchg   cur1, r14      // cur1 = inicio del buffer
 mov    r5, 0xFF
-writecur cur1, r5
+writecur cur1, r5     // buffer[0..7] = 0xFF
 
-// Redimensionar el buffer
-xchg   r0, cur1
+// Redimensionar el buffer (puede cambiar de direccion):
+alloc  r1             // Reservar el original de nuevo para este ejemplo
 mov    r2, 1024
-realloc r0, r2      // R0 = nuevo puntero (puede cambiar de dirección)
+realloc r0, r2        // R0 = nuevo puntero (puede ser diferente del original)
 
-// Liberar
+// Liberar OBLIGATORIAMENTE cuando ya no se necesite:
 free   r0
 ```
 
-> Los registros se escriben con sufijo de tamaño: `b`=byte, `w`=word, `d`=dword, `q`=qword.
-> Para `newobj`, `gcconfig`, `drop`, `alloc` y `free` se usa un único registro.
-> Para `realloc` se usan dos registros del mismo tamaño: `realloc reg_ptr, reg_size`.
-> `gcrun` no toma operandos.
-
 ---
 
-## Documentación detallada
+## Documentacion detallada
 
-- [[Generacional (para objetos OOP)]] - Cómo funciona el GcHeap internamente: Nursery, minor GC, major GC, tri-color mark, write barrier, handles, estadísticas.
-- [[Allocator crudo para FFI  y memoria manual]] - Cómo funciona el RawAllocator: contiguidad, FFI, ALLOC/FREE/REALLOC, estadísticas.
-- [[cursor]] - Instrucciones `readcur`, `writecur` y `gcderef` para acceder a memoria host desde bytecode.
+- [[Generacional (para objetos OOP)]] - Como funciona el GcHeap internamente: Nursery,
+  minor GC, major GC, algoritmo tri-color mark, write barrier, handles, estadisticas.
+- [[Allocator crudo para FFI y memoria manual]] - Como funciona el RawAllocator:
+  contiguidad, FFI, ALLOC/FREE/REALLOC, estadisticas.
+- [[cursor]] - Instrucciones `readcur`, `writecur` y `gcderef` para acceder a memoria
+  host desde bytecode.
 
-Ver también: [[VmInstance]], [[NativeCall (CallN)]], [[VmManager]]
+Ver tambien: [[NativeCall (CallN)]], [[NEWOBJRAW y NEWOBJ]], [[GCALLOC]]

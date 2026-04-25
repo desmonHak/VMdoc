@@ -1,6 +1,16 @@
-# Espacio de direcciones
+# Espacio de direcciones de la memoria
 
-Se usa la direccion `0x1 0000 0000` para cargar el codigo en esa seccion, esta direccion por defecto puede cambiarse con la directiva `org`, como tal no es una instruccion de la VM pero permite notificarle ciertas acciones.
+El **espacio de direcciones** de VestaVM define que rangos de direcciones virtuales
+se usan para cada proposito: codigo ejecutable, datos, pila, metadatos OOP, JIT, etc.
+
+**Analogia:** es como un plano de un edificio donde cada planta tiene un uso asignado.
+La planta baja es la recepcion (zona libre), el primer piso son las oficinas (codigo),
+el segundo son los archivos (metadatos), etc. Nadie tiene que buscar donde esta cada
+cosa: el plano lo dice.
+
+Se usa la direccion `0x100000000` para cargar el codigo por defecto. Esta direccion
+puede cambiarse con la directiva `org` (no es una instruccion de la VM, es una
+directiva del ensamblador que le indica al loader donde mapear el programa).
 
 Este valor se escogio para permitir tener direcciones arriba y abajo donde poder hacer reservas de memoria. La cantidad de memoria inferior va desde kis siguientes rangos:
 ```c
@@ -23,7 +33,7 @@ La cantidad de paginas a mapear en este rango de 32bits es de unas `0xFFFFFFFF /
 0xFFFFFFFFFFF = 0x100000000 de paginas = 4.294.967.296
 ```
 
-Se fija un limite de tamaño de stack de 4GB (``0x00000000-0xFFFFFFFF``) aunque los programas pueden alterar este tamaño si es necesario. Este tamaño permite ejecutar en paralelo una cantidad de `4.096` instancias en un mismo manager donde cada instancia tiene un maximo de ``4Gb`` para stacks
+Se fija un limite de tamano de stack de 4GB (``0x00000000-0xFFFFFFFF``) aunque los programas pueden alterar este tamano si es necesario. Este tamano permite ejecutar en paralelo una cantidad de `4.096` instancias en un mismo manager donde cada instancia tiene un maximo de ``4Gb`` para stacks
 
 ```c
 ----------

@@ -1,7 +1,7 @@
 ```c
 Identificador ::= [a-z][0-9a-zA-z]*
 ```
-el identificado debe empezar por una letra en minúsculas y luego puede tener una cantidad indeterminada de números, letras mayúsculas o minúsculas.
+el identificado debe empezar por una letra en minusculas y luego puede tener una cantidad indeterminada de numeros, letras mayusculas o minusculas.
 
 ```c
 // forma 1 de representar

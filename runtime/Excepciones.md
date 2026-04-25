@@ -1,5 +1,22 @@
 # Excepciones de software controladas por la VM
 
+Una **excepcion** es un mecanismo para manejar situaciones de error de forma estructurada.
+En lugar de comprobar manualmente si cada operacion fallo, el programa puede "lanzar"
+una excepcion cuando algo va mal, y "capturarla" en un lugar superior de la pila de llamadas.
+
+**Analogia:** es como el sistema de alarmas de un edificio. Si hay un incendio (error),
+no tienes que ir puerta por puerta avisando: suena la alarma (se lanza la excepcion) y el
+sistema de emergencias (el manejador de excepciones) toma el control.
+
+En VestaVM, las excepciones se implementan mediante tres componentes:
+- `ClassInfo`: la jerarquia de tipos de excepcion
+- `HandlerException`: la tabla de rangos try/catch dentro de cada metodo
+- `vm_throw`: el algoritmo de unwinding de la pila
+
+---
+
+## Estructuras de datos
+
 ```c
 // registro global de clases
 static ClassInfo* class_registry[];
@@ -15,16 +32,16 @@ typedef enum FieldAccess {
 } FieldAccess;
 
 /**
- * Información de un campo
+ * Informacion de un campo
  */
 typedef struct FieldInfo {
     stringx      name;          // nombre del campo
     FieldAccess  access;        // public/private/protected/default
     FieldKind    kind;          // tipo de dato
     ClassInfo*   type_class;    // si es FIELD_CLASS o FIELD_STRUCT
-    uint32_t     size;          // tamaño en bytes
+    uint32_t     size;          // tamano en bytes
     uint32_t     offset;        // offset dentro del objeto
-    bool         is_static;     // si es un campo estático
+    bool         is_static;     // si es un campo estatico
 } FieldInfo;
 
 /**
@@ -83,15 +100,15 @@ typedef struct MethodInfo {
     HandlerException*   handlers;
     size_t              handler_count;
     uint8_t*            code;       // puntero al bytecode
-    // aquí irían más cosas: num locals, tamaño de operand stack, etc.
+    // aqui irian mas cosas: num locals, tamano de operand stack, etc.
 } MethodInfo;
 
 // Header de frame en la pila (en memoria de la VM)?
 typedef struct FrameHeader {
     struct FrameHeader* prev;       // frame anterior (caller)
-    MethodInfo*         method;     // método actual
+    MethodInfo*         method;     // metodo actual
     uint32_t            return_pc;  // PC al que volver si se hace return
-    // después de esto, en memoria, irían locals, operand stack, etc.
+    // despues de esto, en memoria, irian locals, operand stack, etc.
 } FrameHeader;
 ```
 
@@ -133,7 +150,7 @@ bool is_instance_of(ClassInfo* E, ClassInfo* C) {
 
 void vm_checkcast(VM* vm, ExceptionObject* obj, ClassInfo* target_type) {
     if (obj == NULL) {
-        // cast de null es válido -> no hace nada
+        // cast de null es valido -> no hace nada
         return;
     }
 
@@ -145,7 +162,7 @@ void vm_checkcast(VM* vm, ExceptionObject* obj, ClassInfo* target_type) {
 }
 
 //
-// Crear objeto excepción
+// Crear objeto excepcion
 //
 ExceptionObject* vm_new_exception(ClassInfo* type /*, args... */) {
     ExceptionObject* ex = malloc(sizeof(ExceptionObject));
@@ -154,7 +171,7 @@ ExceptionObject* vm_new_exception(ClassInfo* type /*, args... */) {
 }
 
 //
-// Búsqueda de handler compatible en un método
+// Busqueda de handler compatible en un metodo
 //
 
 HandlerException* find_handler_in_method(MethodInfo* method,
@@ -180,13 +197,13 @@ HandlerException* find_handler_in_method(MethodInfo* method,
 }
 
 //
-// Manejo de excepción no capturada
+// Manejo de excepcion no capturada
 //
 
 void vm_unhandled_exception(VM* vm, ExceptionObject* ex) {
     (void)vm;
     (void)ex;
-    // Aquí imprimir stacktrace, tipo, etc
+    // Aqui imprimir stacktrace, tipo, etc
     // Por ahora, abortamos.
     abort();
 }
@@ -208,10 +225,10 @@ void vm_throw(VM* vm, ExceptionObject* ex) {
 
         if (handler != NULL) {
             // 1 limpiar operand stack del frame actual
-            //    Aquí podrías resetear vm->sp a un valor guardado en el frame.
-            //    Para simplificar, asumimos que el handler sabe qué esperar.
+            //    Aqui podrias resetear vm->sp a un valor guardado en el frame.
+            //    Para simplificar, asumimos que el handler sabe que esperar.
 
-            // 2 empujar la excepción en la pila de operandos
+            // 2 empujar la excepcion en la pila de operandos
             vm_push_ptr(vm, ex);
 
             // 3 mover el PC al handler
@@ -227,14 +244,14 @@ void vm_throw(VM* vm, ExceptionObject* ex) {
         pc = frame->return_pc;      // PC del caller (si lo usas)
         bp = (uint32_t)(uintptr_t)frame->prev;
         vm->bp = bp;
-        // vm->sp la ajustas según tu convención de llamada
+        // vm->sp la ajustas segun tu convencion de llamada
     }
 
-    // nadie la capturó -> uncaught exception
+    // nadie la capturo -> uncaught exception
     vm_unhandled_exception(vm, ex);
 }
 
-// - El compilador genera HandlerException[] por método.
+// - El compilador genera HandlerException[] por metodo.
 // - type = &Exception        -> catch (Exception e)  (captura subclases)
 // - type = &Throwable        -> catch (Throwable e)  (captura todo)
 // - type = NULL              -> finally / catch-all interno
@@ -242,17 +259,17 @@ void vm_throw(VM* vm, ExceptionObject* ex) {
 
 
 ## instanceof
-Evalúa si una clase E es instancia de C:
+Evalua si una clase E es instancia de C:
 - Recorre la cadena de superclases hacia arriba
 - Revisa interfaces
 - Devuelve true si encuentra coincidencia
 
 ## checkcast
 Valida que un objeto pueda convertirse a un tipo destino:
-- null siempre es válido
+- null siempre es valido
 - Si no es instancia -> lanza ClassCastException
 
-## Búsqueda de un handler compatible en un método
+## Busqueda de un handler compatible en un metodo
 Reglas:
 
 - El PC debe estar dentro del rango [start_pc, end_pc)
@@ -262,7 +279,7 @@ Reglas:
 # Algoritmo completo del unwind
 Entrada:
 - vm -> estado de la VM
-- ex -> objeto excepción
+- ex -> objeto excepcion
 
 Salida:
 - Salta al handler adecuado
@@ -277,18 +294,18 @@ Salida:
     3.1 Obtener el frame actual:
         frame = memory[bp]
 
-    3.2 Obtener el método del frame:
+    3.2 Obtener el metodo del frame:
         method = frame->method
 
     3.3 Buscar un handler compatible:
         handler = find_handler_in_method(method, pc, ex)
 
-    3.4 Si se encontró un handler:
+    3.4 Si se encontro un handler:
         
         3.4.1 Limpiar la operand stack del frame actual
-              (opcional según tu diseño)
+              (opcional segun tu diseno)
 
-        3.4.2 Empujar la excepción en la operand stack:
+        3.4.2 Empujar la excepcion en la operand stack:
               push(ex)
 
         3.4.3 Mover el PC al handler:
@@ -297,9 +314,9 @@ Salida:
         3.4.4 Mantener el mismo frame:
               vm->bp = bp
 
-        3.4.5 Terminar el proceso (la ejecución continúa en el handler)
+        3.4.5 Terminar el proceso (la ejecucion continua en el handler)
 
-    3.5 Si NO se encontró handler:
+    3.5 Si NO se encontro handler:
         
         3.5.1 Desenrollar el frame:
               pc = frame->return_pc
@@ -307,7 +324,7 @@ Salida:
 
         3.5.2 Actualizar vm->bp
 
-4. Si se salió del bucle -> no hay handlers en ningún frame
+4. Si se salio del bucle -> no hay handlers en ningun frame
 
 5. Llamar a vm_unhandled_exception(vm, ex)
 
@@ -316,19 +333,19 @@ Salida:
 throw ex
 |
 v
-buscar handler en método actual
+buscar handler en metodo actual
 |
 v
-¿hay handler compatible?
-    sí -> saltar al handler
+?hay handler compatible?
+    si -> saltar al handler
     no -> desenrollar frame
 |
 v
 repetir en el caller
 |
 v
-¿se llegó al tope de la pila?
-    sí -> excepción no capturada -> abort
+?se llego al tope de la pila?
+    si -> excepcion no capturada -> abort
 
 
 ```

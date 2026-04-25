@@ -1,56 +1,140 @@
-## Instrucciones de creación, control y finalización de hilo
+# Green Threads - Instrucciones de hilos verdes
 
-- `thinit`: permite crear un nuevo hilo en la VM. Se debe configurar el hilo usando registros, para lo cual:
-	- `r00`: se indicara el puntero inicial base y tope de pila para el hilo.
-	- `r01`: limite de la pila, una vez el tope de la pila alcance este limite, el hilo no podrá acceder mas allá. 
-	- En caso de que las instrucciones de pila u otras similares accedan mas allá, se generara en el hilo un `THREAD_SEGMENTATION_FAULT`, en caso de que el registro tope de pila llegue a ser inferior al puntero base de pila, se generara un `THREAD_STACK_UNDERFLOW`.
-	- `r02`: puntero a la primera instrucción a ejecutar, se configurar el registro IP (___Instruction Pointer___).
-	- `r03`: Puntero donde acaba el código ejecutable para este hilo, el hilo, se marcara como ``DEAD`` al llevar ``IP`` mas allá de esta dirección (``code_limit``), o hasta que se ejecute la instruccion `th_dead <reg>` (`thsetst  3 <reg>`), que cambiara el hilo a muerto.
-Al ejecutar la instrucción, el hilo se marcara como ``READY``, y su ___TID___ se devolverá en el registro `r15`, se le podrá ceder el control usando `yield <reg>`
-----
-- `thgetst <reg>`: La instrucción `thgetst` (___Thread Get State___) Permite obtener el estado de un hilo en el registro `r00`. Para indicar el hilo del que obtener el estado, se debe ejecutar la instrucción con un registro que contenga el `tid` del hilo.
-----
-- `thsetst  <inmed4> <reg>`: 
-	- `th_ready <reg>` alias `thsetst  0 <reg>` : Marca el hilo como ``READY`` (Listo para ejecutarse)
-	- `th_running <reg>` alias `thsetst  1 <reg>` : No se permite, solo la VM controla el hilo que se marcara como ejecutando.
-	- `th_blocked <reg>` alias `thsetst  2 <reg>`: Marca el hilo como `BLOCKED` (hilo bloqueado), puede desbloquear por un hilo externo que lo marque como `READY` o reactivarse por que se puso a dormir con `th_sleep`.
-	- `th_dead <reg>` alias `thsetst  3 <reg>`: Marca el hilo como ``DEAD`` lo que indica que el hilo finalizo su ejecución o se mato.
+Las instrucciones de green thread permiten crear y controlar procesos ligeros
+dentro de VestaVM. Cada hilo tiene su propio estado (registros, pila, PC) pero
+comparten la memoria de la instancia VM.
 
-### Instrucciones de control del hilo:
-- `th_err`: Permite obtener el código de error del hilo:
+**Nota:** para corrutinas de alto nivel (yield, resume, spawn, swapctx), ver
+[[../SetInstruccionesVM/CORO.md]]. Esta pagina documenta las instrucciones de bajo
+nivel para control de hilos.
+
+---
+
+## Instrucciones de creacion y finalizacion
+
+### `thinit` - Crear un nuevo hilo
+
+Crea un nuevo hilo en la VM. Se configuran los registros antes de la instruccion:
+
+| Registro | Contenido                                                     |
+| :------: | :------------------------------------------------------------ |
+| r00      | Puntero base de la pila del nuevo hilo                        |
+| r01      | Limite de pila (si SP lo supera: THREAD_STACK_OVERFLOW)       |
+| r02      | Puntero a la primera instruccion a ejecutar (PC inicial)      |
+| r03      | Limite del codigo ejecutable (si PC lo supera: hilo muere)    |
+
 ```c
-/**
- * Estados de error de los hilos
- */
-typedef enum state_err_thread {
-    THREAD_NO_ERROR = 0,            /** Sin error */
-    THREAD_UNKNOWN_ERROR,           /** Error no clasificado */
-    THREAD_SEGMENTATION_FAULT,      /** Un hilo intento acceder a memoria a la cual no tiene permisos */
-    THREAD_ILLEGAL_INSTRUCTION,     /** Instrucción no reconocida o prohibida */
-    THREAD_DIVISION_BY_ZERO,        /** División por cero */
-
-    THREAD_STACK_OVERFLOW,          /** Stack del hilo se desbordó:
-                                     * El tope de pila(sp) se encontro con el limite de pila del hilo.
-                                     * Push más allá del límite de stack
-                                     */
-
-    THREAD_STACK_UNDERFLOW,         /**
-                                     * Stack se leyó cuando estaba vacío( Pop de stack vacío ),
-                                     *  SP se intento decrementar a un valor inferios a BP,
-                                     *  el tope de pila siempre debe de ser superior o igual a
-                                     *  el puntero de la base de pila
-                                     */
-    THREAD_INVALID_SYSCALL,         /** Llamada al sistema inválida o no soportada */
-} state_err_thread;
+// Crear un hilo que ejecuta la funcion 'mi_funcion'
+mov r00, pila_hilo       // puntero base de la pila
+mov r01, limite_pila     // limite de la pila (64KB mas abajo)
+mov r02, mi_funcion      // primera instruccion
+mov r03, fin_mi_funcion  // fin del codigo (limite)
+thinit                   // crear el hilo; TID retorna en r15
 ```
 
-- ``th_sleep``:
-La instrucción duerme el hilo actual en ejecución. Se espera recibir el tiempo que dormir el hilo, en `r00`. Debe ser una hora en nanosegundo a la que despertar el hilo. Configura el campo interno `time_sleep`. Al dormir el hilo se marca como `BLOCKED`
+El hilo se marca como `READY` al crearlo. Su TID (Thread ID) se devuelve en `r15`.
+Para ejecutarlo, cede el control con `yield r15`.
 
-- `yield`: Permite ceder el control para que el siguiente hilo sea ejecutado. Esta instrucción puede ejecutarse aunque el mecanismo de **"Quantum de ejecución"**/**"Time slice"**  este activo.
-- `yield <reg>`: Permite ceder el control a un hilo especificado en un registro, por un ___TID___
+---
 
-- ``setts <inmed16>``
-- `setts <reg>`: La instrucción `setts` (___Set Time Slice___) permite configurar el **"Quantum de ejecución"**/**"Time slice"**, debe ser un valor de 16 bits o un valor de hasta 64bits contenido en un registro. Para desactivar este mecanismo, en el hilo actual, llamar a la instrucción con valor 0 para configurar el hilo, que cambiara el campo interno `instructions_remaining`.
+## Instrucciones de consulta y cambio de estado
 
-- `callthblock`: (``call thread block``) la función permite a los hilos emulados llamar a funciones externas bloqueantes, esto es necesario si se quiere que la función externa llamada no bloque todo el hilo principal de la VM. Esta instrucción especial creara un hilo real al momento de realizar la llamada externa, lo que permitirá seguir la ejecución del resto de la VM
+### `thgetst r` - Obtener estado de un hilo
+
+Lee el estado actual del hilo con TID en el registro `r` y lo devuelve en `r00`.
+
+```c
+mov r01, mi_tid     // TID del hilo que quiero consultar
+thgetst r01         // r00 = estado del hilo (READY, RUNNING, BLOCKED, DEAD)
+```
+
+### `thsetst N, r` - Cambiar estado de un hilo
+
+Cambia el estado del hilo con TID en `r` al estado `N`:
+
+| Alias         | N | Estado    | Descripcion                                       |
+| :------------ | : | :-------- | :------------------------------------------------ |
+| `th_ready r`  | 0 | READY     | Listo para ejecutarse                             |
+| `th_running r`| 1 | RUNNING   | No disponible: solo la VM puede cambiarlo         |
+| `th_blocked r`| 2 | BLOCKED   | Bloqueado; otro hilo puede desbloquearlo          |
+| `th_dead r`   | 3 | DEAD      | Hilo terminado; no puede reactivarse              |
+
+```c
+// Bloquear el hilo con TID en r03
+th_blocked r03    // equivale a: thsetst 2, r03
+
+// Marcar el hilo actual como terminado
+mov r01, 0        // TID del hilo actual
+th_dead r01
+```
+
+---
+
+## Instrucciones de control
+
+### `th_err` - Obtener codigo de error del hilo
+
+Devuelve el ultimo codigo de error del hilo en `r00`:
+
+| Codigo                      | Valor | Causa                                               |
+| :-------------------------- | :---: | :-------------------------------------------------- |
+| `THREAD_NO_ERROR`           | 0     | Sin error                                           |
+| `THREAD_UNKNOWN_ERROR`      | 1     | Error no clasificado                                |
+| `THREAD_SEGMENTATION_FAULT` | 2     | Acceso a memoria sin permisos                       |
+| `THREAD_ILLEGAL_INSTRUCTION`| 3     | Instruccion no reconocida o prohibida               |
+| `THREAD_DIVISION_BY_ZERO`   | 4     | Division por cero                                   |
+| `THREAD_STACK_OVERFLOW`     | 5     | SP alcanzo el limite de pila (push mas alla)        |
+| `THREAD_STACK_UNDERFLOW`    | 6     | SP intento decrementarse por debajo de BP           |
+| `THREAD_INVALID_SYSCALL`    | 7     | Llamada al sistema invalida                         |
+
+### `th_sleep` - Dormir el hilo actual
+
+Duerme el hilo actual. `r00` debe contener la hora (en nanosegundos) a la que
+despertar. El hilo se marca como `BLOCKED` y se reactiva automaticamente.
+
+```c
+mov r00, 1000000000    // dormir hasta el nanosegundo 1000000000
+th_sleep               // bloquear el hilo hasta ese momento
+```
+
+### `yield` - Ceder el control
+
+Cede el control al siguiente hilo listo para ejecutarse:
+
+```c
+yield         // ceder al siguiente hilo en la cola del scheduler
+
+yield r05     // ceder el control especificamente al hilo con TID en r05
+```
+
+### `setts` - Configurar el quantum de ejecucion
+
+Configura cuantas instrucciones puede ejecutar el hilo antes de que el scheduler
+lo interrumpa. Un valor de 0 desactiva la preemption para el hilo actual.
+
+```c
+setts 1000    // el hilo puede ejecutar 1000 instrucciones antes de ceder
+setts r02     // usar valor en r02 (hasta 64 bits)
+setts 0       // desactivar el quantum (el hilo cede solo con yield o IO)
+```
+
+### `callthblock` - Llamar funcion bloqueante sin detener la VM
+
+Cuando un hilo necesita llamar a una funcion nativa que puede bloquear (p.ej.
+`read`, `recv`), usa `callthblock` en lugar de `calln`. Esto crea un hilo nativo
+real para la llamada, permitiendo que el scheduler continue ejecutando otros hilos
+mientras espera.
+
+```c
+mov r15, 1
+mov r01, fd
+callthblock @Method("libc.so.6:read")   // llamada bloqueante sin bloquear la VM
+```
+
+---
+
+Ver tambien:
+- [[Multihilo.md]] -- comparativa de modelos de concurrencia
+- [[../SetInstruccionesVM/CORO.md]] -- corrutinas: yield/resume/spawn/swapctx
+- [[../SetInstruccionesVM/MONITOR.md]] -- exclusion mutua con monitores
+- [[../wmint (VM Interuptions).md]] -- interrupciones (Stack Fault, etc.)

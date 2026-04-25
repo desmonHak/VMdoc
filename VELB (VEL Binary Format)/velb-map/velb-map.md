@@ -1,11 +1,21 @@
+# VELB Map File
+
+Un **map file** es un archivo de texto generado por el linker que describe la
+estructura del ejecutable `.velb` resultante: donde quedo cada simbolo, que
+secciones se crearon, que relocaciones se aplicaron y que optimizaciones se hicieron.
+
+**Analogia:** es el recibo detallado de lo que el linker hizo al construir el binario.
+Util para depuracion, para entender por que el binario pesa lo que pesa, y para
+verificar que los simbolos quedaron en las direcciones correctas.
+
 Un **map file** es un archivo de texto que describe:
-- símbolos globales
+- simbolos globales
 - direcciones finales
 - secciones
 - espacios de direcciones
 - relocaciones aplicadas
-- módulos incluidos
-- tamaño final del ejecutable
+- modulos incluidos
+- tamano final del ejecutable
 
 ```c
 VELB MAP FILE

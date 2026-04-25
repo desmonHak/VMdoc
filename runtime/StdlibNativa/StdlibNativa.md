@@ -4,7 +4,7 @@ Los modulos nativos de la stdlib estan en `stdlib/native/` y se compilan
 como librerias dinamicas (`.dll` / `.so`).  Se importan en bytecode .vel
 con la ruta relativa sin extension:
 
-```asm
+```c
 @Import {
     @Method {
         @Lib("stdlib/native/io/vesta_io")
@@ -19,7 +19,7 @@ El loader resuelve la ruta relativa al directorio del ejecutable `vesta`.
 
 ## Modulos disponibles
 
-### vesta_io — Entrada/Salida
+### vesta_io - Entrada/Salida
 
 Ruta: `stdlib/native/io/vesta_io`  
 Fuente: `stdlib/native/io/vesta_io.c`
@@ -47,7 +47,7 @@ El `proc_ptr` se obtiene con la instruccion `getproc`.
 
 #### Ejemplo: imprimir un string de la VM
 
-```asm
+```c
 @Import {
     @Method { @Lib("stdlib/native/io/vesta_io") @Name("vio_println") }
 }
@@ -68,7 +68,7 @@ end_data:
 
 ---
 
-### vesta_math — Matematicas
+### vesta_math - Matematicas
 
 Ruta: `stdlib/native/math/vesta_math`  
 Fuente: `stdlib/native/math/vesta_math.c`
@@ -113,16 +113,16 @@ bits IEEE 754 para doubles). No hay argumentos puntero a memoria VM.
 
 #### Ejemplo: calcular raiz cuadrada de 4.0
 
-```asm
+```c
 @Import {
     @Method { @Lib("stdlib/native/math/vesta_math") @Name("vmath_sqrt") }
 }
 
 code:
-    mov     r1, 0x4010000000000000   ; bits IEEE 754 de 4.0
+    mov     r1, 0x4010000000000000   // bits IEEE 754 de 4.0
     mov     r15, 1
     calln   @Method("stdlib/native/math/vesta_math:vmath_sqrt")
-    ; r0 = 0x4000000000000000 (bits de 2.0)
+    // r0 = 0x4000000000000000 (bits de 2.0)
     hlt
 end_code:
 ```

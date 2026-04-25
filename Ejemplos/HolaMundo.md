@@ -1,6 +1,6 @@
 # Hello World en VestaVM
 
-Este tutorial muestra cómo imprimir texto en VestaVM sin hardcodear el string como bytes en los registros. El string se define con `db` en la sección de datos (VM memory) y se copia al host con `vmcopy` para pasarlo a una función nativa.
+Este tutorial muestra como imprimir texto en VestaVM sin hardcodear el string como bytes en los registros. El string se define con `db` en la seccion de datos (VM memory) y se copia al host con `vmcopy` para pasarlo a una funcion nativa.
 
 ---
 
@@ -8,16 +8,16 @@ Este tutorial muestra cómo imprimir texto en VestaVM sin hardcodear el string c
 
 VestaVM tiene dos espacios de memoria completamente separados:
 
-| Espacio        | Quién lo gestiona   | Acceso desde el bytecode  |
+| Espacio        | Quien lo gestiona   | Acceso desde el bytecode  |
 | :------------- | :------------------ | :------------------------ |
 | **VM memory**  | TLB + ArenaManager  | `mov`, `adds`, `db`, `dq` |
 | **Host memory**| OS / `alloc`        | cursores, `alloc`, `free` |
 
-Las funciones nativas como `puts`, `WriteConsoleA` o `printf` reciben **punteros host** — no entienden las direcciones virtuales de la VM. Por eso, cualquier string que queramos pasar a una función nativa debe estar primero en host memory.
+Las funciones nativas como `puts`, `WriteConsoleA` o `printf` reciben **punteros host** - no entienden las direcciones virtuales de la VM. Por eso, cualquier string que queramos pasar a una funcion nativa debe estar primero en host memory.
 
 ---
 
-## Opción A - string hardcodeado (patrón antiguo)
+## Opcion A - string hardcodeado (patron antiguo)
 
 ```vel
 // "Hello\0\0\0" en little-endian como qword: 0x0000006F6C6C6548
@@ -37,12 +37,12 @@ hlt
 
 **Desventajas:**
 - El string debe calcularse a mano en little-endian.
-- Strings largos requieren múltiples qwords, desplazamientos manuales y el patrón `xchg`/`adds`/`xchg` para avanzar el cursor.
-- Difícil de leer y mantener.
+- Strings largos requieren multiples qwords, desplazamientos manuales y el patron `xchg`/`adds`/`xchg` para avanzar el cursor.
+- Dificil de leer y mantener.
 
 ---
 
-## Opción B - `db` + `vmcopy` (patrón recomendado)
+## Opcion B - `db` + `vmcopy` (patron recomendado)
 
 ```vel
 @Format("raw")
@@ -65,7 +65,7 @@ hlt
 }
 
 code:
-    // 1. Obtener la dirección VM del string.
+    // 1. Obtener la direccion VM del string.
     //    @Absolute resuelve la etiqueta en tiempo de enlace (relocation).
     mov    r1, @Absolute("all.hello")     // r1 = VM address de "Hola, Mundo!"
 
@@ -75,13 +75,13 @@ code:
     mov    r10, r0                        // guardar para free + calln
     xchg   cur0, r0                       // cur0 = host ptr  |  r0 = 0
 
-    // 3. Copiar string de VM memory al buffer host en una instrucción.
-    //    vmcopy avanza cur0 y r1 automáticamente en 13 bytes.
+    // 3. Copiar string de VM memory al buffer host en una instruccion.
+    //    vmcopy avanza cur0 y r1 automaticamente en 13 bytes.
     mov    r2, 13                         // "Hola, Mundo!\0" = 13 bytes
     vmcopy cur0, r1, r2
 
     // 4. Llamar puts(host_ptr).
-    //    puts imprime hasta '\0' y añade un newline automático.
+    //    puts imprime hasta '\0' y anade un newline automatico.
     mov    r15, 1
     mov    r1, r10
     calln  @Method("msvcrt.dll:puts")
@@ -105,7 +105,7 @@ Hola, Mundo!
 
 ---
 
-## Cómo compilar y ejecutar
+## Como compilar y ejecutar
 
 ```bash
 # Compilar .vel -> .velb
@@ -115,7 +115,7 @@ vesta --build hola_mundo.vel -o hola_mundo
 vesta --run hola_mundo.velb
 ```
 
-El archivo compilado está en `examples_codes_vm/hola_mundo.vel`.
+El archivo compilado esta en `examples_codes_vm/hola_mundo.vel`.
 
 ---
 
@@ -123,27 +123,27 @@ El archivo compilado está en `examples_codes_vm/hola_mundo.vel`.
 
 ### `@Absolute("all.hello")`
 
-Produce una **relocation** de tipo `Absolute64` que el linker resuelve a la dirección virtual de la etiqueta `hello` dentro de la sección `all`. Es el equivalente a `&hello` en C, pero para el espacio de direcciones de la VM.
+Produce una **relocation** de tipo `Absolute64` que el linker resuelve a la direccion virtual de la etiqueta `hello` dentro de la seccion `all`. Es el equivalente a `&hello` en C, pero para el espacio de direcciones de la VM.
 
 ### `alloc r2`
 
-Reserva `r2` bytes de **host memory** (con `malloc` o equivalente del OS) y devuelve el puntero en `r0`. Este puntero es válido para pasarlo a funciones nativas.
+Reserva `r2` bytes de **host memory** (con `malloc` o equivalente del OS) y devuelve el puntero en `r0`. Este puntero es valido para pasarlo a funciones nativas.
 
 ### `xchg cur0, r0`
 
-Intercambia el valor de `cur0` (que estaba en 0) con `r0` (que tiene el host ptr). Resultado: `cur0 = host ptr`, `r0 = 0`. El 0 resultante en `r0` es útil como registro índice cero para instrucciones SIB si se necesita.
+Intercambia el valor de `cur0` (que estaba en 0) con `r0` (que tiene el host ptr). Resultado: `cur0 = host ptr`, `r0 = 0`. El 0 resultante en `r0` es util como registro indice cero para instrucciones SIB si se necesita.
 
 ### `vmcopy cur0, r1, r2`
 
-La instrucción clave. Copia `r2` bytes desde VM memory en la dirección `r1` al buffer host en `cur0`. Internamente:
+La instruccion clave. Copia `r2` bytes desde VM memory en la direccion `r1` al buffer host en `cur0`. Internamente:
 
-1. Traduce la dirección virtual `r1` a través del TLB.
-2. Copia los bytes al destino host usando **la ruta SIMD más rápida disponible** (AVX-512 → AVX2 → SSE2 → memcpy), detectada una sola vez al inicio.
+1. Traduce la direccion virtual `r1` a traves del TLB.
+2. Copia los bytes al destino host usando **la ruta SIMD mas rapida disponible** (AVX-512 -> AVX2 -> SSE2 -> memcpy), detectada una sola vez al inicio.
 3. Avanza `cur0 += r2` y `r1 += r2` para facilitar copias secuenciales.
 
 ### `calln @Method("msvcrt.dll:puts")`
 
-Llama a `puts` de la CRT de Windows. `r15 = 1` indica 1 argumento; `r1` contiene el puntero host al string. La función recorre la memoria hasta el `\0` e imprime la cadena seguida de un newline.
+Llama a `puts` de la CRT de Windows. `r15 = 1` indica 1 argumento; `r1` contiene el puntero host al string. La funcion recorre la memoria hasta el `\0` e imprime la cadena seguida de un newline.
 
 ---
 
@@ -162,7 +162,7 @@ Solo cambia la biblioteca:
 //   @Lib("libSystem.dylib")
 ```
 
-El resto del código es idéntico.
+El resto del codigo es identico.
 
 ---
 
@@ -176,7 +176,7 @@ mov    r2, 6
 vmcopy cur0, r1, r2        // copia "Hola, " (6 bytes); cur0 avanza 6
 
 // cur0 ahora apunta al offset 6 del buffer
-// r1 ahora apunta 6 bytes más allá de parte1 (ya no útil aquí)
+// r1 ahora apunta 6 bytes mas alla de parte1 (ya no util aqui)
 
 mov    r1, @Absolute("all.parte2")
 mov    r2, 7
@@ -187,13 +187,13 @@ addcur cur0, 0xFFF1        // -13 en int16 (0x10000 - 13 = 0xFFF3... ajustar)
 // alternativa: guardar r10 = host ptr y usar r10 directamente
 ```
 
-> En la práctica, para llamadas nativas es más sencillo guardar el host ptr original en un registro (`mov r10, r0`) antes del `xchg` y usarlo directamente en `calln` sin retroceder el cursor.
+> En la practica, para llamadas nativas es mas sencillo guardar el host ptr original en un registro (`mov r10, r0`) antes del `xchg` y usarlo directamente en `calln` sin retroceder el cursor.
 
 ---
 
-## Ver también
+## Ver tambien
 
-- [[cursor|Instrucciones cursor]] — referencia completa de `readcur`, `writecur`, `gcderef`, `addcur`, `vmcopy`, `vcopyh`
-- [[NativeCall (CallN)]] — convención de llamada nativa, argumentos y valores de retorno
-- [[Allocator crudo para FFI  y memoria manual|ALLOC / FREE]] — gestión de host memory
-- [[MOV, MOVH, MOVC, MOCH]] — instrucciones MOV y variantes de memoria
+- [[cursor|Instrucciones cursor]] - referencia completa de `readcur`, `writecur`, `gcderef`, `addcur`, `vmcopy`, `vcopyh`
+- [[NativeCall (CallN)]] - convencion de llamada nativa, argumentos y valores de retorno
+- [[Allocator crudo para FFI y memoria manual|ALLOC / FREE]] - gestion de host memory
+- [[MOV, MOVH, MOVC, MOCH]] - instrucciones MOV y variantes de memoria

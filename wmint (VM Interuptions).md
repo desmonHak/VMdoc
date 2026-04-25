@@ -1,34 +1,93 @@
-La instrucción `vmint` permite invocar una interrupción virtual.
+# WMINT - VM Interruptions (Interrupciones virtuales)
 
-En 64 bytes la **Interrupt Vector Table (IVT)** tiene una cantidad de ``1024`` entradas (``(4096 * 2) / 8``), es decir, ocupa dos paginas de memoria donde cada entrada es un puntero de 8bytes, mientras que en 32 bytes la tabla tiene una cantidad de 1024 entrada compuesta de `(4096 / 4)`, por lo tanto las interrupciones van desde ``0x0`` hasta `0x400` (1024).
+La instruccion `vmint` (o `wmint`) permite invocar una **interrupcion virtual**
+dentro de VestaVM. Las interrupciones son mecanismos para manejar eventos especiales:
+errores hardware, llamadas al sistema, breakpoints de depuracion, etc.
 
-La VM usa el registro global ``IVT`` y contiene un puntero base que la ``IVT`` que usar, por ende se puede usar varias ``IVT`` y donde cada una puede tener un ID de interrupción que exprese distintas acciones, pero se espera que solo haya una normalmente, o que la VM auto gestione este registro para cambiar de IVT correctamente.
+**Analogia:** las interrupciones son como un timbre de puerta. Cuando alguien llama
+(ocurre un evento), el sistema para lo que esta haciendo, atiende al visitante (ejecuta
+el manejador de la interrupcion) y luego vuelve a lo que estaba haciendo.
 
-el opcode de la instrucción define como `0xf000 & int_id` por lo tanto, las instrucción son las siguientes:
+---
 
-|  opcodes   | representacion  |           raw access            |             uso              |
-| :--------: | :-------------: | :-----------------------------: | :--------------------------: |
-| ``0xf000`` |  ``vmint 0x0``  |  ``IVT + sizeof(void*) * 0x0``  |        Division por 0        |
-| ``0xf001`` |  ``vmint 0x1``  |  ``IVT + sizeof(void*) * 0x1``  |          reservado           |
-| ``0xf002`` |  ``vmint 0x2``  |  ``IVT + sizeof(void*) * 0x2``  |              -               |
-| ``0xf003`` |  ``vmint 0x3``  |  ``IVT + sizeof(void*) * 0x3``  |          Breakpoint          |
-|  `0xf004`  |  ``vmint 0x4``  |  ``IVT + sizeof(void*) * 0x4``  |           Overflow           |
-|  `0xf005`  |  ``vmint 0x5``  |  ``IVT + sizeof(void*) * 0x5``  |              -               |
-|  `0xf006`  |  ``vmint 0x6``  |  ``IVT + sizeof(void*) * 0x6``  |     Invalid opcode (UD2)     |
-|  `0xf007`  |  ``vmint 0x7``  |  ``IVT + sizeof(void*) * 0x7``  |         Stack Fault          |
-|  `0xf008`  |  ``vmint 0x8``  |  ``IVT + sizeof(void*) * 0x8``  |   General Protection Fault   |
-|  `0xf009`  |  ``vmint 0x9``  |  ``IVT + sizeof(void*) * 0x9``  |          Page Fault          |
-|  `0xf00A`  |  ``vmint 0xA``  |  ``IVT + sizeof(void*) * 0xA``  |          Code Fault          |
-|  `0xf00B`  |  ``vmint 0xB``  |  ``IVT + sizeof(void*) * 0xB``  |                              |
-|  `0xf00C`  |  ``vmint 0xC``  |  ``IVT + sizeof(void*) * 0xC``  |                              |
-|  `0xf00D`  |  ``vmint 0xD``  |  ``IVT + sizeof(void*) * 0xD``  |                              |
-|  `0xf00E`  |  ``vmint 0xE``  |  ``IVT + sizeof(void*) * 0xE``  |                              |
-|  `0xf00F`  |  ``vmint 0xF``  |  ``IVT + sizeof(void*) * 0xF``  |    call vm [[VMSyscall]]     |
-| ``0xfXXX`` | ``vmint 0xXXX`` | ``IVT + sizeof(void*) * 0xXXX`` | int definidas por el usuario |
-| ``0xf400`` | ``vmint 0x400`` | ``IVT + sizeof(void*) * 0x400`` |           last int           |
+## Tabla de interrupciones (IVT)
 
-Estas funciones que se describen únicamente existen en la primera IVT autodefinida por la VM, para las demás IVT dependerá de lo que el programador haya indicado, o de la VM si creo una nueva IVT:
-- `Stack Fault`: ocurre automáticamente cuando un hilo accede fuera los limites de su pila definida.
-- `General Protection Fault`: ocurre cuando un hilo viola los permisos de memoria de la vm o de la memoria real.
-- `Page Fault`: se auto-invoca cuando un hilo usa alguna instrucción  para acceder modificar memoria no mapeada por la VM o de la maquina real.
-- `Code Fault`: ocurre cuando un hilo intenta saltar o ejecutar código fuera de sus limites definidos
+La **IVT** (Interrupt Vector Table) es una tabla de 1024 punteros a funciones manejadoras.
+En 64-bit ocupa dos paginas de memoria (1024 entradas x 8 bytes = 8192 bytes).
+
+El opcode se codifica como `0xF000 | id_interrupcion`, por lo que las interrupciones
+van de `0xF000` hasta `0xF400` (1024 entradas).
+
+| Opcode    | Instruccion      | Uso predefinido                          |
+| :-------: | :--------------- | :--------------------------------------- |
+| `0xF000`  | `vmint 0x0`      | Division por cero                        |
+| `0xF001`  | `vmint 0x1`      | Reservado                                |
+| `0xF002`  | `vmint 0x2`      | Sin asignacion                           |
+| `0xF003`  | `vmint 0x3`      | Breakpoint (para depuradores)            |
+| `0xF004`  | `vmint 0x4`      | Overflow aritmetico                      |
+| `0xF005`  | `vmint 0x5`      | Sin asignacion                           |
+| `0xF006`  | `vmint 0x6`      | Opcode invalido (UD2 en x86)             |
+| `0xF007`  | `vmint 0x7`      | Stack Fault (acceso fuera de la pila)    |
+| `0xF008`  | `vmint 0x8`      | General Protection Fault (permiso)       |
+| `0xF009`  | `vmint 0x9`      | Page Fault (memoria no mapeada)          |
+| `0xF00A`  | `vmint 0xA`      | Code Fault (salto fuera de limites)      |
+| `0xF00B`  | `vmint 0xB`      | Sin asignacion                           |
+| `0xF00C`  | `vmint 0xC`      | Sin asignacion                           |
+| `0xF00D`  | `vmint 0xD`      | Sin asignacion                           |
+| `0xF00E`  | `vmint 0xE`      | Sin asignacion                           |
+| `0xF00F`  | `vmint 0xF`      | Syscall virtual (despacha VMSyscall)     |
+| `0xFXXX`  | `vmint 0xXXX`    | Interrupciones definidas por el usuario  |
+| `0xF400`  | `vmint 0x400`    | Ultima interrupcion disponible           |
+
+---
+
+## Interrupciones predefinidas
+
+Las siguientes interrupciones de la primera IVT son gestionadas automaticamente
+por la VM (no necesitan manejador del usuario):
+
+- **Stack Fault** (`0x7`): se dispara automaticamente cuando un proceso accede fuera
+  de los limites de su pila definida.
+
+- **General Protection Fault** (`0x8`): ocurre cuando un proceso viola los permisos
+  de memoria de la VM o de la memoria real del host.
+
+- **Page Fault** (`0x9`): se invoca cuando un proceso usa una instruccion para acceder
+  o modificar memoria que no esta mapeada.
+
+- **Code Fault** (`0xA`): ocurre cuando un proceso intenta saltar o ejecutar codigo
+  fuera de sus limites definidos.
+
+---
+
+## Uso de vmint
+
+```c
+// Invocar el breakpoint (para depuracion)
+vmint 0x3        // equivale a INT 3 en x86: pausa para el depurador
+
+// Invocar una syscall virtual (vmint 0x0F)
+mov r00, 1       // numero de syscall (sys_write en Linux 64-bit)
+mov r01, 1       // primer argumento (stdout)
+mov r02, msg     // segundo argumento (puntero al mensaje)
+mov r03, 12      // tercer argumento (longitud)
+vmint 0x0F       // despachar a la syscall virtual 0x1 mediante el handler 0x0F
+
+// Invocar una interrupcion personalizada
+vmint 0x100      // tu propia interrupcion en la entrada 0x100 de la IVT
+```
+
+---
+
+## Multiples IVTs
+
+La VM usa un registro global `IVT` que apunta a la tabla activa. Se pueden tener
+multiples IVTs (una por modo de operacion, por ejemplo) y la VM puede cambiar entre
+ellas. Para las IVTs adicionales, el significado de cada entrada depende de lo que
+el programador haya definido.
+
+---
+
+Ver tambien:
+- [[VMSyscall.md]] - referencia completa de las syscalls virtuales
+- [[SetInstruccionesVM/ENC (Exec Native Code).md]] - ejecucion de codigo nativo directamente

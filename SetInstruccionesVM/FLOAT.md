@@ -1,15 +1,34 @@
 # Instrucciones de Punto Flotante (FLOAT)
 
-Instrucciones escalares de precision doble (f64 / IEEE 754 de 64 bits) que
-operan sobre los registros ZMM (f0..f15).
+Los numeros enteros (R0-R15) no pueden representar fracciones como 3.14 o 2.718. Para
+calcular con numeros decimales, la VM tiene un conjunto separado de registros y
+instrucciones de **punto flotante** (floating point), que usan el estandar **IEEE 754**
+de 64 bits (tambien llamado `double` en C/Java o `float64` en otros lenguajes).
+
+Analogia: los registros R0-R15 son como contadores de billetes enteros. Los registros
+flotantes (f0-f15) son como balanzas de precision que pueden medir 3.14159 kilogramos.
+
+El estandar IEEE 754 de 64 bits codifica un numero decimal como 64 bits repartidos en:
+- 1 bit de signo (positivo/negativo)
+- 11 bits de exponente
+- 52 bits de mantisa (la parte decimal)
+
+Por eso, para cargar el numero `1.0` en un registro flotante, se escribe su representacion
+en bits: `0x3FF0000000000000`. La tabla al final de esta seccion muestra las constantes mas
+utiles.
+
+Implementacion: `src/runtime/exec_instruction_alu.cpp` (decodificacion en `decode_table.cpp`)
 
 ---
 
 ## Registros ZMM
 
-Los registros ZMM son independientes de los registros de proposito general
-(R0..R15).  Cada registro ZMM almacena un double de 64 bits (IEEE 754).
-Se nombran `f0` a `f15` en el ensamblador.
+Los registros ZMM son **independientes** de los registros de proposito general (R0-R15).
+Cada registro ZMM almacena un double de 64 bits (IEEE 754). Se nombran `f0` a `f15` en
+el ensamblador. Hay 16 registros flotantes: `f0`, `f1`, ..., `f15`.
+
+Los datos no pasan automaticamente de R0-R15 a f0-f15. Para eso existen las instrucciones
+de conversion (`fcvt`) y carga directa (`fmowi`, `fload`).
 
 ---
 
@@ -114,10 +133,10 @@ interpreta como un double IEEE 754 al cargarse en el registro ZMM.
 Carga el inmediato de 64 bits `imm64` interpretado como bits IEEE 754
 directamente en el registro ZMM `fDst`.
 
-```asm
-fmowi f0, 0x3FF0000000000000   ; f0 = 1.0
-fmowi f1, 0x4000000000000000   ; f1 = 2.0
-fmowi f2, 0xC014000000000000   ; f2 = -5.0
+```c
+fmowi f0, 0x3FF0000000000000   // f0 = 1.0
+fmowi f1, 0x4000000000000000   // f1 = 2.0
+fmowi f2, 0xC014000000000000   // f2 = -5.0
 ```
 
 Constantes IEEE 754 utiles:
@@ -136,9 +155,9 @@ Constantes IEEE 754 utiles:
 
 Copia el contenido del registro ZMM `fSrc` en `fDst`.
 
-```asm
-fmowi f0, 0x4000000000000000   ; f0 = 2.0
-fmov  f1, f0                   ; f1 = f0 = 2.0
+```c
+fmowi f0, 0x4000000000000000   // f0 = 2.0
+fmov  f1, f0                   // f1 = f0 = 2.0
 ```
 
 ---
@@ -149,38 +168,38 @@ Todas operan en la forma `fDst op= fSrc` (resultado se almacena en fDst):
 
 ### FADD fDst, fSrc
 
-```asm
-fmowi f0, 0x3FF0000000000000   ; f0 = 1.0
-fmowi f1, 0x4000000000000000   ; f1 = 2.0
+```c
+fmowi f0, 0x3FF0000000000000   // f0 = 1.0
+fmowi f1, 0x4000000000000000   // f1 = 2.0
 fmov  f2, f0
-fadd  f2, f1                   ; f2 = 1.0 + 2.0 = 3.0
+fadd  f2, f1                   // f2 = 1.0 + 2.0 = 3.0
 ```
 
 ### FSUB fDst, fSrc
 
-```asm
-fmowi f0, 0x4008000000000000   ; f0 = 3.0
-fmowi f1, 0x3FF0000000000000   ; f1 = 1.0
+```c
+fmowi f0, 0x4008000000000000   // f0 = 3.0
+fmowi f1, 0x3FF0000000000000   // f1 = 1.0
 fmov  f2, f0
-fsub  f2, f1                   ; f2 = 3.0 - 1.0 = 2.0
+fsub  f2, f1                   // f2 = 3.0 - 1.0 = 2.0
 ```
 
 ### FMUL fDst, fSrc
 
-```asm
-fmowi f0, 0x4000000000000000   ; f0 = 2.0
-fmowi f1, 0x4008000000000000   ; f1 = 3.0
+```c
+fmowi f0, 0x4000000000000000   // f0 = 2.0
+fmowi f1, 0x4008000000000000   // f1 = 3.0
 fmov  f2, f0
-fmul  f2, f1                   ; f2 = 2.0 * 3.0 = 6.0
+fmul  f2, f1                   // f2 = 2.0 * 3.0 = 6.0
 ```
 
 ### FDIV fDst, fSrc
 
-```asm
-fmowi f0, 0x4018000000000000   ; f0 = 6.0
-fmowi f1, 0x4000000000000000   ; f1 = 2.0
+```c
+fmowi f0, 0x4018000000000000   // f0 = 6.0
+fmowi f1, 0x4000000000000000   // f1 = 2.0
 fmov  f2, f0
-fdiv  f2, f1                   ; f2 = 6.0 / 2.0 = 3.0
+fdiv  f2, f1                   // f2 = 6.0 / 2.0 = 3.0
 ```
 
 ---
@@ -203,14 +222,14 @@ disponibles son `jmp.je` (ZF=1, igual) y `jmp.jne` (ZF=0, distinto).
 Para detectar menor-que (SF=1) o mayor-que (SF=0 y ZF=0) se puede usar
 la logica del salto opuesto:
 
-```asm
-fmowi f0, 0x4008000000000000   ; f0 = 3.0
-fmowi f1, 0x4010000000000000   ; f1 = 4.0
+```c
+fmowi f0, 0x4008000000000000   // f0 = 3.0
+fmowi f1, 0x4010000000000000   // f1 = 4.0
 
 fmov  f2, f0
-fcmp  f2, f1                   ; flags <- f2 - f1 (3.0 - 4.0, negativo)
-jmp.je  lbl_igual              ; salta si f0 == f1 (ZF=1)
-; aqui: f0 != f1 (puede ser menor o mayor)
+fcmp  f2, f1                   // flags <- f2 - f1 (3.0 - 4.0, negativo)
+jmp.je  lbl_igual              // salta si f0 == f1 (ZF=1)
+// aqui: f0 != f1 (puede ser menor o mayor)
 lbl_igual:
 ```
 
@@ -226,32 +245,32 @@ registro para operar in-place.
 
 Calcula la raiz cuadrada de `fSrc` y almacena el resultado en `fDst`.
 
-```asm
-fmowi f0, 0x4010000000000000   ; f0 = 4.0
-fsqrt f1, f0                   ; f1 = sqrt(f0) = 2.0  (f0 no cambia)
+```c
+fmowi f0, 0x4010000000000000   // f0 = 4.0
+fsqrt f1, f0                   // f1 = sqrt(f0) = 2.0  (f0 no cambia)
 
-fmowi f2, 0x4022000000000000   ; f2 = 9.0
-fsqrt f2, f2                   ; f2 = sqrt(9.0) = 3.0  (in-place)
+fmowi f2, 0x4022000000000000   // f2 = 9.0
+fsqrt f2, f2                   // f2 = sqrt(9.0) = 3.0  (in-place)
 ```
 
 ### FABS fDst, fSrc
 
 Elimina el bit de signo de `fSrc` (valor absoluto) y lo almacena en `fDst`.
 
-```asm
-fmowi f0, 0xC014000000000000   ; f0 = -5.0
-fabs  f1, f0                   ; f1 = |-5.0| = 5.0  (f0 no cambia)
+```c
+fmowi f0, 0xC014000000000000   // f0 = -5.0
+fabs  f1, f0                   // f1 = |-5.0| = 5.0  (f0 no cambia)
 ```
 
 ### FNEG fDst, fSrc
 
 Invierte el bit de signo de `fSrc` y almacena el resultado en `fDst`.
 
-```asm
-fmowi f0, 0x4008000000000000   ; f0 = 3.0
-fneg  f1, f0                   ; f1 = -3.0  (f0 no cambia)
+```c
+fmowi f0, 0x4008000000000000   // f0 = 3.0
+fneg  f1, f0                   // f1 = -3.0  (f0 no cambia)
 
-fneg  f0, f0                   ; f0 = -f0  (in-place)
+fneg  f0, f0                   // f0 = -f0  (in-place)
 ```
 
 ---
@@ -263,12 +282,12 @@ fneg  f0, f0                   ; f0 = -f0  (in-place)
 Convierte el valor entero con signo de 64 bits del registro GP `rSrc` a
 double IEEE 754 y lo almacena en `fDst`.
 
-```asm
+```c
 mov   r1, 42
-fcvt  f0, r1                   ; f0 = (double) 42 = 42.0
+fcvt  f0, r1                   // f0 = (double) 42 = 42.0
 
-mov   r2, 0xFFFFFFFFFFFFFFF9   ; r2 = -7 (complemento a dos de 64 bits)
-fcvt  f1, r2                   ; f1 = (double)(-7) = -7.0
+mov   r2, 0xFFFFFFFFFFFFFFF9   // r2 = -7 (complemento a dos de 64 bits)
+fcvt  f1, r2                   // f1 = (double)(-7) = -7.0
 ```
 
 ### FCVT.PS rDst, fSrc  (s=1, ZMM double -> GP entero)
@@ -276,12 +295,12 @@ fcvt  f1, r2                   ; f1 = (double)(-7) = -7.0
 Convierte el double de `fSrc` a entero con signo de 64 bits truncando
 hacia cero (igual que el cast `(int64_t)x` de C) y lo almacena en `rDst`.
 
-```asm
-fmowi f0, 0x400F333333333333   ; f0 = 3.9
-fcvt.ps r1, f0                 ; r1 = (int64_t) 3.9 = 3
+```c
+fmowi f0, 0x400F333333333333   // f0 = 3.9
+fcvt.ps r1, f0                 // r1 = (int64_t) 3.9 = 3
 
-fmowi f1, 0xC005851EB851EB85   ; f1 = -2.7
-fcvt.ps r2, f1                 ; r2 = (int64_t)(-2.7) = -2
+fmowi f1, 0xC005851EB851EB85   // f1 = -2.7
+fcvt.ps r2, f1                 // r2 = (int64_t)(-2.7) = -2
 ```
 
 ---
@@ -295,29 +314,29 @@ una direccion almacenada en un registro GP.
 
 Lee 8 bytes de `vm_mem[rAddr]` y los carga en el registro ZMM `fDst`.
 
-```asm
+```c
 mov   r1, @Absolute("all.mi_double")
-fload f0, r1                   ; f0 = vm_mem[r1] (double de 8 bytes)
+fload f0, r1                   // f0 = vm_mem[r1] (double de 8 bytes)
 ```
 
 ### FSTORE rAddr, fSrc
 
 Escribe los 8 bytes del registro ZMM `fSrc` en `vm_mem[rAddr]`.
 
-```asm
-fmowi f0, 0x4010000000000000   ; f0 = 4.0
+```c
+fmowi f0, 0x4010000000000000   // f0 = 4.0
 mov   r1, @Absolute("all.mi_double")
-fstore r1, f0                  ; vm_mem[r1] = f0  (4.0)
+fstore r1, f0                  // vm_mem[r1] = f0  (4.0)
 ```
 
 Ejemplo completo de round-trip:
 
-```asm
-fmowi f0, 0x3FF8000000000000   ; f0 = 1.5
+```c
+fmowi f0, 0x3FF8000000000000   // f0 = 1.5
 mov   r1, @Absolute("all.buf")
-fstore r1, f0                  ; guardar 1.5 en memoria
-fload  f1, r1                  ; cargar de vuelta en f1
-; f1 debe ser 1.5
+fstore r1, f0                  // guardar 1.5 en memoria
+fload  f1, r1                  // cargar de vuelta en f1
+// f1 debe ser 1.5
 ```
 
 ---

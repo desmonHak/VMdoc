@@ -1,8 +1,17 @@
-VELB es el formato binario del lenguaje para la maquina virtual VEL.
-En este formato se definen las secciones de código, datos y metadatos necesarios para que tu código sea cargado y ejecutado por la VM.
+# VELB - VEL Binary Format
 
-Técnicamente hablando, la VM podría cargar únicamente las instrucciones que quieres ejecutar, y esto estaria bien, pero normalmente nos interesara saber meta información de nuestro código, para poder realizar cosas como la reflexión, o el manejo de excepciones.
+**VELB** es el formato binario compilado para VestaVM. Es el equivalente al `.class`
+de Java o al `.exe` de Windows: el archivo que la VM puede cargar y ejecutar directamente.
+
+**Analogia:** si tu programa `.vel` es el plano de un edificio (codigo fuente legible),
+el `.velb` es el edificio ya construido (codigo binario listo para ejecutar). El
+compilador transforma el plano en el edificio.
+
+VELB es el formato binario del lenguaje para la maquina virtual VEL.
+En este formato se definen las secciones de codigo, datos y metadatos necesarios para que tu codigo sea cargado y ejecutado por la VM.
+
+Tecnicamente hablando, la VM podria cargar unicamente las instrucciones que quieres ejecutar, y esto estaria bien, pero normalmente nos interesara saber meta informacion de nuestro codigo, para poder realizar cosas como la reflexion, o el manejo de excepciones.
 
 ----
 
-El formato empieza con un [[Header_VELB]] el cual es la cabecera del ejecutable y contiene toda la información básica para que el loader pueda cargar o interpretar el mismo.
+El formato empieza con un [[Header_VELB]] el cual es la cabecera del ejecutable y contiene toda la informacion basica para que el loader pueda cargar o interpretar el mismo.

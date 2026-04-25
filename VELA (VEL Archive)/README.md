@@ -1,15 +1,26 @@
-Un archivo **.vela** es una **librería estática** para VestaVM.
+# VELA - VEL Archive (Libreria estatica)
+
+Un archivo **.vela** es una **libreria estatica** para VestaVM.
+
+**Analogia:** si el `.velb` es un programa ejecutable, el `.vela` es una caja de
+herramientas. Contiene multiples modulos objeto precompilados que otros programas
+pueden usar. El linker coge solo las herramientas que necesita de la caja, sin
+incluir todas las demas en el ejecutable final.
+
+Es exactamente lo que es un `.a` en Linux o un `.lib` en Windows.
+
+Un archivo **.vela** es una **libreria estatica** para VestaVM.
 Es exactamente lo que es un `.a` en Linux o un `.lib` en Windows:
 
-- contiene **múltiples módulos objeto**
-- cada módulo tiene:
+- contiene **multiples modulos objeto**
+- cada modulo tiene:
     - bytecode
     - contexto
-    - símbolos exportados
-    - símbolos requeridos
+    - simbolos exportados
+    - simbolos requeridos
     - relocaciones
 
-- el linker solo extrae los módulos necesarios para resolver símbolos
+- el linker solo extrae los modulos necesarios para resolver simbolos
 
 ```c
 VELA
