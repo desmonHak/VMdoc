@@ -12,24 +12,44 @@ a ver `MAX_USUARIOS`: solo ve `1000`.
 
 ## Macros predefinidas del sistema
 
-El preprocesador de Vesta incluye un conjunto de macros predefinidas con informacion
-del momento de compilacion:
+El preprocesador de Vesta incluye un conjunto de macros predefinidas:
 
 ```c
+// Informacion del fichero y la linea
+__FILE__          // nombre del fichero actual como cadena: "mi_modulo.vel"
 __LINE__          // numero de linea actual en el archivo fuente
+
+// Contador monotono (se incrementa con cada expansion de __COUNTER__)
+__COUNTER__       // 0 en la primera expansion, 1 en la segunda, etc.
+
+// Hora y fecha de compilacion (hora local)
 __TIME__          // hora local de compilacion: "HH:MM:SS"
 __DATE__          // fecha local de compilacion: "MMM DD YYYY"
 __DATE_NUM__      // fecha como numero: YYYYMMDD (ej. 20260425)
 __TIME_NUM__      // hora como numero: HHMMSS (ej. 143022)
+
+// Hora y fecha UTC
 __UTC_DATE__      // fecha UTC de compilacion
 __UTC_TIME__      // hora UTC de compilacion
 __UTC_DATE_NUM__  // fecha UTC como numero
 __UTC_TIME_NUM__  // hora UTC como numero
+
+// Timestamp POSIX
 __POSIX_TIME__    // segundos POSIX (Unix timestamp) de compilacion
 ```
 
 Estas macros son utiles para insertar informacion de version o depuracion
 directamente en el binario compilado.
+
+```c
+// Ejemplo: embeber version de build en el bytecode
+#define BUILD_INFO  __FILE__ " @ " __DATE__ " " __TIME__
+
+// Ejemplo: generar etiquetas unicas con __COUNTER__
+#define UNIQUE_LABEL  label_##__COUNTER__
+UNIQUE_LABEL:   // -> label_0:
+UNIQUE_LABEL:   // -> label_1:
+```
 
 ---
 

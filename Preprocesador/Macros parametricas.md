@@ -1,114 +1,169 @@
-# Macros parametricas
+# Macros parametricas (macros funcion)
 
-Las **macros parametricas** son macros que aceptan argumentos y generan codigo a partir
-de ellos. Son mas potentes que las macros constantes porque pueden transformar codigo,
-no solo sustituir valores.
+Las **macros funcion** son macros que aceptan argumentos. A diferencia de las macros
+constantes (que solo sustituyen un nombre por un valor), las macros funcion pueden
+transformar codigo en funcion de los argumentos que reciben.
 
-**Analogia:** piensa en una plantilla de carta. La plantilla tiene huecos como
-"Estimado [NOMBRE]". Rellenas los huecos con argumentos concretos y obtienes una carta
-personalizada. La macro es la plantilla; los argumentos son los valores con los que
-rellenas los huecos.
+El preprocesador de VestaVM (`vpp`) implementa macros funcion al estilo C/C++.
 
 ---
 
-## Forma basica
+## Definicion basica
 
 ```c
 // Macro con un argumento
-#define CUADRADO(x) ((x) * (x))
+#define CUADRADO(x)  ((x) * (x))
+
+// Macro con dos argumentos
+#define MAX(a, b)    ((a) > (b) ? (a) : (b))
+#define MIN(a, b)    ((a) < (b) ? (a) : (b))
 
 // Uso
-uint64_t resultado = CUADRADO(5);  // se expande a: ((5) * (5)) = 25
-uint64_t otro = CUADRADO(2 + 3);  // se expande a: ((2 + 3) * (2 + 3)) = 25
+uint64_t r1 = CUADRADO(5);     // ((5) * (5))   = 25
+uint64_t r2 = CUADRADO(2 + 3); // ((2+3)*(2+3)) = 25  (parentesis importantes)
+uint64_t r3 = MAX(r1, r2);     // r1 > r2 ? r1 : r2
 ```
 
-Nota: los parentesis alrededor de `x` en la definicion son importantes para evitar
-errores de precedencia de operadores.
+Los parentesis alrededor de cada parametro en el cuerpo previenen errores de
+precedencia cuando se pasa una expresion como argumento.
 
 ---
 
-## Macro con codigo envuelto: `@wrapped_code`
+## Macros variadic
 
-Las macros parametricas en Vesta permiten recibir un **bloque de codigo** como
-argumento usando la anotacion `@wrapped_code`. Esto se usa para construir estructuras
-de control personalizadas.
+El preprocesador soporta macros con numero variable de argumentos usando `...` y
+el nombre especial `__VA_ARGS__`:
 
 ```c
-// Definicion de la macro forEach
-// - int:x  -> variable que se externaliza (el iterador visible desde fuera)
-// - n1, n2 -> argumentos de la macro (inicio y fin del rango)
-#parametric int:x forEach(int n1, int n2) for (int x = n1; x < n2; x++) {
-    @wrapped_code
-}
-```
+#define LOG(fmt, ...) log_write(fmt, __VA_ARGS__)
+#define PRINT(...)    vio_println(__VA_ARGS__)
 
-`@wrapped_code` es el bloque de codigo que el usuario escribe entre llaves al llamar
-a la macro. El preprocesador lo inserta en ese lugar durante la expansion.
+// Uso
+LOG("valor=%d error=%s", codigo, mensaje);
+PRINT("hola mundo");
+```
 
 ---
 
-## Uso de `forEach`
+## Operador `#` (stringify)
+
+El operador `#` delante de un parametro convierte el argumento en una cadena
+de texto literal:
 
 ```c
-// Llamada a la macro parametrica
-// i es el iterador (variable externalizada int:x)
-// El bloque { ... } es el @wrapped_code
-forEach(1, 10) { i ->
-    print(i)  // i toma los valores 1, 2, ..., 9
-}
+#define STRINGIFY(x) #x
+
+STRINGIFY(hola)      // -> "hola"
+STRINGIFY(42)        // -> "42"
+STRINGIFY(a + b)     // -> "a + b"
+
+// Util para mensajes de error con el nombre del simbolo
+#define ASSERT(cond) \
+    if (!(cond)) { panic("ASSERT fallo: " #cond); }
+
+ASSERT(x > 0);  // -> if (!(x > 0)) { panic("ASSERT fallo: x > 0"); }
 ```
-
-El preprocesador expande esto a:
-
-```c
-// Resultado tras la expansion
-for (int i = 1; i < 10; i++) {
-    print(i)
-}
-```
-
-El usuario escribe `forEach(1, 10)` y el preprocesador genera el bucle `for` completo.
 
 ---
 
-## Ventajas frente a funciones ordinarias
+## Operador `##` (pegado de tokens)
 
-| Caracteristica         | Macro parametrica       | Funcion ordinaria              |
-| :--------------------- | :---------------------- | :----------------------------- |
-| Evaluacion             | En preprocesamiento     | En tiempo de ejecucion         |
-| Puede envolver codigo  | Si (con @wrapped_code)  | No (necesita puntero a funcion)|
-| Overhead en runtime    | Ninguno                 | Llamada + retorno              |
-| Visible en el debug    | El codigo expandido     | El nombre de la funcion        |
+El operador `##` une dos tokens adyacentes en uno solo, sin espacios:
+
+```c
+#define CONCAT(a, b)   a##b
+#define REG(n)         r##n
+
+CONCAT(my, func)   // -> myfunc
+REG(3)             // -> r3
+REG(14)            // -> r14
+
+// Generar nombres de funciones a partir de un prefijo
+#define HANDLER(name)  void handle_##name(Event *e)
+
+HANDLER(click)    // -> void handle_click(Event *e)
+HANDLER(keydown)  // -> void handle_keydown(Event *e)
+```
 
 ---
 
-## Casos de uso tipicos
+## Macros multilinea con `#macro` / `#endmacro`
+
+Para macros con cuerpo de varias lineas, el preprocesador soporta la directiva
+`#macro` / `#endmacro`, que es mas legible que el uso de `\` de continuacion de linea:
 
 ```c
-// Macro de asercion (para debug)
-#define ASSERT(cond) if (!(cond)) { throw new AssertionError(#cond); }
+#macro SWAP(T, a, b)
+    T __tmp = a;
+    a = b;
+    b = __tmp;
+#endmacro
 
-ASSERT(x > 0);  // lanza excepcion si x <= 0
+// Uso
+int x = 5, y = 10;
+SWAP(int, x, y);    // ahora x=10, y=5
+```
 
-// Macro de intercambio
-#define SWAP(T, a, b) { T tmp = a; a = b; b = tmp; }
+El cuerpo entre `#macro` y `#endmacro` puede contener cualquier numero de lineas.
+Los parametros se sustituyen igual que en las macros `#define`.
 
-int x = 5;
-int y = 10;
-SWAP(int, x, y);  // ahora x=10, y=5
+---
 
-// Macro de rango con paso
-#parametric int:i forRange(int start, int end, int step) \
-    for (int i = start; i < end; i += step) { @wrapped_code }
+## Macros recursivas e higiene
 
-forRange(0, 100, 5) { i ->
-    print(i)  // 0, 5, 10, ..., 95
-}
+El preprocesador de vpp detecta ciclos de expansion y los detiene para evitar
+recursion infinita. Una macro no se expande dentro de su propio cuerpo.
+
+```c
+#define X(a)  X(a+1)   // NO se expande recursivamente: vpp rompe el ciclo
+```
+
+---
+
+## Eliminacion con `#undef`
+
+```c
+#define LIMITE 100
+
+// ... usar LIMITE ...
+
+#undef LIMITE          // eliminar la definicion
+
+// A partir de aqui LIMITE no esta definido
+#ifndef LIMITE
+    // este bloque se compila
+#endif
+```
+
+---
+
+## Macros predefinidas de plataforma
+
+El preprocesador define automaticamente macros segun el sistema operativo y
+la arquitectura detectados al compilar `vm`:
+
+| Macro             | Se define cuando...               |
+| :---------------- | :-------------------------------- |
+| `__WINDOWS__`     | Compilando en Windows             |
+| `__LINUX__`       | Compilando en Linux               |
+| `__MACOS__`       | Compilando en macOS               |
+| `__X86_64__`      | Arquitectura x86-64               |
+| `__ARM64__`       | Arquitectura AArch64 / ARM64      |
+| `__VESTA__`       | Siempre definida (es vpp)         |
+
+Estas macros son utiles para codigo condicional multiplataforma:
+
+```c
+#ifdef __WINDOWS__
+    #define PATH_SEP  "\\"
+#else
+    #define PATH_SEP  "/"
+#endif
 ```
 
 ---
 
 Ver tambien:
-- [[Macros constantes.md]] - macros de valor fijo
-- [[Macros de definicion de sintaxis.md]] - macros que extienden la gramatica
-- [[Bucles.md]] - como se usan forEach y forRange en el codigo de usuario
+- [[Macros constantes.md]] - macros `#define` sin parametros
+- [[Macros builder.md]] - `#set`, `#foreach`, `#repeat`, `#array`, `#exec`, `#assert`
+- [[Macros nativas.md]] - `#import` de librerias de macros vpp

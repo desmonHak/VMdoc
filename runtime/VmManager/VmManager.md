@@ -73,7 +73,7 @@ addu  r0, r1, r2            // este codigo se ejecuta en la maquina remota
 edm                         // enviar y salir del modo distribuido
 ```
 
-Ver [[../SetInstruccionesVM/EDMW (Enter Distributed Mode With...).md]].
+Ver [[EDMW (Enter Distributed Mode With...)]].
 
 ---
 
@@ -94,7 +94,7 @@ Y consultar informacion del manager via `VMINFOMANAGER`:
 vminfom r0  // r0 = cursor al bloque VmInfoManagerData
 ```
 
-Ver [[../SetInstruccionesVM/VMINFOMANAGER.md]].
+Ver [[VMINFOMANAGER]].
 
 ---
 
@@ -114,6 +114,6 @@ Ver [[../SetInstruccionesVM/VMINFOMANAGER.md]].
 Ver tambien:
 - [[VmInstance.md]] - una instancia individual
 - [[TLB.md]] - tabla de traduccion de direcciones
-- [[../SetInstruccionesVM/VMINFOMANAGER.md]] - informacion del manager
+- [[VMINFOMANAGER]] - informacion del manager
 - [[../MapMemory.md]] - tipos de memoria mapeada
-- [[../Distribuido/Direccionamiento.md]] - tipos de direcciones remotas
+- [[Direccionamiento]] - tipos de direcciones remotas

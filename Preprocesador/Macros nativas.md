@@ -1,91 +1,97 @@
-# Macros nativas
+# Importacion de librerias de macros: `#import`
 
-Las **macros nativas** son macros cuya implementacion esta escrita en una libreria
-nativa externa (C, C++ o cualquier lenguaje que exporte funciones C) y se importan
-al sistema de preprocesamiento de Vesta mediante la directiva `%native`.
+El preprocesador vpp distingue entre dos formas de incluir ficheros:
 
-**Analogia:** en lugar de escribir la implementacion de la macro en Vesta, le dices
-al preprocesador "la implementacion de esta macro esta en esta libreria de funciones
-ya compilada, usala directamente".
+| Directiva             | Semantica                                                     |
+| :-------------------- | :------------------------------------------------------------ |
+| `#include "path"`     | Incluye un fichero relativo al fichero actual (siempre)       |
+| `#include <path>`     | Incluye un fichero desde las `include_paths` configuradas     |
+| `#import <modulo>`    | Incluye una libreria de macros vpp (auto-once, desde `import_paths`) |
 
-Esto permite reutilizar codigo nativo existente sin tener que reescribirlo en Vesta.
+La diferencia clave de `#import` frente a `#include`:
+- **Auto-once**: el mismo modulo nunca se incluye dos veces aunque se llame `#import`
+  desde distintos ficheros (equivale a un `#pragma once` implicito).
+- **Rutas de busqueda propias**: usa `import_paths`, no `include_paths`.
+- **Extension implicita**: busca el fichero con extension `.vph`, `.vel` y sin extension.
 
 ---
 
-## Sintaxis de importacion
+## Uso basico de `#import`
 
 ```c
-// Importar la macro nativa exec_command del modulo os
-%native("os") exec_command
+// Importar una libreria de macros vpp desde el directorio de macros del proyecto
+#import <math_macros>        // busca math_macros.vph, math_macros.vel, math_macros
 
-// A partir de aqui exec_command esta disponible como una macro
-exec_command("ls")        // ejecutar el comando ls
-exec_command("pwd")       // ejecutar pwd
-```
-
-La directiva `%native("modulo")` le indica al preprocesador que busque la
-implementacion en el modulo nativo especificado. El modulo puede ser:
-- Una libreria dinamica (.dll en Windows, .so en Linux)
-- Un modulo del runtime de VestaVM
-- Una libreria estandar nativa
-
----
-
-## Diferencia con CALLN / FFI
-
-Las macros nativas y el sistema FFI (`CALLN`, `LOADLIB`, `GETPROC`) parecen similares
-pero trabajan en niveles distintos:
-
-| Aspecto             | Macro nativa (`%native`) | FFI (`CALLN`)                          |
-| :------------------ | :----------------------- | :------------------------------------- |
-| Nivel               | Preprocesamiento         | Tiempo de ejecucion                    |
-| Cuando se resuelve  | Antes de compilar        | En la primera llamada                  |
-| Puede generar codigo| Si (como cualquier macro)| No (solo invoca la funcion)            |
-| Uso tipico          | Herramientas del build   | Funciones de librerias del sistema     |
-
----
-
-## Casos de uso tipicos
-
-```c
-// Macro nativa para ejecutar comandos del sistema operativo
-%native("os") exec_command
-
-// Macro nativa para leer variables de entorno
-%native("env") get_env_var
-
-// Macro nativa para obtener la fecha actual en compilacion
-%native("time") build_timestamp
-
-// Uso combinado
-exec_command("make clean")        // limpiar la build
-String ts = build_timestamp();    // obtener timestamp de compilacion
+// El modulo puede definir macros que quedan disponibles en el fichero actual
+CLAMP(valor, 0, 100)         // macro definida en math_macros
 ```
 
 ---
 
-## Implementacion en C
+## Directorio `include_lib`
 
-La implementacion de una macro nativa es una funcion C exportada con la convencion
-estandar de plugins VestaVM:
+Al construir `vm`, el compilador copia el directorio `preprocessor/include_lib/`
+junto al ejecutable. Las macros de stdlib vpp se encuentran ahi. Por ejemplo:
 
 ```c
-// Archivo: os_macros.c
-// Compilar como: gcc -shared -fPIC -o libos_macros.so os_macros.c
+// Importar macros de utilidad para ensamblador Vesta
+#import <vel/registers>    // define RX(n) -> rN, REG_SCRATCH -> r14, etc.
+#import <vel/abi>          // define CALL_SETUP(n), RET_REG, etc.
+```
 
-#include <stdlib.h>
+---
 
-// Funcion exportada para exec_command
-// El preprocesador la llama con los argumentos de la macro
-void exec_command(const char *cmd) {
-    system(cmd);
-}
+## `#pragma once`
+
+Cuando se usa `#include` en lugar de `#import`, se puede añadir `#pragma once`
+al inicio del fichero incluido para evitar inclusiones multiples:
+
+```c
+// archivo: mi_cabecera.vph
+#pragma once
+
+#define MI_CONSTANTE 42
+#define MI_MACRO(x)  ((x) + MI_CONSTANTE)
+```
+
+Si `mi_cabecera.vph` se incluye desde varios ficheros, el preprocesador solo
+procesa su contenido la primera vez.
+
+---
+
+## Diferencia con FFI / CALLN
+
+`#import` es una directiva del **preprocesador** (tiempo de compilacion) que
+importa definiciones de macros. No tiene ninguna relacion con el sistema FFI
+de VestaVM (`@Lib`, `calln`) que importa funciones nativas en **tiempo de ejecucion**.
+
+| Aspecto             | `#import` (preprocesador)         | `@Lib` + `calln` (runtime)            |
+| :------------------ | :-------------------------------- | :------------------------------------ |
+| Fase                | Preprocesamiento                  | Carga y ejecucion                     |
+| Importa             | Definiciones de macros (texto)    | Funciones nativas compiladas (.dll/.so)|
+| Resultado           | Texto expandido                   | Llamada a funcion de libreria         |
+| Ejemplo             | `#import <vel/registers>`         | `@Lib("stdlib/native/io/vesta_io")`   |
+
+---
+
+## Incluir ficheros generados: `#exec` + `#include`
+
+Un patron avanzado combina `#exec` para generar un fichero de macros en tiempo
+de compilacion y luego `#include` para incluirlo:
+
+```c
+// Generar un fichero con informacion de version a partir de git
+#exec _GIT  git describe --tags --abbrev=8
+#define BUILD_VERSION _GIT
+
+// O generar e incluir un fichero completo
+// (requiere que el script escriba el fichero en disco)
 ```
 
 ---
 
 Ver tambien:
-- [[Macros constantes.md]] - macros de valor fijo
-- [[Macros parametricas.md]] - macros con argumentos
+- [[Macros constantes.md]] - `#define`, macros predefinidas de tiempo y plataforma
+- [[Macros parametricas.md]] - macros funcion y operadores `##` / `#`
+- [[Macros builder.md]] - `#set`, `#foreach`, `#repeat`, `#array`, `#exec`, `#assert`
 - [[../SetInstruccionesVM/NativeCall (CallN).md]] - FFI en tiempo de ejecucion
-- [[../SetInstruccionesVM/NativePluginAPI.md]] - sistema de plugins nativos de VestaVM
