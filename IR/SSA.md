@@ -576,8 +576,8 @@ entry:
 }
 ```
 
-DCE detecta que `muerto_1` no tiene usos → elimina `mul.i64 a, b`.
-Despues, `muerto_2` tampoco tiene usos → elimina su instruccion.
+DCE detecta que `muerto_1` no tiene usos -> elimina `mul.i64 a, b`.
+Despues, `muerto_2` tampoco tiene usos -> elimina su instruccion.
 El codigo resultante:
 
 ```ir
@@ -834,8 +834,8 @@ loop:
 
 Supongamos que el allocador asigna `a_cur` -> r1, `b_cur` -> r2.
 En el bloque `loop` (predecesor de si mismo), antes del salto, necesitamos:
-- `a_cur_new = copy b_cur`   →   `mov r1, r2`
-- `b_cur_new = copy a_cur_plus_b`   →   `mov r2, r4`
+- `a_cur_new = copy b_cur`   ->   `mov r1, r2`
+- `b_cur_new = copy a_cur_plus_b`   ->   `mov r2, r4`
 
 **Si lo emitimos en orden secuencial:**
 ```
