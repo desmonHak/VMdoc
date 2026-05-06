@@ -12,7 +12,7 @@ Gestiona objetos del lenguaje con ciclo de vida automatico. Cada proceso VM tien
 
 Un objeto esta **vivo** si existe alguna forma de llegar a el desde el codigo que se esta
 ejecutando. Esa "forma de llegar" se llama **raiz**: normalmente un registro de la CPU
-virtual (R0-R15), una variable local en la pila, o un campo de otro objeto ya vivo.
+virtual (R0-R15), una variable local en la pila VM, o un campo de otro objeto ya vivo.
 
 ```c
 // Ejemplo de grafo de alcanzabilidad:
@@ -31,6 +31,136 @@ alcanzar es basura y su memoria se puede reutilizar.
 > **Importante:** un objeto sigue vivo aunque su handle haya sido liberado con `DROP`,
 > siempre que otro objeto vivo tenga su handle embebido en el payload. El GC hace un
 > recorrido transitivo del grafo, no solo mira los handles directos.
+
+---
+
+## Stack scanning conservativo (Plan epsilon)
+
+Desde la implementacion A.34.fix8 el set de raices del major GC ya **no** considera
+"todo handle vivo en HandleTable" como raiz. En su lugar escanea:
+
+1. La pila VM del proceso en el rango `[rsp, stack_high)`.
+2. Los 16 registros GP del proceso (R0..R15).
+3. Los external_refs del plugin (ver A.30).
+4. El `pending_alloc_root_` temporal durante construcciones de objetos.
+
+Lo que no aparece en ninguno de esos puntos es basura y se libera automaticamente.
+
+### Por que conservativo y no preciso
+
+El escaneo conservativo lee cada slot de 64 bits del stack y comprueba si podria ser un
+GcHandle valido o un host_ptr a un objeto GC, sin saber con certeza que tipo de dato es.
+Esto puede retener algun objeto 1 ciclo extra (falso positivo), pero **nunca** libera un
+objeto que siga en uso (falso negativo critico). Los falsos positivos son extremadamente
+raros en la practica (~N/2^64 por slot).
+
+El escaneo preciso (stackmaps por safepoint, estilo HotSpot) requiere tablas de tipos por
+instruccion y se reserva para Phase E (JIT con stackmaps). El escaneo conservativo es
+compatible con codigo interpretado y JIT-eado a la vez.
+
+### Tracking del rango de pila
+
+```cpp
+// Campos nuevos en ProcessVM (include/runtime/proceso_runtime.h):
+uint64_t stack_high;        // base de la pila (inmutable, set al spawn)
+uint64_t stack_low_water;   // minimo rsp visto desde el ultimo GC (actualizado en subsp)
+```
+
+`stack_high` se inicializa en cuatro puntos:
+- `Loader::load_executable` para el proceso main.
+- `exec_instr_spawn` para procesos hijo.
+- `exec_instr_spawn_on` para procesos hijo con placement.
+- El manager de procesos remotos.
+
+`stack_low_water` se actualiza solo en la instruccion `subsp` (1 comparacion + cmov,
+~1 ns; `subsp` es rara = 1x por entrada de funcion). Se resetea a `rsp` actual tras
+cada major GC. Limita el rango escaneado a la porcion de pila realmente en uso.
+
+### Algoritmo de scan_stack_roots
+
+```
+para addr = rsp; addr < stack_high; addr += 8:
+    v = vm_mem.read_u64(addr)
+    si v == 0:       continue   // NULL / cero (filtro O(1))
+    si v < 256:      continue   // contador de bucle, flag, etc.
+    si v < handles_.size() Y handles_[v].live Y handles_[v].addr != 0:
+        marcar v como BLACK; anadir al worklist BFS
+        continue
+    auto it = ptr_to_handle_.find((uint8_t*)v)
+    si it != ptr_to_handle_.end():
+        marcar it->second como BLACK; anadir al worklist BFS
+        continue
+    // interior scan: si v cae dentro de un bloque OldGen
+    // buscar el ObjectHeader contenedor y marcar su handle
+
+para cada reg en R0..R15: misma logica
+```
+
+Los filtros `v==0` y `v<256` descartan mas del 90% de los slots sin ninguna busqueda.
+
+### Interior scan para punteros derivados
+
+`STRRAW` (opcode 0x4B) retorna `data[]` del StringObject, que esta en `offset +40` desde
+el inicio del payload (no en `ptr_to_handle_`, que solo mapea el payload start). El
+interior scan detecta que `v` cae dentro del bloque OldGen, recorre los ObjectHeaders
+consecutivos del bloque hasta encontrar el contenedor, y marca su handle.
+
+Sin interior scan, los strings pasados a FFI (p.ej. `str_cstr(s)` → `GetProcAddress`)
+perderian su raiz y el GC los liberaria mientras la FFI los usaba.
+
+### pending_alloc_root_ (salvaguarda critica)
+
+Durante la construccion `new Holder(new Inner())`, el alloc del `Inner` puede disparar un
+GC antes de que `Inner` este asignado a ningun slot de `Holder`. En ese instante el handle
+de `Inner` no esta en stack ni en regs. `GcHeap::alloc()` guarda el handle recien creado
+en `pending_alloc_root_` antes de devolverlo; la fase MARK lo trata como raiz extra. Se
+limpia a `GC_NULL_HANDLE` al terminar el alloc.
+
+### Cambio en la fase MARK del major GC
+
+La version anterior trataba como raiz a TODO handle con `live == true` en la HandleTable:
+
+```cpp
+// ANTES (O(N_handles), todos los handles = raices):
+for (auto& h : handles_)
+    if (h.live) { worklist.push(h); }
+```
+
+La version actual escanea el stack y los regs:
+
+```cpp
+// AHORA (O(stack_size + 16 + N_external_refs)):
+scan_stack_roots(rsp, stack_high, registers, vm_mem, worklist);
+mark_external_refs(worklist);         // A.30: plugins con gc_addref
+if (pending_alloc_root_ != GC_NULL_HANDLE)
+    worklist.push(pending_alloc_root_);
+// BFS transitivo desde worklist...
+```
+
+Resultado: objetos creados en loops y nunca usados fuera de la iteracion se colectan
+automaticamente. Antes se acumulaban en OldGen hasta el siguiente major GC y, con el
+modelo "todos = raices", nunca se liberaban.
+
+### Minor GC con stack scan
+
+El minor GC tambien usa `scan_stack_roots` para determinar que objetos YOUNG evacuar:
+
+1. Pre-mark WHITE todos los handles YOUNG vivos.
+2. `scan_stack_roots` marca BLACK los alcanzables.
+3. Evacuar a OldGen SOLO los BLACK; liberar los WHITE remanentes.
+
+Antes, el minor GC evacuaba TODOS los handles YOUNG sin filtrar por alcanzabilidad, lo que
+acumulaba objetos no alcanzables en OldGen y aumentaba la frecuencia de major GC.
+
+### Coste runtime
+
+| Operacion                  | Coste adicional vs version anterior              |
+| :------------------------- | :----------------------------------------------- |
+| `subsp` (update low_water) | ~1 ns (1 cmp + cmov)                             |
+| Scan por major GC          | ~1-50 us segun tamano de pila activa             |
+| Filtros de slot            | >90% de slots descartados sin lookup             |
+| Scan por minor GC          | Misma logica; idem coste                         |
+| Hot path de instrucciones  | **0%** (cero cambios en ALU/MOV/JMP)             |
 
 ---
 
@@ -284,25 +414,33 @@ Recorre todos los bloques de OldGen y pone `WHITE` a todos los objetos que no es
 Necesario porque los objetos llegan con `BLACK` y los handles soltados con `DROP` no tienen
 mecanismo de reset automatico.
 
-**Fase 2 - MARK (BFS transitivo):**
+**Fase 2 - MARK (BFS transitivo con stack scanning):**
 
-Recorre la `HandleTable`. Por cada handle vivo (`live == true`) cuya direccion cae en
-OldGen, pone el objeto a `BLACK` y lo anade a un worklist. Luego procesa el worklist: por
-cada objeto `BLACK`, escanea su payload en busca de handles que apunten a objetos OLD
-`WHITE`, los marca `BLACK` y los anade al worklist. Continua hasta vaciar el worklist.
+Construye el worklist inicial desde las raices:
+- `scan_stack_roots(rsp, stack_high, regs, vm_mem)` escanea la pila VM del proceso y los
+  16 GP regs buscando GcHandles directos, host_ptrs y punteros interiores a bloques OldGen.
+- Itera `external_refs_` (A.30) y marca BLACK cualquier handle con refcount > 0.
+- Si `pending_alloc_root_ != GC_NULL_HANDLE` lo marca BLACK.
+
+Luego procesa el worklist BFS: por cada objeto BLACK, escanea su payload en busca de
+handles que apunten a objetos OLD WHITE, los marca BLACK y los anade al worklist. Continua
+hasta vaciar el worklist.
 
 ```c
-// Ejemplo de recorrido BFS:
-//   Worklist = [A]           // A tiene handle vivo
+// Ejemplo de recorrido BFS (igual que antes, solo cambia el seed):
+//   Worklist = [A]           // A aparece en stack/regs (raiz conservativa)
 //   Procesar A -> payload tiene handle B -> B marcado BLACK, anadir B
 //   Worklist = [B]
 //   Procesar B -> payload tiene handle C -> C marcado BLACK, anadir C
 //   Worklist = [C]
 //   Procesar C -> payload vacio -> worklist vacio -> MARK terminado
+//
+//   Objeto D (no en stack/regs, no en external_refs) -> permanece WHITE -> SWEEP lo libera
 ```
 
-Esto garantiza que el grafo completo de objetos alcanzables desde cualquier handle vivo
-se marca como `BLACK`, aunque los handles intermedios hayan sido soltados.
+Esto garantiza que el grafo completo de objetos alcanzables desde las raices reales
+se marca como `BLACK`. Los objetos creados y abandonados dentro de un loop se liberan
+automaticamente porque ya no aparecen en stack ni regs cuando el GC corre.
 
 **Fase 3 - SWEEP:**
 
@@ -479,4 +617,26 @@ nunca compite con el codigo de usuario del mismo proceso.
 
 ---
 
-Ver tambien: [[GC]], [[Allocator crudo para FFI y memoria manual]], [[GCALLOC]], [[cursor]]
+---
+
+## alloc_pinned: StringObject en OldGen
+
+Los `StringObject` (creados por `STRMAKE`, `STRCAT`, `STRCONV`, etc.) se alocan con
+`GcHeap::alloc_pinned(size)` en lugar del flujo normal Nursery -> evacuacion.
+
+`alloc_pinned` asigna directamente en OldGen via `alloc_in_old_with_total` y no pasa por
+la Nursery. Esto garantiza que el host_ptr al buffer `data[]` retornado por `STRRAW` es
+**estable** durante toda la vida del handle: OldGen no mueve objetos durante mark-and-sweep.
+
+El coste: los StringObject ejercen presion adicional sobre OldGen. En programas que creen
+muchos strings temporales, el major GC se activara con mas frecuencia. Las cadenas de
+caracteres constantes o las que persisten toda la ejecucion no presentan problema.
+
+> La alternativa (Nursery -> evacuacion con pin del puntero) requeriria pin tables y logica
+> de unpin en GC, lo que complica el escaner conservativo. La solucion actual es simple y
+> correcta a costa de OldGen pressure.
+
+---
+
+Ver tambien: [[GC]], [[Allocator crudo para FFI y memoria manual]], [[GCALLOC]], [[cursor]],
+[[SetInstruccionesVM/STRINGS]] (StringObject ABI), [[SetInstruccionesVM/FFI_RUNTIME]] (gchandle 0x56)

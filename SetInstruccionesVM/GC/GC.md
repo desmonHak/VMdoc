@@ -75,10 +75,17 @@ VestaVM separa los dos enfoques en componentes distintos, uno por cada proceso V
 ProcessVM
   +-- GcHeap        -- GC automatico generacional  (objetos OOP, ciclo de vida automatico)
   +-- RawAllocator  -- Allocator manual             (buffers FFI, control explicito)
+
+VM (compartido entre todos los procesos)
+  +-- shared_futures[]  -- FutureObject fuera del GcHeap per-proceso
 ```
 
-Cada proceso tiene sus propias instancias independientes. No se comparten entre procesos,
-lo que significa que el GC de un proceso nunca bloquea a otro.
+Cada proceso tiene sus propias instancias de `GcHeap` y `RawAllocator`. No se comparten
+entre procesos, lo que significa que el GC de un proceso nunca bloquea a otro.
+
+Los `FutureObject` viven en `vm_ref.shared_futures` (vector protegido por mutex por VM),
+no en el GcHeap per-proceso, para que distintos procesos puedan cumplir (`fulfill`) y
+esperar (`await`) el mismo future sin problemas de aliasing.
 
 ### Resumen comparativo
 
@@ -90,6 +97,36 @@ lo que significa que el GC de un proceso nunca bloquea a otro.
 | Tipo de retorno          | Handle opaco (no es una direccion)| Puntero host real (`uint64_t`)      |
 | Compatible con FFI       | No (el handle no es una dir. real)| Si                                  |
 | Uso ideal                | Objetos OOP, grafos, closures     | Buffers C, strings, llamadas nativas|
+
+> **Nota:** Los `StringObject` son una excepcion: se alocan con `alloc_pinned()` directamente
+> en OldGen (sin pasar por Nursery) para que el puntero `data[]` retornado por `STRRAW` sea
+> estable durante toda la vida del handle. Los `StringObject` en OldGen no se mueven durante
+> el mark-and-sweep, por lo que el puntero host es valido mientras el handle este vivo.
+
+---
+
+## ObjectHeader ABI v2 (objetos OOP)
+
+Los objetos creados con `NEWOBJ` llevan un `ObjectHeader` de **24 bytes** al inicio de su
+payload (inmediatamente despues de la GcHeader interna de 8 bytes):
+
+```cpp
+struct alignas(8) ObjectHeader {
+    ClassInfo *class_ptr;  // 8 bytes - puntero al ClassInfo del ClassRegistry
+    uint32_t   flags;      // 4 bytes - OBJ_FLAG_* (GC_OWNED, etc.)
+    uint32_t   hash_code;  // 4 bytes - hash identidad (lazy)
+    uint32_t   owner_pid;  // 4 bytes - local_pid del proceso que tiene el monitor (0=libre)
+    uint16_t   lock_depth; // 2 bytes - profundidad de bloqueo reentrante
+    uint16_t   _mon_pad;   // 2 bytes - padding de alineacion
+};
+```
+
+Esto es un **cambio breaking** respecto a la v1 (que tenia 16 bytes). Cualquier codigo que
+acceda a campos del ObjectHeader en offsets fijos >= 16 debe actualizarse.
+
+Los campos del usuario empiezan en `offset +32` desde la GcHeader (8 GcHeader + 24 ObjectHeader).
+El campo `class_ptr` en `offset 0` del ObjectHeader es lo que lee `getClass(obj)` (instruccion
+`LOAD i64 [obj+0]` con `is_host_ptr=true`).
 
 ---
 
@@ -147,6 +184,30 @@ retornada es permanente mientras no se llame a `FREE` o `REALLOC`.
 
 ---
 
+## Roots externos para plugins (A.30)
+
+Los plugins nativos escritos en C pueden retener handles GC en estructuras de datos propias
+(colecciones, caches) que el escaner conservativo del GC no visita. Para que el GC no
+libere esos objetos, la `VestaPluginAPI v2` expone dos funciones:
+
+```c
+// Incrementar refcount externo del handle (el GC no lo recolecta mientras refcount > 0)
+g_api->gc_addref(proc_ptr, handle);
+
+// Decrementar refcount externo; si llega a 0 el GC puede liberarlo
+g_api->gc_release(proc_ptr, handle);
+```
+
+Internamente, `GcHeap` mantiene un `unordered_map<GcHandle, uint32_t> external_refs_`.
+Durante el major GC, la fase MARK itera `external_refs_` y trata como BLACK cualquier
+handle con refcount > 0, aunque el stack scan no lo haya encontrado.
+
+`release_handle` respeta el refcount: si el bytecode hace `DROP h` pero el handle sigue
+con refcount externo > 0, el handle NO se libera hasta que el ultimo `gc_release` lo
+desregistre.
+
+---
+
 ## Opcodes de referencia rapida
 
 ### GcHeap
@@ -159,6 +220,7 @@ retornada es permanente mientras no se llame a `FREE` o `REALLOC`.
 | `gcconfig r`         | `0x00`  | `0xA2`  | Ajusta el umbral de OldGen                              |
 | `drop r`             | `0x00`  | `0xA3`  | Libera el handle (el GC recogera el objeto)             |
 | `gcwb r`             | `0x00`  | `0xA4`  | Registra referencia OLD->YOUNG en el remembered set     |
+| `gchandle r_dst, r_src` | `0x00` | `0x56` | host_ptr -> GcHandle via lookup O(1) en ptr_to_handle_ |
 
 ### RawAllocator
 
@@ -230,10 +292,12 @@ free   r0
 ## Documentacion detallada
 
 - [[Generacional (para objetos OOP)]] - Como funciona el GcHeap internamente: Nursery,
-  minor GC, major GC, algoritmo tri-color mark, write barrier, handles, estadisticas.
+  minor GC, major GC, algoritmo tri-color mark, write barrier, handles, estadisticas,
+  stack scanning conservativo.
 - [[Allocator crudo para FFI y memoria manual]] - Como funciona el RawAllocator:
   contiguidad, FFI, ALLOC/FREE/REALLOC, estadisticas.
 - [[cursor]] - Instrucciones `readcur`, `writecur` y `gcderef` para acceder a memoria
   host desde bytecode.
 
-Ver tambien: [[NativeCall (CallN)]], [[NEWOBJRAW y NEWOBJ]], [[GCALLOC]]
+Ver tambien: [[NativeCall (CallN)]], [[NEWOBJRAW y NEWOBJ]], [[GCALLOC]],
+[[SetInstruccionesVM/FFI_RUNTIME]] (gchandle 0x56), [[SetInstruccionesVM/STATIC_FIELDS]]
