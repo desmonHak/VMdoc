@@ -353,4 +353,4 @@ byte4:
 
 ---
 
-Ver tambien: [[Aritmetica y logica]], [[JMP]], [[cursor]], [[XCHG - Exchange]]
+Ver tambien: [[Aritmetica y logica]], [[JMP]], [[cursor]], [[XCHG - Exchange]], [[SUPER_INSTRUCCIONES]] (`loadz`/`loadzh` opcodes 0x7C/0x7D fusionan el patron `mov rd,0; mov rd_sized,[rs]` cuando se carga i8/i16/i32 con zero-extend a 64-bit).

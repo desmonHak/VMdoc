@@ -22,6 +22,9 @@ Modulos: `include/ir/ssa_ir.h`, `src/ir/ssa_ir.cpp`, `src/ir/ir_emitter.cpp`,
    - 9.4 CSE
    - 9.5 TCO (Tail Call Optimization)
    - 9.6 Eliminacion de bloques inalcanzables
+   - 9.7 Load Narrow (elision de sign-extension)
+   - 9.8 Register Hinting / Coalesce
+   - 9.9 List Scheduling (ILP)
 10. [Salir de SSA: destruccion de phi nodes](#10-salir-de-ssa-destruccion-de-phi-nodes)
 11. [Pipeline de VestaVM](#11-pipeline-de-vestavm)
 12. [Sintaxis del formato .ir](#12-sintaxis-del-formato-ir)
@@ -757,6 +760,116 @@ Con O2, `dead_block` y su contenido se eliminan completamente. El CFG queda:
 ```
 entry --> done --> ret
 ```
+
+---
+
+### 9.7 Load Narrow — Elision de sign-extension redundante tras LOAD
+
+**Pase:** `ir_pass_load_narrow` (anadido 2026-05-17, O2).
+
+Cada `LOAD` de tipo entero `< 64 bits` (i8, i16, i32) emite tres instrucciones
+extra para sign-extender el valor cargado a 64 bits (la VM no zero-extiende
+implicitamente al cargar bytes parciales en un registro). En muchos casos,
+todos los usos del valor cargado preservan los bits bajos sin importar los
+bits altos: el sign-extension es redundante.
+
+Ejemplo:
+
+```ir
+v = load.i32 ptr            // bits bajos correctos, bits altos pueden ser garbage
+sum = add.i32 v, k          // ADD i32: low 32 bits del resultado son correctos
+store sum, ptr              // STORE i32: trunca al ancho de tipo
+```
+
+Aqui los bits altos de `v` jamas se observan: ADD y STORE solo trabajan con los
+32 bits bajos. El pase marca `v.narrow_only = true` y el emisor IR omite el
+patron `mov scratch, 32; shl v, scratch; sar v, scratch` (3 instrucciones
+ahorradas por LOAD).
+
+**Conservadurismo:** se hace BFS desde el LOAD por todos los usos transitivos.
+El cierre se permite si cada uso es:
+
+- ADD / SUB / MUL / AND / OR / XOR del mismo ancho.
+- STORE / RET del mismo ancho (trunca).
+- PHI / MOV del mismo ancho (propaga al closure).
+
+Se aborta la elision si algun uso es:
+
+- CMP_*, SEXT, ZEXT, CAST, BITCAST, TRUNC (anchos cruzados).
+- SHL / SHR / SAR (necesitan bits altos correctos).
+- NEG / NOT (pueden invertir bits altos).
+- DIV / MOD (full register width).
+- CALL (callee desconocido).
+- STORE / LOAD / RET de ancho distinto.
+
+El pase RE-EJECUTA en cada iteracion del fix-point loop: si CSE/copy-prop
+posteriores exponen un uso unsafe que antes no era visible (caso real cuando
+SLF unifica punteros), el flag `narrow_only` se REVOCA.
+
+### 9.8 Register Hinting / Coalesce — Reuso de registro de operando muerto
+
+**Pase:** integrado en `regalloc.cpp::allocate_regs` (anadido 2026-05-17).
+
+El emit de un binop 2-operandos `op rd, rs1, rs2` se materializa como:
+
+```
+mov rd, rs1
+op  rd, rs2
+```
+
+Si `rs1` muere en esta instruccion (su intervalo termina aqui) y el regalloc
+le hubiera asignado a `rd` un registro distinto, el MOV es innecesario. La
+solucion es asignar a `rd` el mismo registro que `rs1`.
+
+El pase hace un pre-paso que computa `hint_for[dst] = src1` para cada binop
+donde `src1` muere en esa instruccion. Durante la asignacion del intervalo
+de `dst`:
+
+1. Si la entrada hinted esta en `free_pool` (expirada en este o un paso
+   previo), tomarla directamente.
+2. **Si la hinted value sigue en el set `active` con `end == li.def`**
+   (es decir, esta instruccion es su ULTIMO uso semantico), **robarle el reg
+   ahora**. Es seguro en SSA porque el read de `src1` precede al write de
+   `dst` en la misma instruccion -- el operando muere antes de que el nuevo
+   valor se escriba.
+3. Fallback: tomar `free_pool.back()`.
+
+`emit_mov_if_needed` ya elide el MOV cuando `rd == rs1`, asi que el coalesce
+queda gratis. Bench tight_loop body: 14 instr/iter -> 10 instr/iter (-29%).
+
+### 9.9 List Scheduling — Reordenamiento para ILP
+
+**Pase:** `ir_pass_schedule` (anadido 2026-05-17, O2).
+
+Reordena instrucciones dentro de cada basic block para exponer
+**Instruction-Level Parallelism** al CPU del host (y al futuro JIT). Algoritmo
+clasico:
+
+1. **Construir DAG** de dependencias:
+   - **Data deps**: para cada operando referenciando un def en este bloque,
+     edge `def -> use`.
+   - **Memory deps**: LOAD depende de STORE/CALL previos del mismo bloque;
+     STORE depende de LOAD/STORE/CALL previos.
+   - **Barreras bidireccionales**: CALL, RAW_ASM, NEWOBJ, GC_ALLOC, THROW,
+     TRYENTER/TRYLEAVE, SETFIELD, ARRAY_STORE, MEMCPY actuan como muros
+     absolutos en ambas direcciones. Nada puede cruzarlos. Sin esto, un
+     `const.i32 K` declarado despues de un CALL podria hoist-se ANTES del
+     CALL aumentando register pressure (caso real en bench_fib donde
+     regresionaba +13%).
+
+2. **Computar CPL** (Critical Path Length) por nodo: `CPL[i] = 1 + max(CPL[succ])`,
+   en orden topologico inverso.
+
+3. **List scheduling** picando del ready set por prioridad
+   `(CPL desc, succs_count asc, idx asc)`. Sethi-Ullman clasico con
+   tie-break que prefiere "leaf" nodes como rellenos de latencia.
+
+4. **Restricciones**: PHIs al inicio, terminadores al final, no reordenar
+   a traves de barreras.
+
+Solo aplica @ O2. Wash neto en el interprete (el dispatch domina), pero
+infraestructura clave para Phase D JIT donde el host CPU ejecuta codigo
+directo y se beneficia de la paralelizacion entre cadenas independientes.
 
 ---
 

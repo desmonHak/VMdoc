@@ -470,4 +470,4 @@ Las instrucciones NOT usan reg2=0 (solo un operando)
 
 ---
 
-Ver tambien: [[JMP]] (saltos condicionales basados en flags), [[REGISTROS]] (flags de rflags), [[MOV, MOVH, MOVC, MOCH]]
+Ver tambien: [[JMP]] (saltos condicionales basados en flags), [[REGISTROS]] (flags de rflags), [[MOV, MOVH, MOVC, MOCH]], [[SUPER_INSTRUCCIONES]] (variantes 3-operandos `adds3`/`subs3`/etc que fusionan `mov + OP` cuando el regalloc no puede coalescer; opcodes 0x73-0x7B).

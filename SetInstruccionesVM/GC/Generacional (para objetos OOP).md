@@ -105,7 +105,7 @@ el inicio del payload (no en `ptr_to_handle_`, que solo mapea el payload start).
 interior scan detecta que `v` cae dentro del bloque OldGen, recorre los ObjectHeaders
 consecutivos del bloque hasta encontrar el contenedor, y marca su handle.
 
-Sin interior scan, los strings pasados a FFI (p.ej. `str_cstr(s)` → `GetProcAddress`)
+Sin interior scan, los strings pasados a FFI (p.ej. `str_cstr(s)` -> `GetProcAddress`)
 perderian su raiz y el GC los liberaria mientras la FFI los usaba.
 
 ### pending_alloc_root_ (salvaguarda critica)

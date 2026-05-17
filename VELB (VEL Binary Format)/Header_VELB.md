@@ -131,3 +131,114 @@ La forma correcta de conocer el tamano del header es la siguiente:
 
 ```
 El ``header`` siempre debera estar alineado a 16 bytes.
+
+---
+
+## Evolucion del formato: v1 -> v2 -> v3
+
+El formato VELB ha tenido tres revisiones principales, todas backward-compatible
+con el `velb_version_format` field.
+
+### v1 (formato base)
+
+Header + secciones (code, data, symbol_table, import_table). El loader las
+mapea al `vm_mem` del proceso segun la tabla de espacios de direcciones.
+
+### v2 (2026-05-03): Reloc table
+
+Anyadidos al header:
+
+```c
+uint64_t offset_reloc_table;     // offset desde inicio de archivo
+uint32_t size_reloc_table;       // tamano en bytes
+```
+
+Contiene una tabla de relocations (`entry_relocation_table`, 24 bytes packed):
+
+```c
+struct entry_relocation_table {
+    uint64_t bytecode_offset;   // offset dentro del code section
+    uint64_t target_value;       // valor original (VA del label)
+    uint8_t  type;               // RelocTypeVELB: ABSOLUTE64, ABSOLUTE32, ...
+    uint8_t  _pad[7];
+};
+```
+
+Usado por `loadmodule(path)` runtime: cuando un modulo se carga en una VA
+distinta a la compilada (solape de espacio de direcciones con un modulo ya
+cargado), el loader hace **rebase transparente** patcheando todas las
+referencias `@Absolute(...)` con la nueva VA.
+
+### v3 (2026-05-13): IR section + Symbol section
+
+Anyadidos al header:
+
+```c
+uint64_t offset_ir_section;      // SSA IR embebido para el JIT
+uint32_t size_ir_section;
+
+// Tambien anyadida en v3+:
+uint64_t offset_debug_section;   // debug info opcional (file:line)
+uint32_t size_debug_section;
+uint8_t  debug_level;            // 0 = sin debug, 1+ niveles de detalle
+```
+
+#### Seccion `@ir` (magic `VEIR`)
+
+Layout:
+
+```text
++--------+--------+----------+----------+
+| magic  | version|reserved  | n_funcs  |
+| 'VEIR' | u16    | u16      | u32      |
++--------+--------+----------+----------+
+
+Funciones serializadas concatenadas: cada IrFunction con sus blocks,
+values, instrucciones, operandos, types, dst, source_line, func_name, imm.
+Round-trip lossless (ver `include/ir/ssa_ir_serialize.h`).
+```
+
+El JIT C1 deserializa esta seccion para compilar metodos hot a x86-64 nativo
+sin necesidad de reconstruir el IR desde el bytecode. Permite JIT trivial
+sin recompilar desde fuente.
+
+#### Seccion `@sym` (magic `VSYM`)
+
+Layout:
+
+```text
++--------+--------+----------+
+| magic  | version| count    |
+| 'VSYM' | u16    | u32      |
++--------+--------+----------+
+
+Entries packed:
+  u16 name_len + char name[name_len] + u64 addr
+```
+
+Mapa de **nombres qualified** (`section.label`, ej. `code.s_1`, `data.foo`)
+-> VA del code section. Usado por el JIT para resolver referencias
+`@Absolute("section.label")` en raw_asm.
+
+### Compatibilidad
+
+| Loader version | Lee v1 | Lee v2 | Lee v3 |
+| :------------- | :----: | :----: | :----: |
+| v1             | si     | no     | no     |
+| v2             | si     | si     | no     |
+| v3 (actual)    | si     | si     | si     |
+
+Loaders posteriores siempre leen formatos anteriores. Las secciones nuevas
+(`@ir`, `@sym`, debug) tienen offset=0 size=0 cuando no estan presentes; el
+loader las trata como ausentes.
+
+### Compilar con/sin debug
+
+```bash
+# Sin debug (default): el .velb no incluye seccion debug.
+vm --vex programa.vex -o programa
+
+# Con debug: anyade seccion DVBG con tabla bytecode_offset -> (file, line).
+# Usado por el debugger TCP para breakpoints por file:line.
+vm --vex programa.vex -o programa --vex-debug
+```

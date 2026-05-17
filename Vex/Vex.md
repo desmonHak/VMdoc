@@ -13,16 +13,41 @@ multi-paradigma estaticamente tipado disenado con tres principios:
 
 ## Indice de documentacion Vex
 
+### Sintaxis y semantica del lenguaje
+
 | Documento                       | Contenido                                                    |
 | :------------------------------ | :----------------------------------------------------------- |
 | [[TiposDatos]]                  | Sistema de tipos: primitivos, punteros, struct, enum, string |
+| [[Operadores]]                  | Aritmeticos, comparacion, logicos, bitwise, compound, cast   |
+| [[ControlFlow]]                 | if/while/do-while/for/foreach, break/continue/goto, match    |
+| [[Strings]]                     | Tipo string, interpolacion `${expr:fmt}`, triple-quoted, FFI |
+| [[OptionalResult]]              | `Optional<T>`, `Result<V,E>`, `!!`, `nonnull`, `T !!name`    |
+| [[Closures]]                    | Lambdas, captura lexica, HOF, top-level fn promotion         |
+
+### Modelo de programacion
+
+| Documento                       | Contenido                                                    |
+| :------------------------------ | :----------------------------------------------------------- |
 | [[OOP]]                         | Clases, herencia, interfaces, propiedades, modificadores     |
-| [[Async]]                       | spawn, await, Future, IPC (msgsend/msgrecv), distribuido     |
-| [[Excepciones]]                 | try/catch/finally, FatalError, panic, throw                  |
-| [[Colecciones]]                 | ArrayList, HashMap, HashSet, Queue, Deque, TreeMap, Stack    |
-| [[FFI]]                         | extern declarativo, ffi_open/sym/call, plugins nativos       |
+| [[Generics]]                    | `class Box<T>`, monomorphizacion compile-time, specialize    |
 | [[ReflexionAOP]]                | forName, getClass, getField, getMethod, invoke, @Aspect      |
-| [[Generics]]                    | class Box<T>, monomorphizacion compile-time, specialize      |
+| [[Colecciones]]                 | ArrayList, HashMap, HashSet, Queue, Deque, TreeMap, Stack    |
+| [[Excepciones]]                 | try/catch/finally, FatalError, panic, throw                  |
+
+### Memoria y seguridad
+
+| Documento                       | Contenido                                                    |
+| :------------------------------ | :----------------------------------------------------------- |
+| [[SmartPointers]]               | `unique<T>`/`shared<T>`, `move`, RAII, deleters custom       |
+| [[BorrowChecker]]               | `borrow<T>`/`borrow_mut<T>`, 4 reglas + F1-F4 (NLL/reborrow) |
+
+### Concurrencia y FFI
+
+| Documento                       | Contenido                                                    |
+| :------------------------------ | :----------------------------------------------------------- |
+| [[Async]]                       | spawn, await, Future, IPC (msgsend/msgrecv), distribuido     |
+| [[Sincronizacion]]              | `synchronized (obj)`, monitores, wait/notify/notifyAll       |
+| [[FFI]]                         | extern declarativo, ffi_open/sym/call, plugins nativos       |
 
 ---
 
@@ -41,16 +66,21 @@ multi-paradigma estaticamente tipado disenado con tres principios:
    |
    v  Lowering  (AST -> SSA IR)
    |
-   v  IR Optimizer  (DCE, copy-prop, TCO, constant folding)
-   |
-   v  ir_emitter  (SSA IR -> .vel ensamblador virtual)
-   |
+   v  IR Optimizer  (~15 pasadas O2: DCE, copy-prop, TCO, const-fold, CSE,
+   |                 strength reduction, LICM, dead-alloc-elim, inline-loop-header,
+   |                 DSE+SLF, devirt+inline, const-cse, load_narrow, schedule -
+   |                 ver [[SSA]] seccion 9 para detalles)
+   v  ir_emitter  (SSA IR -> .vel ensamblador virtual; emite super-instrucciones
+   |                 cuando aplica: alu3, loadz/loadzh, cmpjmp/cmpjmpu, gcallocp,
+   |                 spawnargs, fulfillhlt - ver [[SUPER_INSTRUCCIONES]])
    v  Assembler + Linker  (-> .velb bytecode)
    |
-   v  VM  (ejecucion)
+   v  VM  (intérprete threaded computed-goto, ~340 MIPS promedio)
 ```
 
 El flag `--vex-emit-ir` guarda el SSA IR en `<modulo>.ir` antes de emitir `.velb`.
+El flag `--diagram-all` ademas genera diagramas Mermaid (`.ast.mmd`, `.ir.pre.mmd`,
+`.ir.post.mmd`, `.vel.mmd`) utiles para depurar el pipeline.
 
 ---
 

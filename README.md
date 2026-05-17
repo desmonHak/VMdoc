@@ -30,11 +30,13 @@ Recomendamos descargarla para una correcta lectura.
 | [STATIC_FIELDS](./SetInstruccionesVM/STATIC_FIELDS.md)                        | getstatic (0x60), setstatic (0x61) |
 | [FFI_RUNTIME](./SetInstruccionesVM/FFI_RUNTIME.md)                            | gchandle (0x56), getpid (0x57), spawnon (0x58), loadmod (0x59), panic (0x5A), setmethdbg (0x5B), fextend (0x5C), fnarrow (0x5D), dlopen (0x62), dlsym (0x63), callni (0x64) |
 | [META_OOP](./SetInstruccionesVM/META_OOP.md)                                  | defclass (0xC9), deffield (0xCA), defmethod (0xCB), findclass (0xCC), findmethod (0xCD), addadvice (0xCE), findfield (0xCF), callm (0xFD), proceed (0xFE) |
+| [SUPER_INSTRUCCIONES](./SetInstruccionesVM/SUPER_INSTRUCCIONES.md)            | cmpjmp.cc (0x68), cmpjmpu.cc (0x69), decjnz (0x6A), mvtake (0x72), alu3 family (0x73-0x7B: adds3/subs3/muls3/addu3/subu3/mulu3/and3/or3/xor3), loadz (0x7C), loadzh (0x7D) |
 
 ### Arquitectura interna
 
 | Documento                                                                         | Contenido                                  |
 | :-------------------------------------------------------------------------------- | :----------------------------------------- |
+| [JIT C1 baseline](./JIT/JIT.md)                                                   | MachineIR, encoder x86-64 hand-rolled, selector, stackmaps, JitRegistry, auto-trigger, ABI vesta_rt |
 | [Sistema de Cadenas](./runtime/SistemaStrings.md)                                 | FLAT/ROPE/SLICE, Compact Strings, interning, hash, GC |
 | [Convencion de Encoding](./SetInstruccionesVM/ConvencionDeLlamadas/ConvencionEncoding.md) | Convention A vs B, guia para nuevas instrucciones |
 

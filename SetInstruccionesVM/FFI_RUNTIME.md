@@ -102,8 +102,8 @@ byte2 = (r_fn << 4) | r_hint
 
 - `r_fn`: registro con la VA del punto de entrada del proceso hijo.
 - `r_hint`: scheduler hint (int64 signed):
-  - `< 0` → **Here**: mismo scheduler que el padre (cooperativo, sin overhead cross-thread).
-  - `>= 0` → **Pinned**: scheduler = `hint % num_schedulers`.
+  - `< 0` -> **Here**: mismo scheduler que el padre (cooperativo, sin overhead cross-thread).
+  - `>= 0` -> **Pinned**: scheduler = `hint % num_schedulers`.
 
 ### Diferencia con `spawn` (0xEE)
 
