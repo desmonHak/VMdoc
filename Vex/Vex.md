@@ -31,6 +31,7 @@ multi-paradigma estaticamente tipado disenado con tres principios:
 | [[OOP]]                         | Clases, herencia, interfaces, propiedades, modificadores     |
 | [[Generics]]                    | `class Box<T>`, monomorphizacion compile-time, specialize    |
 | [[ReflexionAOP]]                | forName, getClass, getField, getMethod, invoke, @Aspect      |
+| [[Metaprogramacion]]            | @Macro, expr capture, introspeccion, FFI compile-time        |
 | [[Colecciones]]                 | ArrayList, HashMap, HashSet, Queue, Deque, TreeMap, Stack    |
 | [[Excepciones]]                 | try/catch/finally, FatalError, panic, throw                  |
 
