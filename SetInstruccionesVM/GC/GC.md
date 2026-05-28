@@ -13,10 +13,10 @@ mas comunes y dificiles de detectar en programacion.
 
 Hay dos grandes enfoques para resolver esto:
 
-| Enfoque                | Quien libera la memoria        | Ejemplo                    |
+| Enfoque | Quien libera la memoria | Ejemplo |
 | :--------------------- | :----------------------------- | :------------------------- |
-| **Manual**             | El programador, explicitamente | C (`malloc` / `free`)      |
-| **Automatico (GC)**    | El runtime, en segundo plano   | Java, Python, Go, C#       |
+| **Manual** | El programador, explicitamente | C (`malloc` / `free`) |
+| **Automatico (GC)** | El runtime, en segundo plano | Java, Python, Go, C# |
 
 VestaVM ofrece **ambos enfoques** a la vez, porque cada uno tiene su lugar segun el caso.
 
@@ -47,7 +47,7 @@ El GC no corre constantemente (seria demasiado lento). Se activa cuando:
 
 ### Tiene coste
 
-Si. Mientras el GC analiza que objetos estan vivos, el programa hace una pequena pausa.
+Si. Mientras el GC analiza que objetos estan vivos, el programa hace una pequeña pausa.
 VestaVM minimiza esto con un diseno **generacional** (ver mas abajo).
 
 ---
@@ -73,11 +73,11 @@ VestaVM separa los dos enfoques en componentes distintos, uno por cada proceso V
 
 ```
 ProcessVM
-  +-- GcHeap        -- GC automatico generacional  (objetos OOP, ciclo de vida automatico)
-  +-- RawAllocator  -- Allocator manual             (buffers FFI, control explicito)
+    +-- GcHeap -- GC automatico generacional (objetos OOP, ciclo de vida automatico)
+    +-- RawAllocator -- Allocator manual (buffers FFI, control explicito)
 
 VM (compartido entre todos los procesos)
-  +-- shared_futures[]  -- FutureObject fuera del GcHeap per-proceso
+    +-- shared_futures[] -- FutureObject fuera del GcHeap per-proceso
 ```
 
 Cada proceso tiene sus propias instancias de `GcHeap` y `RawAllocator`. No se comparten
@@ -89,14 +89,14 @@ esperar (`await`) el mismo future sin problemas de aliasing.
 
 ### Resumen comparativo
 
-| Caracteristica           | GcHeap (generacional)             | RawAllocator (manual)               |
+| Caracteristica | GcHeap (generacional) | RawAllocator (manual) |
 | :----------------------- | :-------------------------------- | :---------------------------------- |
-| Instruccion de reserva   | `NEWOBJ r` -> `GcHandle`          | `ALLOC r` -> ptr host real          |
-| Instruccion de liberacion| `DROP handle` (opcional)          | `FREE reg` (obligatorio)            |
-| GC automatico            | Si - minor + major                | No                                  |
-| Tipo de retorno          | Handle opaco (no es una direccion)| Puntero host real (`uint64_t`)      |
-| Compatible con FFI       | No (el handle no es una dir. real)| Si                                  |
-| Uso ideal                | Objetos OOP, grafos, closures     | Buffers C, strings, llamadas nativas|
+| Instruccion de reserva | `NEWOBJ r` -> `GcHandle` | `ALLOC r` -> ptr host real |
+| Instruccion de liberacion| `DROP handle` (opcional) | `FREE reg` (obligatorio) |
+| GC automatico | Si - minor + major | No |
+| Tipo de retorno | Handle opaco (no es una direccion)| Puntero host real (`uint64_t`) |
+| Compatible con FFI | No (el handle no es una dir. real)| Si |
+| Uso ideal | Objetos OOP, grafos, closures | Buffers C, strings, llamadas nativas|
 
 > **Nota:** Los `StringObject` son una excepcion: se alocan con `alloc_pinned()` directamente
 > en OldGen (sin pasar por Nursery) para que el puntero `data[]` retornado por `STRRAW` sea
@@ -112,12 +112,12 @@ payload (inmediatamente despues de la GcHeader interna de 8 bytes):
 
 ```cpp
 struct alignas(8) ObjectHeader {
-    ClassInfo *class_ptr;  // 8 bytes - puntero al ClassInfo del ClassRegistry
-    uint32_t   flags;      // 4 bytes - OBJ_FLAG_* (GC_OWNED, etc.)
-    uint32_t   hash_code;  // 4 bytes - hash identidad (lazy)
-    uint32_t   owner_pid;  // 4 bytes - local_pid del proceso que tiene el monitor (0=libre)
-    uint16_t   lock_depth; // 2 bytes - profundidad de bloqueo reentrante
-    uint16_t   _mon_pad;   // 2 bytes - padding de alineacion
+    ClassInfo *class_ptr; // 8 bytes - puntero al ClassInfo del ClassRegistry
+    uint32_t flags; // 4 bytes - OBJ_FLAG_* (GC_OWNED, etc.)
+    uint32_t hash_code; // 4 bytes - hash identidad (lazy)
+    uint32_t owner_pid; // 4 bytes - local_pid del proceso que tiene el monitor (0=libre)
+    uint16_t lock_depth; // 2 bytes - profundidad de bloqueo reentrante
+    uint16_t _mon_pad; // 2 bytes - padding de alineacion
 };
 ```
 
@@ -144,18 +144,18 @@ Aprovechando esto, el heap se divide en dos zonas:
 
 ```
 +---------------------------+------------------------------------+
-|         Nursery           |             OldGen                 |
-|   (objetos jovenes)       |   (objetos que sobrevivieron)      |
-|   asignacion rapida O(1)  |   mark-and-sweep cuando se llena   |
+| Nursery | OldGen |
+| (objetos jovenes) | (objetos que sobrevivieron) |
+| asignacion rapida O(1) | mark-and-sweep cuando se llena |
 +---------------------------+------------------------------------+
 ```
 
-- **Nursery**: zona pequena y rapida donde nacen todos los objetos. Limpiarla es barato
-  porque casi todo esta muerto; no hace falta analizar los objetos supervivientes en detalle.
-  Este ciclo de limpieza se llama **minor GC**.
+- **Nursery**: zona pequeña y rapida donde nacen todos los objetos. Limpiarla es barato
+ porque casi todo esta muerto; no hace falta analizar los objetos supervivientes en detalle.
+ Este ciclo de limpieza se llama **minor GC**.
 - **OldGen**: zona donde van los objetos que sobrevivieron al menos un ciclo de limpieza
-  de la Nursery. Se limpia con un algoritmo mas completo (**major GC**) pero se activa
-  con mucha menos frecuencia.
+ de la Nursery. Se limpia con un algoritmo mas completo (**major GC**) pero se activa
+ con mucha menos frecuencia.
 
 Resultado: **pausas cortas y frecuentes** (minor GC) en lugar de una pausa larga y rara.
 
@@ -167,9 +167,9 @@ En el GcHeap, el programador nunca recibe la direccion real del objeto en memori
 lugar recibe un **GcHandle**: un numero entero de 32 bits que actua como identificador.
 
 ```
-Bytecode:   NEWOBJ r1    ->  R0 = 3          (handle, no es una direccion)
+Bytecode: NEWOBJ r1 -> R0 = 3 (handle, no es una direccion)
 
-HandleTable:   [3]  ->  0x7f3a0000       (direccion real, interna al GC)
+HandleTable: [3] -> 0x7f3a0000 (direccion real, interna al GC)
 ```
 
 Por que un handle y no una direccion directa? Porque el GC puede necesitar **mover**
@@ -212,23 +212,23 @@ desregistre.
 
 ### GcHeap
 
-| Instruccion          | Opcode1 | Opcode2 | Descripcion                                             |
+| Instruccion | Opcode1 | Opcode2 | Descripcion |
 | :------------------- | :-----: | :-----: | :------------------------------------------------------ |
-| `newobj r`           | `0x00`  | `0xA0`  | Crea objeto OOP; retorna `GcHandle` en R0               |
-| `gcalloc r`          | `0x00`  | `0xA5`  | Crea bloque GC sin ObjectHeader; retorna GcHandle en R0 |
-| `gcrun`              | `0x00`  | `0xA1`  | Fuerza un ciclo de GC ahora                             |
-| `gcconfig r`         | `0x00`  | `0xA2`  | Ajusta el umbral de OldGen                              |
-| `drop r`             | `0x00`  | `0xA3`  | Libera el handle (el GC recogera el objeto)             |
-| `gcwb r`             | `0x00`  | `0xA4`  | Registra referencia OLD->YOUNG en el remembered set     |
+| `newobj r` | `0x00` | `0xA0` | Crea objeto OOP; retorna `GcHandle` en R0 |
+| `gcalloc r` | `0x00` | `0xA5` | Crea bloque GC sin ObjectHeader; retorna GcHandle en R0 |
+| `gcrun` | `0x00` | `0xA1` | Fuerza un ciclo de GC ahora |
+| `gcconfig r` | `0x00` | `0xA2` | Ajusta el umbral de OldGen |
+| `drop r` | `0x00` | `0xA3` | Libera el handle (el GC recogera el objeto) |
+| `gcwb r` | `0x00` | `0xA4` | Registra referencia OLD->YOUNG en el remembered set |
 | `gchandle r_dst, r_src` | `0x00` | `0x56` | host_ptr -> GcHandle via lookup O(1) en ptr_to_handle_ |
 
 ### RawAllocator
 
-| Instruccion          | Opcode1 | Opcode2 | Descripcion                               |
+| Instruccion | Opcode1 | Opcode2 | Descripcion |
 | :------------------- | :-----: | :-----: | :---------------------------------------- |
-| `alloc r`            | `0x00`  | `0xB0`  | Reserva bytes; retorna ptr real en R0     |
-| `free r`             | `0x00`  | `0xB1`  | Libera el bloque en `r` inmediatamente    |
-| `realloc r, r`       | `0x00`  | `0xB2`  | Redimensiona; nuevo ptr en R0             |
+| `alloc r` | `0x00` | `0xB0` | Reserva bytes; retorna ptr real en R0 |
+| `free r` | `0x00` | `0xB1` | Libera el bloque en `r` inmediatamente |
+| `realloc r, r` | `0x00` | `0xB2` | Redimensiona; nuevo ptr en R0 |
 
 ---
 
@@ -238,53 +238,53 @@ desregistre.
 
 ```c
 // Crear un bloque de 64 bytes bajo GC - el handle retorna en R0
-mov    r1, 64
-gcalloc r1           // R0 = GcHandle
+mov r1, 64
+gcalloc r1 // R0 = GcHandle
 
 // Para leer y escribir el payload, primero obtenemos el puntero real con gcderef:
-gcderef cur0, r0     // cur0 = puntero real al payload en memoria host
-mov     r5, 42
-writecur cur0, r5    // escribe 42 en los primeros 8 bytes del bloque
-readcur  r6, cur0    // r6 = lee los primeros 8 bytes (debe ser 42)
+gcderef cur0, r0 // cur0 = puntero real al payload en memoria host
+mov r5, 42
+writecur cur0, r5 // escribe 42 en los primeros 8 bytes del bloque
+readcur r6, cur0 // r6 = lee los primeros 8 bytes (debe ser 42)
 
 // Forzar un ciclo de GC ahora mismo
 gcrun
 
 // Ajustar el umbral de OldGen (en bytes):
-mov    r2, 16777216   // 16 MB
+mov r2, 16777216 // 16 MB
 gcconfig r2
 
 // Liberar el handle cuando ya no se necesite:
-mov    r3, r0          // guardar el handle en r3
-drop   r3              // el GC recogera el objeto en el proximo ciclo
+mov r3, r0 // guardar el handle en r3
+drop r3 // el GC recogera el objeto en el proximo ciclo
 
 // Write barrier: OBLIGATORIO cuando un objeto OLD referencia a uno YOUNG
 // (Si A esta en OldGen y B esta en Nursery, y escribimos handle_B en A):
 gcderef cur0, r_handle_A
-writecur cur0, r_handle_B   // A.campo = handle_B
-gcwb r_handle_A             // notificar al GC de esta referencia OLD->YOUNG
+writecur cur0, r_handle_B // A.campo = handle_B
+gcwb r_handle_A // notificar al GC de esta referencia OLD->YOUNG
 ```
 
 ### RawAllocator
 
 ```c
 // Reservar un buffer de 256 bytes - se obtiene el puntero real directamente
-mov    r1, 256
-alloc  r1             // R0 = puntero host real (no un handle)
+mov r1, 256
+alloc r1 // R0 = puntero host real (no un handle)
 
 // Guardar el puntero y acceder al buffer con cursor:
-mov    r14, r0
-xchg   cur1, r14      // cur1 = inicio del buffer
-mov    r5, 0xFF
-writecur cur1, r5     // buffer[0..7] = 0xFF
+mov r14, r0
+xchg cur1, r14 // cur1 = inicio del buffer
+mov r5, 0xFF
+writecur cur1, r5 // buffer[0..7] = 0xFF
 
 // Redimensionar el buffer (puede cambiar de direccion):
-alloc  r1             // Reservar el original de nuevo para este ejemplo
-mov    r2, 1024
-realloc r0, r2        // R0 = nuevo puntero (puede ser diferente del original)
+alloc r1 // Reservar el original de nuevo para este ejemplo
+mov r2, 1024
+realloc r0, r2 // R0 = nuevo puntero (puede ser diferente del original)
 
 // Liberar OBLIGATORIAMENTE cuando ya no se necesite:
-free   r0
+free r0
 ```
 
 ---
@@ -292,12 +292,12 @@ free   r0
 ## Documentacion detallada
 
 - [[Generacional (para objetos OOP)]] - Como funciona el GcHeap internamente: Nursery,
-  minor GC, major GC, algoritmo tri-color mark, write barrier, handles, estadisticas,
-  stack scanning conservativo.
+ minor GC, major GC, algoritmo tri-color mark, write barrier, handles, estadisticas,
+ stack scanning conservativo.
 - [[Allocator crudo para FFI y memoria manual]] - Como funciona el RawAllocator:
-  contiguidad, FFI, ALLOC/FREE/REALLOC, estadisticas.
+ contiguidad, FFI, ALLOC/FREE/REALLOC, estadisticas.
 - [[cursor]] - Instrucciones `readcur`, `writecur` y `gcderef` para acceder a memoria
-  host desde bytecode.
+ host desde bytecode.
 
 Ver tambien: [[NativeCall (CallN)]], [[NEWOBJRAW y NEWOBJ]], [[GCALLOC]],
 [[SetInstruccionesVM/FFI_RUNTIME]] (gchandle 0x56), [[SetInstruccionesVM/STATIC_FIELDS]]

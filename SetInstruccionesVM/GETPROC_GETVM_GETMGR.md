@@ -16,9 +16,9 @@ VestaVM tiene una jerarquia de contextos:
 
 ```
 ManageVM (gestor global de instancias)
-  +-- VM (una instancia de la maquina virtual)
-        +-- Scheduler (asigna procesos a hilos)
-              +-- ProcessVM (un proceso: registros, pila, GC propio)
+    +-- VM (una instancia de la maquina virtual)
+    +-- Scheduler (asigna procesos a hilos)
+    +-- ProcessVM (un proceso: registros, pila, GC propio)
 ```
 
 Cuando escribes una funcion nativa en C (una biblioteca `.dll` o `.so`) que necesita
@@ -32,11 +32,11 @@ y "quien gestiona toda la VM" (GETMGR).
 
 ## Instrucciones
 
-| Instruccion | opcode0 | opcode1 | Modo | Tamano  |
+| Instruccion | opcode0 | opcode1 | Modo | Tamaño |
 | :---------: | :-----: | :-----: | :--: | :-----: |
-| `getproc r` |  0x00   |  0xC6   | REG  | 4 bytes |
-| `getvm   r` |  0x00   |  0xC7   | REG  | 4 bytes |
-| `getmgr  r` |  0x00   |  0xC8   | REG  | 4 bytes |
+| `getproc r` | 0x00 | 0xC6 | REG | 4 bytes |
+| `getvm r` | 0x00 | 0xC7 | REG | 4 bytes |
+| `getmgr r` | 0x00 | 0xC8 | REG | 4 bytes |
 
 Todas son instrucciones extendidas (prefijo `0x00`), formato FIXED_4.
 
@@ -45,7 +45,7 @@ Todas son instrucciones extendidas (prefijo `0x00`), formato FIXED_4.
 ## `GETPROC rDst` - puntero al proceso actual
 
 ```c
-getproc r1      // r1 = ProcessVM* del proceso en ejecucion (como uint64_t)
+getproc r1 // r1 = ProcessVM* del proceso en ejecucion (como uint64_t)
 ```
 
 Carga el puntero al `ProcessVM` del proceso que ejecuta esta instruccion en `rDst`.
@@ -60,7 +60,7 @@ mediante `VestaPluginAPI::vm_read_bytes` / `vm_write_bytes`.
 ## `GETVM rDst` - puntero a la instancia VM
 
 ```c
-getvm r1        // r1 = VM* de la instancia propietaria del proceso actual
+getvm r1 // r1 = VM* de la instancia propietaria del proceso actual
 ```
 
 Carga el puntero a la instancia `VM` que contiene al proceso actual. La VM es el nivel
@@ -73,7 +73,7 @@ Recorre internamente: `ProcessVM* -> Scheduler -> VM&`.
 ## `GETMGR rDst` - puntero al gestor global
 
 ```c
-getmgr r1       // r1 = ManageVM* del gestor global de instancias
+getmgr r1 // r1 = ManageVM* del gestor global de instancias
 ```
 
 Carga el puntero al `ManageVM`, el componente que gestiona todas las instancias VM
@@ -94,20 +94,20 @@ virtual de la VM:
 getproc r1
 
 // 2. Direccion virtual del dato en la VM
-mov     r2, @Absolute("all.mi_string")
+mov r2, @Absolute("all.mi_string")
 
 // 3. Longitud del dato (en bytes)
-mov     r3, 12
+mov r3, 12
 
 // 4. Llamar a la funcion nativa (3 argumentos: proc_ptr, vm_addr, len)
-mov     r15, 3
-calln   @Method("stdlib/native/io/vesta_io:vio_println")
+mov r15, 3
+calln @Method("stdlib/native/io/vesta_io:vio_println")
 ```
 
 En la funcion nativa (C):
 
 ```c
-static const VestaPluginAPI *g_api;  // inicializada en vesta_init()
+static const VestaPluginAPI *g_api; // inicializada en vesta_init()
 
 uint64_t vio_println(uint64_t proc_ptr, uint64_t vm_addr, uint64_t len) {
     char buf[256];
@@ -137,9 +137,9 @@ leer de esas direcciones sin pasar por la API de traduccion.
 
 ```
 +--------+--------+--------------------+--------------------+
-| 0x00   | opcode |  mode<<6 | 0x00   |  0000 | reg_dst    |
+| 0x00 | opcode | mode<<6 | 0x00 | 0000 | reg_dst |
 +--------+--------+--------------------+--------------------+
-  byte0    byte1       byte2                 byte3
+    byte0 byte1 byte2 byte3
 ```
 
 - `opcode` = `0xC6` (getproc), `0xC7` (getvm), `0xC8` (getmgr)
@@ -158,31 +158,31 @@ leer de esas direcciones sin pasar por la API de traduccion.
 @Section { @Name("code"), @SpaceAddress("mem") @Align(0x1000) }
 
 all:
-    mi_buffer: 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00   // 8 bytes de espacio
+mi_buffer: 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 // 8 bytes de espacio
 
 code:
-    mov  rsp, 0x00FF0000
-    mov  rbp, 0x00FF0000
+mov rsp, 0x00FF0000
+mov rbp, 0x00FF0000
 
-    // Obtener contexto del proceso
-    getproc r1                              // r1 = ProcessVM*
+// Obtener contexto del proceso
+getproc r1 // r1 = ProcessVM*
 
-    // Direccion virtual del buffer
-    mov     r2, @Absolute("all.mi_buffer")  // r2 = direccion virtual
+// Direccion virtual del buffer
+mov r2, @Absolute("all.mi_buffer") // r2 = direccion virtual
 
-    // Llamar funcion nativa para escribir un valor en el buffer
-    mov     r3, 8                           // r3 = 8 bytes
-    mov     r4, 42                          // r4 = valor a escribir
-    mov     r15, 4                          // 4 argumentos
-    calln   @Method("miplugin/mi_plugin:escribir_valor")
+// Llamar funcion nativa para escribir un valor en el buffer
+mov r3, 8 // r3 = 8 bytes
+mov r4, 42 // r4 = valor a escribir
+mov r15, 4 // 4 argumentos
+calln @Method("miplugin/mi_plugin:escribir_valor")
 
-    hlt
+hlt
 ```
 
 ```c
 // En el plugin nativo (C):
 uint64_t escribir_valor(uint64_t proc_ptr, uint64_t vm_addr,
-                        uint64_t size, uint64_t value) {
+uint64_t size, uint64_t value) {
     uint64_t v = value;
     // Escribir el valor en la memoria virtual de la VM:
     g_api->vm_write_bytes(proc_ptr, vm_addr, &v, size);

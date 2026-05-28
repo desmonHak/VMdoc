@@ -4,9 +4,9 @@ La instruccion **HLT** (halt = detener) finaliza la ejecucion del proceso actual
 limpia. Es el equivalente a llegar al final de un programa: el proceso termina, libera sus
 recursos y el scheduler registra su finalizacion.
 
-| Instruccion | opcode | Tamano  | Descripcion               |
+| Instruccion | opcode | Tamaño | Descripcion |
 | :---------: | :----: | :-----: | :------------------------ |
-| `hlt`       | 0x01   | 1 byte  | Detener el proceso actual |
+| `hlt` | 0x01 | 1 byte | Detener el proceso actual |
 
 Implementacion: `src/runtime/exec_instruction.cpp`
 
@@ -36,13 +36,13 @@ Cuando el ejecutor alcanza HLT:
 
 ```c
 // Programa minimo valido en VestaVM:
-mov  r0, 0      // codigo de salida = 0 (exito)
-hlt             // terminar el proceso
+mov r0, 0 // codigo de salida = 0 (exito)
+hlt // terminar el proceso
 ```
 
 ```c
 // Programa que termina con un codigo de error:
-mov  r0, 1      // codigo de salida = 1 (error generico)
+mov r0, 1 // codigo de salida = 1 (error generico)
 hlt
 ```
 
@@ -50,12 +50,12 @@ hlt
 
 ## Diferencias importantes
 
-| Situacion      | Instruccion  | Que ocurre                                        |
+| Situacion | Instruccion | Que ocurre |
 | :------------- | :----------: | :------------------------------------------------ |
-| Terminar       | `hlt`        | El proceso muere, alive_count baja                |
-| Ceder turno    | `yield`      | El proceso sigue vivo pero cede el CPU al scheduler |
-| Esperar future | `await r1`   | El proceso se bloquea hasta que un future se resuelva |
-| Bloquear mutex | `monenter r1`| El proceso espera hasta poder adquirir el monitor  |
+| Terminar | `hlt` | El proceso muere, alive_count baja |
+| Ceder turno | `yield` | El proceso sigue vivo pero cede el CPU al scheduler |
+| Esperar future | `await r1` | El proceso se bloquea hasta que un future se resuelva |
+| Bloquear mutex | `monenter r1`| El proceso espera hasta poder adquirir el monitor |
 
 ---
 
@@ -63,9 +63,9 @@ hlt
 
 ```
 +--------+
-| 0x01   |
+| 0x01 |
 +--------+
-  byte0
+    byte0
 ```
 
 HLT es una de las instrucciones mas cortas: solo ocupa 1 byte en el bytecode.
@@ -81,16 +81,16 @@ HLT es una de las instrucciones mas cortas: solo ocupa 1 byte en el bytecode.
 @Section { @Name("code"), @SpaceAddress("mem") @Align(0x1000) }
 
 code:
-    // Inicializar la pila
-    mov rsp, 0x00FF0000
-    mov rbp, 0x00FF0000
+// Inicializar la pila
+mov rsp, 0x00FF0000
+mov rbp, 0x00FF0000
 
-    // Hacer el trabajo del programa
-    mov r1, 10          // valor de entrada
-    addu r1, 32         // calcular algo
-    mov r0, r1          // poner resultado en r0 (convencion de retorno)
+// Hacer el trabajo del programa
+mov r1, 10 // valor de entrada
+addu r1, 32 // calcular algo
+mov r0, r1 // poner resultado en r0 (convencion de retorno)
 
-    hlt                 // terminar; la VM recoge r0 como codigo de salida
+hlt // terminar; la VM recoge r0 como codigo de salida
 end_code:
 ```
 
@@ -104,14 +104,14 @@ independientemente.
 
 ```c
 // Proceso principal:
-mov  r1, @Absolute("code.funcion_hijo")
-spawn r1            // crear proceso hijo; r0 = PID del hijo
+mov r1, @Absolute("code.funcion_hijo")
+spawn r1 // crear proceso hijo; r0 = PID del hijo
 // ... hacer trabajo del padre ...
-hlt                 // el padre termina; el hijo sigue si aun no hlt
+hlt // el padre termina; el hijo sigue si aun no hlt
 
 // Proceso hijo (arranaca en la funcion apuntada por r1):
 funcion_hijo:
-    // ... hacer trabajo del hijo ...
-    hlt             // el hijo termina
+// ... hacer trabajo del hijo ...
+hlt // el hijo termina
 // Solo cuando AMBOS procesos haltan, la VM se detiene completamente
 ```

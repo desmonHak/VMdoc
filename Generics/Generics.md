@@ -22,14 +22,14 @@ con los mismos tipos concretos, devuelve el puntero cacheado (O(1) lookup por cl
 
 ```
 [0x00][0x3A][byte2][byte3]
-  byte2 = (r_dst << 4) | r_class
-  byte3 = (r_types << 4) | count
+    byte2 = (r_dst << 4) | r_class
+    byte3 = (r_types << 4) | count
 ```
 
-- `r_class`  = registro con el host-pointer a la `ClassInfo` generica (`CLASS_FLAG_GENERIC = 0x10`)
-- `r_types`  = registro con el VM address de un array de `count` punteros a `ClassInfo`
-- `count`    = numero de parametros de tipo (0..15, cabe en 4 bits)
-- `r_dst`    = registro destino, recibe el `ClassInfo*` de la especializacion
+- `r_class` = registro con el host-pointer a la `ClassInfo` generica (`CLASS_FLAG_GENERIC = 0x10`)
+- `r_types` = registro con el VM address de un array de `count` punteros a `ClassInfo`
+- `count` = numero de parametros de tipo (0..15, cabe en 4 bits)
+- `r_dst` = registro destino, recibe el `ClassInfo*` de la especializacion
 
 ### Semantica
 
@@ -37,12 +37,12 @@ con los mismos tipos concretos, devuelve el puntero cacheado (O(1) lookup por cl
 2. Busca en `Loader::generic_cache_` (tabla hash por clave de cadena).
 3. Si existe: devuelve el `ClassInfo*` cacheado directamente.
 4. Si no existe:
-   a. Clona la `ClassInfo` generica (nombre, campos, metodos, parametros).
-   b. Para cada campo con `is_type_param=true`, sustituye `type_class` por el tipo concreto.
-   c. Limpia `CLASS_FLAG_GENERIC` en el clon.
-   d. Establece `generic_parent` apuntando a la `ClassInfo` original.
-   e. Rellena `type_params[i].concrete` con los `ClassInfo*` concretos.
-   f. Almacena en la cache.
+ a. Clona la `ClassInfo` generica (nombre, campos, metodos, parametros).
+ b. Para cada campo con `is_type_param=true`, sustituye `type_class` por el tipo concreto.
+ c. Limpia `CLASS_FLAG_GENERIC` en el clon.
+ d. Establece `generic_parent` apuntando a la `ClassInfo` original.
+ e. Rellena `type_params[i].concrete` con los `ClassInfo*` concretos.
+ f. Almacena en la cache.
 5. Escribe el puntero en `r_dst`.
 
 ---
@@ -53,9 +53,9 @@ con los mismos tipos concretos, devuelve el puntero cacheado (O(1) lookup por cl
 
 ```cpp
 struct GenericParam {
-    const char *name;       // nombre del parametro (p.ej. "T", "K", "V")
-    ClassInfo  *constraint; // bound del parametro (nullptr = sin restriccion)
-    ClassInfo  *concrete;   // tipo concreto en una especializacion (nullptr en plantilla)
+    const char *name; // nombre del parametro (p.ej. "T", "K", "V")
+    ClassInfo *constraint; // bound del parametro (nullptr = sin restriccion)
+    ClassInfo *concrete; // tipo concreto en una especializacion (nullptr en plantilla)
 };
 ```
 
@@ -68,9 +68,9 @@ La separacion `constraint` / `concrete` es deliberada:
 ```cpp
 typedef struct FieldInfo {
     // ... campos normales ...
-    bool        is_type_param;   // true si el tipo del campo es un parametro T
-    uint16_t    type_param_idx;  // indice en ClassInfo::type_params
-    uint8_t     _field_pad[4];   // relleno de alineacion
+    bool is_type_param; // true si el tipo del campo es un parametro T
+    uint16_t type_param_idx; // indice en ClassInfo::type_params
+    uint8_t _field_pad[4]; // relleno de alineacion
 } FieldInfo;
 ```
 
@@ -79,23 +79,23 @@ lo resuelve a `type_params[type_param_idx].concrete` durante la monomorphization
 
 ### Flags de ClassInfo relevantes
 
-| Flag                | Valor  | Significado                                    |
+| Flag | Valor | Significado |
 | :------------------ | :----- | :--------------------------------------------- |
-| `CLASS_FLAG_GENERIC`| `0x10` | Clase plantilla, no instanciable directamente  |
+| `CLASS_FLAG_GENERIC`| `0x10` | Clase plantilla, no instanciable directamente |
 
 ---
 
 ## Ciclo de vida de la especializacion
 
 ```
-ClassGeneric<T>  (CLASS_FLAG_GENERIC=1, concrete=nullptr)
-      |
-      | specialize(ClassInt)
-      v
-ClassGeneric<ClassInt>  (CLASS_FLAG_GENERIC=0, generic_parent -> ClassGeneric<T>)
-      |
-      | [cacheada en Loader::generic_cache_]
-      v
+ClassGeneric<T> (CLASS_FLAG_GENERIC=1, concrete=nullptr)
+    |
+    | specialize(ClassInt)
+    v
+ClassGeneric<ClassInt> (CLASS_FLAG_GENERIC=0, generic_parent -> ClassGeneric<T>)
+    |
+    | [cacheada en Loader::generic_cache_]
+    v
 reutilizada en llamadas futuras con el mismo tipo
 ```
 
@@ -109,9 +109,9 @@ reutilizada en llamadas futuras con el mismo tipo
 ; r4 = tipos_array (VM addr de un array de 1 puntero: [r2])
 
 ; Escribir r2 en el array de tipos (en VM memory)
-mov   r14, r4
-xchg  cur0, r14
-writecur cur0, r2          ; tipos_array[0] = ClassInt
+mov r14, r4
+xchg cur0, r14
+writecur cur0, r2 ; tipos_array[0] = ClassInt
 
 ; Especializar: r9 = ClassGeneric<ClassInt>
 specialize r9, r1, r4, 1
@@ -120,12 +120,12 @@ specialize r9, r1, r4, 1
 specialize r10, r1, r4, 1 ; r10 == r9
 
 ; Verificar que r9 == r10 (cache funciona)
-cmp   r9, r10
+cmp r9, r10
 jmp.jne fallo
-mov   r0, 1
+mov r0, 1
 hlt
 fallo:
-mov   r0, 0
+mov r0, 0
 hlt
 ```
 
@@ -140,10 +140,10 @@ El `Loader` gestiona la vida de los metadatos clonados mediante vectores de
 
 ```cpp
 // include/loader/loader.h (privado)
-std::vector<std::unique_ptr<char[]>>              generic_store_names_;
+std::vector<std::unique_ptr<char[]>> generic_store_names_;
 std::vector<std::unique_ptr<loader::GenericParam[]>> generic_store_params_;
-std::vector<std::unique_ptr<loader::FieldInfo[]>>    generic_store_fields_;
-std::vector<std::unique_ptr<loader::MethodInfo[]>>   generic_store_methods_;
+std::vector<std::unique_ptr<loader::FieldInfo[]>> generic_store_fields_;
+std::vector<std::unique_ptr<loader::MethodInfo[]>> generic_store_methods_;
 ```
 
 Estos vectores evitan la gestion manual de `new/delete` y garantizan que los
@@ -159,9 +159,9 @@ tiempo de ejecucion los tipos concretos de una especializacion:
 ```cpp
 // pseudo-C++ de un HLL compilando a VestaVM bytecode:
 ClassInfo *spec = ...; // puntero a ClassGeneric<ClassInt>
-spec->type_param_count;          // 1
-spec->type_params[0].concrete;   // -> ClassInt
-spec->generic_parent;            // -> ClassGeneric<T>
+spec->type_param_count; // 1
+spec->type_params[0].concrete; // -> ClassInt
+spec->generic_parent; // -> ClassGeneric<T>
 ```
 
 El HLL puede exponer esto como `typeof(obj).genericArgs[0]` en su reflexion.

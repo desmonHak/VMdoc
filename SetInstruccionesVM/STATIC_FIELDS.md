@@ -11,10 +11,10 @@ Ambas instrucciones usan el prefijo extendido `[0x00]` y encoding **FIXED_8** (8
 
 ## Tabla resumen
 
-| Instruccion | opcode2 | Encoding | Descripcion                                  |
+| Instruccion | opcode2 | Encoding | Descripcion |
 | :---------- | :-----: | :------- | :------------------------------------------- |
-| `getstatic` | 0x60    | FIXED_8  | Leer i64 de `cls->static_data + offset`      |
-| `setstatic` | 0x61    | FIXED_8  | Escribir i64 a `cls->static_data + offset`   |
+| `getstatic` | 0x60 | FIXED_8 | Leer i64 de `cls->static_data + offset` |
+| `setstatic` | 0x61 | FIXED_8 | Escribir i64 a `cls->static_data + offset` |
 
 ---
 
@@ -27,12 +27,12 @@ Ambas instrucciones tienen un encoding de 8 bytes:
 ```
 
 - `regs_byte`:
-  - Para `getstatic`: `(r_class << 4) | r_dst`
-  - Para `setstatic`: `(r_class << 4) | r_value`
+ - Para `getstatic`: `(r_class << 4) | r_dst`
+ - Para `setstatic`: `(r_class << 4) | r_value`
 - `_pad8`: byte de relleno, debe ser 0.
 - `offset_u32_LE`: offset en bytes dentro de `ClassInfo::static_data`, codificado en
-  little-endian de 4 bytes. El offset es un literal calculado en compile-time por el
-  frontend Vex.
+ little-endian de 4 bytes. El offset es un literal calculado en compile-time por el
+ frontend Vex.
 
 ---
 
@@ -44,7 +44,7 @@ Ambas instrucciones tienen un encoding de 8 bytes:
 byte 0: 0x00
 byte 1: 0x60
 byte 2: (r_class << 4) | r_dst
-byte 3: 0x00   (_pad)
+byte 3: 0x00 (_pad)
 bytes 4-7: offset_u32 en little-endian
 ```
 
@@ -73,14 +73,14 @@ del load: el valor leido como i64 se enmascara o sign-extiende al tipo logico.
 ```
 // Leer Animal.contador (campo estatico u64) en offset 0:
 mov r12, @Absolute("data.fc_Animal_params")
-findclass r1, r12          // r1 = ClassInfo* de Animal
-getstatic r2, r1, 0        // r2 = Animal.contador (leido del static_data[0])
+findclass r1, r12 // r1 = ClassInfo* de Animal
+getstatic r2, r1, 0 // r2 = Animal.contador (leido del static_data[0])
 ```
 
 En Vex:
 
 ```vex
-u64 n = Animal.contador;    // baja a: findclass + getstatic offset
+u64 n = Animal.contador; // baja a: findclass + getstatic offset
 ```
 
 ---
@@ -93,7 +93,7 @@ u64 n = Animal.contador;    // baja a: findclass + getstatic offset
 byte 0: 0x00
 byte 1: 0x61
 byte 2: (r_class << 4) | r_value
-byte 3: 0x00   (_pad)
+byte 3: 0x00 (_pad)
 bytes 4-7: offset_u32 en little-endian
 ```
 
@@ -120,15 +120,15 @@ antes del store si el campo es signed, o lo zero-extiende si es unsigned.
 
 ```
 // Escribir Animal.contador += 1:
-getstatic r2, r1, 0        // r2 = Animal.contador
+getstatic r2, r1, 0 // r2 = Animal.contador
 add r2, 1
-setstatic r2, r1, 0        // Animal.contador = r2
+setstatic r2, r1, 0 // Animal.contador = r2
 ```
 
 En Vex:
 
 ```vex
-Animal.contador += 1;    // baja a: findclass + getstatic + add + setstatic
+Animal.contador += 1; // baja a: findclass + getstatic + add + setstatic
 ```
 
 ---
@@ -136,15 +136,15 @@ Animal.contador += 1;    // baja a: findclass + getstatic + add + setstatic
 ## Layout de static_data en ClassInfo
 
 El `ClassInfo::static_data` es un buffer de memoria HOST (no VM) alocado una vez durante
-`defclass`. Su tamano es la suma de los campos estaticos declarados con `deffield` con
+`defclass`. Su tamaño es la suma de los campos estaticos declarados con `deffield` con
 `is_static = 1`.
 
 ```
 ClassInfo::static_data
-  +--[ offset 0 ]--[ 8 bytes ] campo_estatico_1
-  +--[ offset 8 ]--[ 8 bytes ] campo_estatico_2
-  +--[ offset 16 ]--[ 4 bytes ] campo_estatico_3 (i32, 4 bytes pero alineado a 8)
-  ...
+    +--[ offset 0 ]--[ 8 bytes ] campo_estatico_1
+    +--[ offset 8 ]--[ 8 bytes ] campo_estatico_2
+    +--[ offset 16 ]--[ 4 bytes ] campo_estatico_3 (i32, 4 bytes pero alineado a 8)
+    ...
 ```
 
 El offset de cada campo se calcula en `deffield` de forma acumulativa (igual que los
@@ -173,18 +173,18 @@ que tienen valor por defecto:
 
 ```vex
 class Contador {
-    public static i64 total = 0;   // valor por defecto: 0
+    public static i64 total = 0; // valor por defecto: 0
 }
 ```
 
 Genera:
 
 ```
-defclass r1, r3                    // crear la clase
+defclass r1, r3 // crear la clase
 // (deffield para el campo total, is_static=1)
 // inicializar total = 0:
 mov r5, 0
-setstatic r5, r1, <offset_total>   // Contador.total = 0
+setstatic r5, r1, <offset_total> // Contador.total = 0
 ```
 
 Para valores por defecto distintos de cero, el cuerpo de `__module_init` emite los
@@ -205,10 +205,10 @@ class Logger {
 }
 
 i32 main(string[] args) {
-    Logger.log("inicio");     // [1] inicio
-    Logger.log("proceso");    // [2] proceso
-    Logger.log("fin");        // [3] fin
-    println("Total: ${Logger.mensajes}");   // Total: 3
+    Logger.log("inicio"); // [1] inicio
+    Logger.log("proceso"); // [2] proceso
+    Logger.log("fin"); // [3] fin
+    println("Total: ${Logger.mensajes}"); // Total: 3
     return 0;
 }
 ```
@@ -218,7 +218,7 @@ Bytecode generado (esquematico para `Logger.mensajes += 1`):
 ```
 // findclass de Logger (inlineado como cache lookup)
 mov r12, @Absolute("code.s_class_cache_Logger")
-mov r12, [r12]               // r12 = ClassInfo* de Logger (del cache)
+mov r12, [r12] // r12 = ClassInfo* de Logger (del cache)
 
 // getstatic + add + setstatic
 getstatic r2, r12, <offset_mensajes>
@@ -230,11 +230,11 @@ setstatic r2, r12, <offset_mensajes>
 
 ## Rendimiento
 
-| Operacion                            | Coste                                |
+| Operacion | Coste |
 | :----------------------------------- | :----------------------------------- |
-| `getstatic` / `setstatic`            | 1 instruccion VM + 1 memcpy de 8 B  |
-| findclass + getstatic (sin cache)    | O(1) hash + 1 instruccion           |
-| cache + getstatic (con cache)        | 2 instrucciones (2 loads) + 1 getstatic |
+| `getstatic` / `setstatic` | 1 instruccion VM + 1 memcpy de 8 B |
+| findclass + getstatic (sin cache) | O(1) hash + 1 instruccion |
+| cache + getstatic (con cache) | 2 instrucciones (2 loads) + 1 getstatic |
 
 El coste es equivalente al acceso a un campo de instancia ordinario. No hay overhead
 de vtable ni de GC.

@@ -13,8 +13,8 @@ Esto unifica clases estaticas, dinamicas y las cargadas con `loadmodule` en una 
 ```java
 class Animal {
     // Campos de instancia
-    public  string nombre;
-    private i32    edad;
+    public string nombre;
+    private i32 edad;
 
     // Campos estaticos
     private static u64 contador = 0;
@@ -25,7 +25,7 @@ class Animal {
     // Constructor principal
     public Animal(string nombre, i32 edad) {
         this.nombre = nombre;
-        this.edad   = edad;
+        this.edad = edad;
         Animal.contador += 1;
     }
 
@@ -58,7 +58,7 @@ class Animal {
 Animal a = new Animal("Rex", 5);
 Animal b = new Animal("Fido", 3);
 
-println("a.getEdad() = ${a.getEdad()}");         // 5
+println("a.getEdad() = ${a.getEdad()}"); // 5
 println("total animales = ${Animal.getCuenta()}");// 2
 ```
 
@@ -66,12 +66,12 @@ println("total animales = ${Animal.getCuenta()}");// 2
 
 ## Modificadores de acceso
 
-| Modificador  | Acceso desde                                     |
+| Modificador | Acceso desde |
 | :----------- | :----------------------------------------------- |
-| `public`     | Cualquier lugar                                  |
-| `private`    | Solo la clase que lo define                      |
-| `protected`  | La clase y sus subclases                         |
-| (ninguno)    | Equivale a `public` en el estado actual          |
+| `public` | Cualquier lugar |
+| `private` | Solo la clase que lo define |
+| `protected` | La clase y sus subclases |
+| (ninguno) | Equivale a `public` en el estado actual |
 
 ---
 
@@ -103,11 +103,11 @@ class Perro : Animal {
     private string raza;
 
     public Perro(string nombre, i32 edad, string raza) {
-        super(nombre, edad);      // llamar al constructor del super
+        super(nombre, edad); // llamar al constructor del super
         this.raza = raza;
     }
 
-    @Override                     // OBLIGATORIO si sobrescribe un metodo
+    @Override // OBLIGATORIO si sobrescribe un metodo
     public string toString() {
         return "Perro(${nombre}, ${edad}, ${raza}) - super: ${super.toString()}";
     }
@@ -128,7 +128,7 @@ compilacion. Esto evita errores silenciosos por diferencia de firma.
 Animal[] zoo = {new Animal("Gato", 2), new Perro("Rex", 5, "Labrador")};
 
 for (Animal a : zoo) {
-    println(a.toString());    // dispatch virtual correcto
+    println(a.toString()); // dispatch virtual correcto
 }
 ```
 
@@ -183,7 +183,7 @@ Caracteristicas de las interfaces:
 Saludable[] saludadores = {new Persona("Ana", 30, 1), new Persona("Luis", 25, 2)};
 
 for (Saludable s : saludadores) {
-    s.saludar();    // dispatch correcto aunque el tipo estatico sea Saludable
+    s.saludar(); // dispatch correcto aunque el tipo estatico sea Saludable
 }
 ```
 
@@ -209,10 +209,10 @@ class Caja {
 }
 
 Caja c = new Caja();
-c.valor = 10;                    // llama al setter
-println("${c.valor}");           // llama al getter: 10
-println("${c.doble}");           // 20
-// c.doble = 5;                  // ERROR: propiedad de solo lectura
+c.valor = 10; // llama al setter
+println("${c.valor}"); // llama al getter: 10
+println("${c.doble}"); // 20
+// c.doble = 5; // ERROR: propiedad de solo lectura
 ```
 
 ---
@@ -221,7 +221,7 @@ println("${c.doble}");           // 20
 
 ```java
 class Contador {
-    public static i64 total = 0;   // campo estatico compartido por todas las instancias
+    public static i64 total = 0; // campo estatico compartido por todas las instancias
 
     public Contador() {
         Contador.total += 1;
@@ -237,9 +237,9 @@ class Contador {
 }
 
 new Contador(); new Contador(); new Contador();
-println("Total = ${Contador.obtenerTotal()}");    // Total = 3
+println("Total = ${Contador.obtenerTotal()}"); // Total = 3
 Contador.resetear();
-println("Total = ${Contador.obtenerTotal()}");    // Total = 0
+println("Total = ${Contador.obtenerTotal()}"); // Total = 0
 ```
 
 Los campos estaticos se almacenan en `ClassInfo::static_data` y se acceden con los
@@ -253,8 +253,8 @@ La sintaxis `=>` introduce un cuerpo de expresion. Solo funciona con `{ return e
 
 ```java
 class Matematica {
-    public i32 cuadrado(i32 x) => x * x;       // equivale a { return x * x; }
-    public i32 cubo(i32 x)     => x * x * x;
+    public i32 cuadrado(i32 x) => x * x; // equivale a { return x * x; }
+    public i32 cubo(i32 x) => x * x * x;
     public f64 hipotenusa(f64 a, f64 b) => sqrt(a*a + b*b);
 
     // Constructor delegado:
@@ -283,7 +283,7 @@ class Vector2 {
 }
 
 Vector2 v = new Vector2(3.0, 4.0);
-f64 m = v.magnitud();    // expandido inline: sqrt(3*3 + 4*4) = 5.0
+f64 m = v.magnitud(); // expandido inline: sqrt(3*3 + 4*4) = 5.0
 ```
 
 Solo se aplica a metodos con cuerpo `{ return expr; }`. Si el receptor es una interfaz, se
@@ -308,16 +308,16 @@ class Recurso {
     }
 
     public ~Recurso() {
-        free(buffer);                          // libera memoria host
+        free(buffer); // libera memoria host
         println("Recurso ${nombre} liberado");
     }
 }
 
 void usarRecursos() {
-    Recurso r1 = new Recurso("A", 1024);    // r1 creado
-    Recurso r2 = new Recurso("B", 2048);    // r2 creado
+    Recurso r1 = new Recurso("A", 1024); // r1 creado
+    Recurso r2 = new Recurso("B", 2048); // r2 creado
     // ... usar r1 y r2 ...
-}  // r2 destruido, luego r1 destruido (orden LIFO)
+} // r2 destruido, luego r1 destruido (orden LIFO)
 
 usarRecursos();
 // Salida:
@@ -340,9 +340,9 @@ class Contador {
     private i64 valor = 0;
 
     public void incrementar() {
-        synchronized (this) {      // adquiere el monitor de este objeto
+        synchronized (this) { // adquiere el monitor de este objeto
             this.valor += 1;
-        }                          // libera el monitor al salir (try/finally implicito)
+        } // libera el monitor al salir (try/finally implicito)
     }
 
     public i64 obtener() {
@@ -354,9 +354,9 @@ class Contador {
 
 // Builtins de monitor (dentro de synchronized):
 synchronized (obj) {
-    wait(obj);           // libera el monitor y suspende el proceso
-    notify(obj);         // despierta un proceso en espera
-    notifyAll(obj);      // despierta todos los procesos en espera
+    wait(obj); // libera el monitor y suspende el proceso
+    notify(obj); // despierta un proceso en espera
+    notifyAll(obj); // despierta todos los procesos en espera
 }
 ```
 
@@ -392,13 +392,13 @@ class CuentaBancaria {
 Cada instancia de clase en el GC heap empieza con un `ObjectHeader`:
 
 ```c
-Offset  0 -  7 : ClassInfo*    (8 bytes, puntero a la clase)
-Offset  8 - 11 : flags         (4 bytes, OBJ_FLAG_*)
-Offset 12 - 15 : hash_code     (4 bytes, hash del objeto)
-Offset 16 - 19 : owner_pid     (4 bytes, PID del propietario del monitor)
-Offset 20 - 21 : lock_depth    (2 bytes, profundidad reentrante del monitor)
-Offset 22 - 23 : _mon_pad      (2 bytes, alineacion)
-Offset 24+     : campos del usuario
+Offset 0 - 7 : ClassInfo* (8 bytes, puntero a la clase)
+Offset 8 - 11 : flags (4 bytes, OBJ_FLAG_*)
+Offset 12 - 15 : hash_code (4 bytes, hash del objeto)
+Offset 16 - 19 : owner_pid (4 bytes, PID del propietario del monitor)
+Offset 20 - 21 : lock_depth (2 bytes, profundidad reentrante del monitor)
+Offset 22 - 23 : _mon_pad (2 bytes, alineacion)
+Offset 24+ : campos del usuario
 ```
 
 El campo `class_ptr` permite que el runtime localice la vtable, los campos y los metodos
@@ -414,7 +414,7 @@ i64 resultado = loadmodule("plugins/extra.velb");
 
 // Ahora las clases del modulo estan en el ClassRegistry:
 Class cls = Class.forName("PluginServicio");
-Object svc = cls.newInstance();    // ver ReflexionAOP.md
+Object svc = cls.newInstance(); // ver ReflexionAOP.md
 ```
 
 Las clases cargadas dinamicamente se registran en el mismo `ClassRegistry` global que las

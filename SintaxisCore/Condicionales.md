@@ -32,7 +32,7 @@ if (temperatura > 30) {
 - Las llaves `{}` son obligatorias aunque el cuerpo sea de una sola linea.
 - `else if` permite encadenar tantas condiciones como se necesite.
 - `else` es opcional; si no aparece y ninguna condicion es verdadera, el programa
-  simplemente continua.
+ simplemente continua.
 
 ---
 
@@ -71,21 +71,21 @@ simples donde solo se elige entre dos valores:
 
 ```c
 // El compilador puede optimizar esto a un MOVC:
-int32_t x = (a > b) ? a : b;  // max(a, b) sin salto
+int32_t x = (a > b) ? a : b; // max(a, b) sin salto
 ```
 
 ---
 
 ## Operadores de comparacion
 
-| Operador | Significado           | Ejemplo     |
+| Operador | Significado | Ejemplo |
 | :------: | :-------------------- | :---------- |
-| `==`     | Igual a               | `x == 5`    |
-| `!=`     | Distinto de           | `x != 0`    |
-| `<`      | Menor que             | `x < 10`    |
-| `<=`     | Menor o igual que     | `x <= 10`   |
-| `>`      | Mayor que             | `x > 0`     |
-| `>=`     | Mayor o igual que     | `x >= 0`    |
+| `==` | Igual a | `x == 5` |
+| `!=` | Distinto de | `x != 0` |
+| `<` | Menor que | `x < 10` |
+| `<=` | Menor o igual que | `x <= 10` |
+| `>` | Mayor que | `x > 0` |
+| `>=` | Mayor o igual que | `x >= 0` |
 
 ---
 
@@ -113,11 +113,11 @@ if (!tiene_carnet) {
 }
 ```
 
-| Operador | Nombre | Descripcion                                    |
+| Operador | Nombre | Descripcion |
 | :------: | :----- | :--------------------------------------------- |
-| `&&`     | AND    | Verdadero si AMBAS condiciones son verdaderas  |
-| `\|\|`   | OR     | Verdadero si AL MENOS UNA es verdadera         |
-| `!`      | NOT    | Invierte: verdadero -> falso, falso -> verdadero |
+| `&&` | AND | Verdadero si AMBAS condiciones son verdaderas |
+| `\|\|` | OR | Verdadero si AL MENOS UNA es verdadera |
+| `!` | NOT | Invierte: verdadero -> falso, falso -> verdadero |
 
 ---
 
@@ -152,9 +152,9 @@ if (x > 5) {
 }
 
 // ...se compila a algo como:
-// cmp  r1, 5         // comparar x con 5
-// jmp.jle fin        // si x <= 5, saltar al fin
-//   ; cuerpo del if (llamada a print)
+// cmp r1, 5 // comparar x con 5
+// jmp.jle fin // si x <= 5, saltar al fin
+// ; cuerpo del if (llamada a print)
 // fin:
 ```
 

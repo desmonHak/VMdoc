@@ -25,252 +25,252 @@ org 0x100000000
 jmp end_data
 data:
 
-    fieldTypes: // FieldInfo*
-        type_int:
-            size            db 4         // un int son 4 bytes
-            nameType        db "int", 0
-            FieldKind       db 0    /**
-                                     * 0 (FIELD_PRIMITIVE), 1 (FIELD_CLASS), 3 (FIELD_STRUCT), 4 (FIELD_TYPEDEF), 5 (FIELD_ENUM)
-                                     */
-            type_class      ptr 0x0 // (ClassInfo*) si es FIELD_CLASS o FIELD_STRUCT
-        end_type_int:
-    endfieldTypes:
+fieldTypes: // FieldInfo*
+type_int:
+size db 4 // un int son 4 bytes
+nameType db "int", 0
+FieldKind db 0 /**
+* 0 (FIELD_PRIMITIVE), 1 (FIELD_CLASS), 3 (FIELD_STRUCT), 4 (FIELD_TYPEDEF), 5 (FIELD_ENUM)
+*/
+type_class ptr 0x0 // (ClassInfo*) si es FIELD_CLASS o FIELD_STRUCT
+end_type_int:
+endfieldTypes:
 
-    /**
-     * Todos los metodos de clase pueden ir aqui y ser cargado por las clases
-     */
-    methods:
-        number_methods      dq  1
-        number_constructors dq  1
-        methodTest1:
-            name_field_methodTest1     db  "methodTest1", 0
-            flags_methodTest1          dw  0b00000001      // no-static public int campo1 = 2
+/**
+* Todos los metodos de clase pueden ir aqui y ser cargado por las clases
+*/
+methods:
+number_methods dq 1
+number_constructors dq 1
+methodTest1:
+name_field_methodTest1 db "methodTest1", 0
+flags_methodTest1 dw 0b00000001 // no-static public int campo1 = 2
 
-            type_return_methodTest1     ptr type_int    // tipo de retorno para la funcion
-            code_methodTest1            ptr code_methodTest1
-            size_code_methodTest1       dw  end_code_methodTest1 - code_methodTest1
-            owner_class_methodTest1     ptr Class1ExampleInfo   // es necesario saber la clase a la que pertenece el metodo para usar
-                                                    // el mecanismo de try-catch
+type_return_methodTest1 ptr type_int // tipo de retorno para la funcion
+code_methodTest1 ptr code_methodTest1
+size_code_methodTest1 dw end_code_methodTest1 - code_methodTest1
+owner_class_methodTest1 ptr Class1ExampleInfo // es necesario saber la clase a la que pertenece el metodo para usar
+// el mecanismo de try-catch
 
-            handler_count_methodTest1   dw 2    // el metodo usa dos "try-catch"
-            handlers_methodTest1:
-                type        ptr 0x0 // (ClassInfo*) // null = catch-all // aqui va la clase que maneja la excepcion
-                start_pc    dw  code_methodTest1 - code_methodTest1 /**
-                                                                     * Aqui describimos que todo el metodo esta cibierto por un try catch
-                                                                     */
-                end_pc      dw  code_methodTest1_catch  - code_methodTest1 // donde acabe el try (offset)
-                handler_pc  dw  code_methodTest1_catch  - code_methodTest1 // donde empieza el catch (normalmente donde acabe el try)
-                /*
-                * el end y handler_pc normalmente estan uno despues de otro (el catch normalmente va despues de un try), pero no siempre, puede darse casos
-                * como:
-                * try {
-                *     A
-                *     B
-                * } catch (X e) {
-                *     H
-                * } catch (Z e) {
-                *     H1
-                * }
-                * C
-                * D
-                *
-                * Aqui el PC de inicio y final es el mismo para el handler de X como para el de Z por que ambos usan un mismo try que acaba e inicia
-                * en el mismo sitio, pero sus handler_pc son distintos ya que sus catch estan en lugares distintos.
-                *
-                * El caso en el que pc no coincide, es por que los try son varios y estan en lugares distintos
-                * try {
-                *    Z
-                *     try {
-                *         A
-                *     } catch (X e) {
-                *         H1
-                *     }
-                * } catch (Y e) {
-                *     H2
-                * }
-                *
-                * En Java, C#, etc., un finally se compila como un handler con type = null (catch all). significa que el finally se
-                * ejecuta SIEMPRE, tanto si hay excepcion como si no.
-                * Eso significa:
-                *   no se hace instanceof
-                *   se captura cualquier excepcion
-                *   se salta al bloque finally
-                * Luego, dentro del bloque finally, tu decides:
-                *   si relanzas la excepcion
-                *   o si continuas normalmente
-                *
-                * cuando ocurre una excepcion?
-                *   Busca handlers en orden:
-                *   ?coincide con A? -> salta a catch A
-                *   ?coincide con B? -> salta a catch B
-                *   ?type = NULL? -> salta al finally
-                *
-                * cuando se genera el codigo final,l y el codigo de origen tiene varios catch y finaly se realiza lo siguiente:
-                * try {
-                *     A
-                *     goto LafterFinally
-                * }
-                *
-                * Lcatch:
-                *     H
-                *     goto Lfinally
-                *
-                * Lfinally:
-                *     F
-                * LafterFinally:
-                *
-                * En la practica, todos los catch al final saltar a el finally indicado
-                *
-                */
-            end_handlers_methodTest1:
-        end_methodTest1:
-        constructor_1_Class1Example:
-            name_field_constructor_1_Class1Example     db  "<init>", 0 // el constructor se distingue por la firma
+handler_count_methodTest1 dw 2 // el metodo usa dos "try-catch"
+handlers_methodTest1:
+type ptr 0x0 // (ClassInfo*) // null = catch-all // aqui va la clase que maneja la excepcion
+start_pc dw code_methodTest1 - code_methodTest1 /**
+* Aqui describimos que todo el metodo esta cibierto por un try catch
+*/
+end_pc dw code_methodTest1_catch - code_methodTest1 // donde acabe el try (offset)
+handler_pc dw code_methodTest1_catch - code_methodTest1 // donde empieza el catch (normalmente donde acabe el try)
+/*
+* el end y handler_pc normalmente estan uno despues de otro (el catch normalmente va despues de un try), pero no siempre, puede darse casos
+* como:
+* try {
+    * A
+    * B
+    * } catch (X e) {
+    * H
+    * } catch (Z e) {
+    * H1
+    * }
+* C
+* D
+*
+* Aqui el PC de inicio y final es el mismo para el handler de X como para el de Z por que ambos usan un mismo try que acaba e inicia
+* en el mismo sitio, pero sus handler_pc son distintos ya que sus catch estan en lugares distintos.
+*
+* El caso en el que pc no coincide, es por que los try son varios y estan en lugares distintos
+* try {
+    * Z
+    * try {
+        * A
+        * } catch (X e) {
+        * H1
+        * }
+    * } catch (Y e) {
+    * H2
+    * }
+*
+* En Java, C#, etc., un finally se compila como un handler con type = null (catch all). significa que el finally se
+* ejecuta SIEMPRE, tanto si hay excepcion como si no.
+* Eso significa:
+* no se hace instanceof
+* se captura cualquier excepcion
+* se salta al bloque finally
+* Luego, dentro del bloque finally, tu decides:
+* si relanzas la excepcion
+* o si continuas normalmente
+*
+* cuando ocurre una excepcion?
+* Busca handlers en orden:
+* ?coincide con A? -> salta a catch A
+* ?coincide con B? -> salta a catch B
+* ?type = NULL? -> salta al finally
+*
+* cuando se genera el codigo final,l y el codigo de origen tiene varios catch y finaly se realiza lo siguiente:
+* try {
+    * A
+    * goto LafterFinally
+    * }
+*
+* Lcatch:
+* H
+* goto Lfinally
+*
+* Lfinally:
+* F
+* LafterFinally:
+*
+* En la practica, todos los catch al final saltar a el finally indicado
+*
+*/
+end_handlers_methodTest1:
+end_methodTest1:
+constructor_1_Class1Example:
+name_field_constructor_1_Class1Example db "<init>", 0 // el constructor se distingue por la firma
 
-            flags_constructor_1_Class1Example   dw  0b00001001      // public constructor int campo1 = 2
+flags_constructor_1_Class1Example dw 0b00001001 // public constructor int campo1 = 2
 
-            type_return_constructor_1_Class1Example     ptr 0    // tipo de retorno, en el caso de un constructor, siempre devuelve self
-            code_constructor_1_Class1Example            ptr code_constructor_1_Class1Example
-            size_code_constructor_1_Class1Example       dw  end_code_constructor_1_Class1Example - code_constructor_1_Class1Example
-            owner_class_constructor_1_Class1Example     ptr Class1ExampleInfo
+type_return_constructor_1_Class1Example ptr 0 // tipo de retorno, en el caso de un constructor, siempre devuelve self
+code_constructor_1_Class1Example ptr code_constructor_1_Class1Example
+size_code_constructor_1_Class1Example dw end_code_constructor_1_Class1Example - code_constructor_1_Class1Example
+owner_class_constructor_1_Class1Example ptr Class1ExampleInfo
 
-            handler_count_constructor_1_Class1Example   dw 0
-        end_constructor_1_Class1Example:
-    end_methods:
+handler_count_constructor_1_Class1Example dw 0
+end_constructor_1_Class1Example:
+end_methods:
 
-    class:
-        number_class            dq 4
+class:
+number_class dq 4
 
-        // 0
-        ThrowableInfo:
-            nameClassThrowableInfo db "Throwable", 0
-            flagsClassThrowableInfo dq 0b10000001
+// 0
+ThrowableInfo:
+nameClassThrowableInfo db "Throwable", 0
+flagsClassThrowableInfo dq 0b10000001
 
-            number_fieldsThrowableInfo dq 0
-            number_supersThrowableInfo dq 0
-            number_interfacesThrowableInfo dq 0
-            number_methodsThrowableInfoThrowableInfo dq 0
-        end_ThrowableInfo:
+number_fieldsThrowableInfo dq 0
+number_supersThrowableInfo dq 0
+number_interfacesThrowableInfo dq 0
+number_methodsThrowableInfoThrowableInfo dq 0
+end_ThrowableInfo:
 
-        // 1
-        ExceptionInfo:
-            nameClassExceptionInfo db "Exception", 0
-            flagsClassExceptionInfo dq 0b10000001
+// 1
+ExceptionInfo:
+nameClassExceptionInfo db "Exception", 0
+flagsClassExceptionInfo dq 0b10000001
 
-            number_fieldsExceptionInfo dq 0
-            number_supersExceptionInfo dq 1
-            number_interfacesExceptionInfo dq 0
-            number_methodsExceptionInfo dq 0
+number_fieldsExceptionInfo dq 0
+number_supersExceptionInfo dq 1
+number_interfacesExceptionInfo dq 0
+number_methodsExceptionInfo dq 0
 
-            supersExceptionInfo:
-                ThrowableSuperExceptionInfo       dq ThrowableInfo
-            end_supersExceptionInfo:
+supersExceptionInfo:
+ThrowableSuperExceptionInfo dq ThrowableInfo
+end_supersExceptionInfo:
 
-        end_ExceptionInfo:
-
-
-        // 2
-        IOExceptionInfo:
-            nameClassIOExceptionInfo           db "IOException", 0
-            flagsIOExceptionInfo          dq 0b10000001      // public
-            // marca especial para excepciones
-
-            number_fieldsIOExceptionInfo       dq 0                // no tiene campos propios
-            number_supersIOExceptionInfo       dq 1                // hereda de Exception
-            number_interfacesIOExceptionInfo   dq 0
-            number_methodsIOExceptionInfo      dq 0
-
-            fieldsIOExceptionInfo:
-            end_fieldsIOExceptionInfo:
-
-            supersIOExceptionInfo:
-                ExceptionSuperIOExceptionInfo       dq ExceptionInfo    // puntero a la superclase
-            end_supersIOExceptionInfo:
-
-            interfaces:
-            end_interfaces:
-
-            methods:
-            end_methods:
-        end_IOExceptionInfo:
-
-        // 3
-        Class1ExampleInfo:
-            nameClassClass1ExampleInfo           db "Class1Example", 0
-            flagsClassClass1ExampleInfo          dq 0b00000001       /**
-                    * 0b0000 0000
-                    * bit 1-2 (visibility): default(0), public(1), private(2), protect(3)
-                    * bit 3 (static-no): static = 1, no static = 0 (no aplicado a una clase, se aplica sus metodos y etc)
-                    *
-                    * bit 7 (is_exception?) 1 = true,   0 = false
-                    */
-
-            number_fieldsClass1ExampleInfo       dq 2
-            number_supersClass1ExampleInfo       dq 0                // sin herencia
-            number_interfacesClass1ExampleInfo   dq 0                // sin interfaces
-            number_methodsClass1ExampleInfo      dq 0                // numero de metodos
-
-            fields: // ClassInfo*
-                name_field1     db  "campo1", 0
-                flags_name_field1          dw  0b00000001      // no-static public int campo1 = 2
-                typeFieldKind_name_field1  ptr type_int
-                value_init_name_field1      dq  2               // si el campo esta inicializado y cabe en un dq, si es struct, se pone puntero a datos inicializado.
-
-                name_field2     db  "campo2", 0
-                flags_name_field2          dw  0b00000101      // static public int campo2 = 1
-                typeFieldKind_name_field2  ptr type_int
-                value_init_name_field2      ptr 1               // si el campo esta inicializado y cabe en un dq, si es struct, se pone puntero a datos inicializado.
-            end_field:
-
-            interfaces:
-            end_interfaces:
-
-            supers:
-            end_supers:
-
-            // tabla de punteros a metodos, se puede reemplazar metodos en runtime (hot swap)
-            methods:
-                // los contructos son metodos especiales, pero al fin y al cabo
-                // son metodos, por lo que se pueden reemplazar en runtime, y
-                // por eso los ponemos aqui, en la tabla de metodos, y no en otro sitio
-                useconstructor_1_Class1Example ptr constructor_1_Class1Example
-                usemethodTest1 ptr methodTest1   // puntero al metodo, no usamos el offset por que si queremos crear un nuevo metodo, no tiene por que estar aqui en run time
-            end_methods:
-        end_Class1ExampleInfo:
-    end_class:
-
-    code_method:
-
-        /**
-         * Cuando entras a un metodo, creas un frame.
-         * Ese frame guarda un puntero a MethodInfo.
-         * Cuando haces throw, la VM mira el frame actual.
-         * Y por tanto se sabe que metodo se esta ejecutando.
-         * El PC plano no importa, porque el frame ya contiene el metodo.
-         */
-        code_methodTest1:
-            mov r10, 1
-            mov r11, 2
-            adds r10, r11
-            mov r00, r10
-
-            mov r15, ExceptionInfo // invocamos un error aposta
-            throw
-            mov r00, r01
-            ret
-
-            code_methodTest1_catch:
-                mov r00, r01 // solo devuelvo self
-                ret
-        end_code_methodTest1:
-
-        code_constructor_1_Class1Example:
-            mov r00, r01 // solo devuelvo self
-	        ret
-        end_code_constructor_1_Class1Example:
+end_ExceptionInfo:
 
 
-    end_code_method:
+// 2
+IOExceptionInfo:
+nameClassIOExceptionInfo db "IOException", 0
+flagsIOExceptionInfo dq 0b10000001 // public
+// marca especial para excepciones
+
+number_fieldsIOExceptionInfo dq 0 // no tiene campos propios
+number_supersIOExceptionInfo dq 1 // hereda de Exception
+number_interfacesIOExceptionInfo dq 0
+number_methodsIOExceptionInfo dq 0
+
+fieldsIOExceptionInfo:
+end_fieldsIOExceptionInfo:
+
+supersIOExceptionInfo:
+ExceptionSuperIOExceptionInfo dq ExceptionInfo // puntero a la superclase
+end_supersIOExceptionInfo:
+
+interfaces:
+end_interfaces:
+
+methods:
+end_methods:
+end_IOExceptionInfo:
+
+// 3
+Class1ExampleInfo:
+nameClassClass1ExampleInfo db "Class1Example", 0
+flagsClassClass1ExampleInfo dq 0b00000001 /**
+* 0b0000 0000
+* bit 1-2 (visibility): default(0), public(1), private(2), protect(3)
+* bit 3 (static-no): static = 1, no static = 0 (no aplicado a una clase, se aplica sus metodos y etc)
+*
+* bit 7 (is_exception?) 1 = true, 0 = false
+*/
+
+number_fieldsClass1ExampleInfo dq 2
+number_supersClass1ExampleInfo dq 0 // sin herencia
+number_interfacesClass1ExampleInfo dq 0 // sin interfaces
+number_methodsClass1ExampleInfo dq 0 // numero de metodos
+
+fields: // ClassInfo*
+name_field1 db "campo1", 0
+flags_name_field1 dw 0b00000001 // no-static public int campo1 = 2
+typeFieldKind_name_field1 ptr type_int
+value_init_name_field1 dq 2 // si el campo esta inicializado y cabe en un dq, si es struct, se pone puntero a datos inicializado.
+
+name_field2 db "campo2", 0
+flags_name_field2 dw 0b00000101 // static public int campo2 = 1
+typeFieldKind_name_field2 ptr type_int
+value_init_name_field2 ptr 1 // si el campo esta inicializado y cabe en un dq, si es struct, se pone puntero a datos inicializado.
+end_field:
+
+interfaces:
+end_interfaces:
+
+supers:
+end_supers:
+
+// tabla de punteros a metodos, se puede reemplazar metodos en runtime (hot swap)
+methods:
+// los contructos son metodos especiales, pero al fin y al cabo
+// son metodos, por lo que se pueden reemplazar en runtime, y
+// por eso los ponemos aqui, en la tabla de metodos, y no en otro sitio
+useconstructor_1_Class1Example ptr constructor_1_Class1Example
+usemethodTest1 ptr methodTest1 // puntero al metodo, no usamos el offset por que si queremos crear un nuevo metodo, no tiene por que estar aqui en run time
+end_methods:
+end_Class1ExampleInfo:
+end_class:
+
+code_method:
+
+/**
+* Cuando entras a un metodo, creas un frame.
+* Ese frame guarda un puntero a MethodInfo.
+* Cuando haces throw, la VM mira el frame actual.
+* Y por tanto se sabe que metodo se esta ejecutando.
+* El PC plano no importa, porque el frame ya contiene el metodo.
+*/
+code_methodTest1:
+mov r10, 1
+mov r11, 2
+adds r10, r11
+mov r00, r10
+
+mov r15, ExceptionInfo // invocamos un error aposta
+throw
+mov r00, r01
+ret
+
+code_methodTest1_catch:
+mov r00, r01 // solo devuelvo self
+ret
+end_code_methodTest1:
+
+code_constructor_1_Class1Example:
+mov r00, r01 // solo devuelvo self
+ret
+end_code_constructor_1_Class1Example:
+
+
+end_code_method:
 
 
 end_data:
@@ -283,32 +283,32 @@ mov r01, Class1ExampleInfo
 
 ## Flags
 
-|                bit 1-2                |                             bit 3                              | bit 4                 | bit 4 - 32 |
+| bit 1-2 | bit 3 | bit 4 | bit 4 - 32 |
 | :-----------------------------------: | :------------------------------------------------------------: | --------------------- | ---------- |
-| [[Metadatos#Visibilidad\|visibility]] | [[Metadatos#static or no-static (bit 3)\|static or no-static]] | method or constructor |            |
+| [[Metadatos#Visibilidad\|visibility]] | [[Metadatos#static or no-static (bit 3)\|static or no-static]] | method or constructor | |
 
 ### Visibilidad (bit 1-2)
 
 | valor | tipo de visibilidad |
 | ----- | ------------------- |
-| 0     | default             |
-| 1     | public              |
-| 2     | private             |
-| 3     | protect             |
+| 0 | default |
+| 1 | public |
+| 2 | private |
+| 3 | protect |
 
 ### static or no-static (bit 3)
 Esta valor solo aplica si el metodo no es un constructor, es decir, si [[Metadatos#method or constructor|el bit 4]] es diferente a ``1``
 
-| valor | tipo                     |
+| valor | tipo |
 | ----- | ------------------------ |
-| 0     | Es metodo es estatico    |
-| 1     | El metodo no es estatico |
+| 0 | Es metodo es estatico |
+| 1 | El metodo no es estatico |
 
 
 
 ### method or constructor
 
-| valor | tipo                |
+| valor | tipo |
 | ----- | ------------------- |
-| 0     | Es metodo un metodo |
-| 1     | Ez                  |
+| 0 | Es metodo un metodo |
+| 1 | Ez |

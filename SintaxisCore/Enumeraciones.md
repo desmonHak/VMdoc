@@ -17,9 +17,9 @@ sustituye cada nombre por su valor numerico en tiempo de compilacion.
 ```c
 // Declaracion de un enum
 enum Color {
-    ROJO,    // vale 0 (el primero siempre empieza en 0 por defecto)
-    VERDE,   // vale 1
-    AZUL     // vale 2
+    ROJO, // vale 0 (el primero siempre empieza en 0 por defecto)
+    VERDE, // vale 1
+    AZUL // vale 2
 }
 
 // Uso
@@ -38,20 +38,20 @@ Se pueden asignar valores especificos a cada variante:
 
 ```c
 enum DiaSemana {
-    LUNES    = 1,  // empieza en 1
-    MARTES   = 2,
+    LUNES = 1, // empieza en 1
+    MARTES = 2,
     MIERCOLES = 3,
-    JUEVES   = 4,
-    VIERNES  = 5,
-    SABADO   = 6,
-    DOMINGO  = 7
+    JUEVES = 4,
+    VIERNES = 5,
+    SABADO = 6,
+    DOMINGO = 7
 }
 
 enum Permisos {
-    NINGUNO  = 0,
-    LEER     = 1,
+    NINGUNO = 0,
+    LEER = 1,
     ESCRIBIR = 2,
-    EJECUTAR = 4   // potencia de 2 para poder combinar con OR
+    EJECUTAR = 4 // potencia de 2 para poder combinar con OR
 }
 ```
 
@@ -64,8 +64,8 @@ similar a los tipos suma de Rust o Haskell:
 
 ```c
 enum Resultado {
-    OK(uint64_t valor),     // exito con un valor
-    ERROR(String mensaje)   // fallo con un mensaje
+    OK(uint64_t valor), // exito con un valor
+    ERROR(String mensaje) // fallo con un mensaje
 }
 
 // Uso
@@ -119,14 +119,14 @@ Cuando los valores del enum son potencias de dos, se pueden combinar como flags:
 
 ```c
 enum Permiso {
-    NINGUNO  = 0,
-    LEER     = 1,   // 0b001
-    ESCRIBIR = 2,   // 0b010
-    EJECUTAR = 4    // 0b100
+    NINGUNO = 0,
+    LEER = 1, // 0b001
+    ESCRIBIR = 2, // 0b010
+    EJECUTAR = 4 // 0b100
 }
 
 // Combinar permisos
-uint64_t mis_permisos = Permiso.LEER | Permiso.ESCRIBIR;  // 0b011 = 3
+uint64_t mis_permisos = Permiso.LEER | Permiso.ESCRIBIR; // 0b011 = 3
 
 // Comprobar si tiene un permiso especifico
 if (mis_permisos & Permiso.LEER) {
@@ -138,13 +138,13 @@ if (mis_permisos & Permiso.LEER) {
 
 ## Tabla resumen
 
-| Caracteristica          | Descripcion                                              |
+| Caracteristica | Descripcion |
 | :---------------------- | :------------------------------------------------------- |
-| Tipo base               | `uint64_t` (entero de 64 bits)                           |
-| Valor por defecto       | Empieza en 0, incrementa de 1 en 1                       |
-| Valores explicitos      | Se pueden asignar valores enteros arbitrarios            |
-| Variantes con datos     | Cada variante puede llevar campos adicionales            |
-| Uso tipico con switch   | El compilador puede usar JUMPTABLE para O(1)             |
+| Tipo base | `uint64_t` (entero de 64 bits) |
+| Valor por defecto | Empieza en 0, incrementa de 1 en 1 |
+| Valores explicitos | Se pueden asignar valores enteros arbitrarios |
+| Variantes con datos | Cada variante puede llevar campos adicionales |
+| Uso tipico con switch | El compilador puede usar JUMPTABLE para O(1) |
 
 ---
 

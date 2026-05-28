@@ -11,9 +11,9 @@ programacion: describe que secuencias de tokens son programas validos.
 La formula es: `EBNF = BNF + REGEX`
 
 - **BNF** (Backus-Naur Form): reglas de produccion para describir gramaticas libres
-  de contexto (igual que las gramaticas de los lenguajes naturales).
+ de contexto (igual que las gramaticas de los lenguajes naturales).
 - **REGEX** (Expresiones regulares): para describir patrones de texto simples como
-  "uno o mas digitos" o "letra seguida de letras y numeros".
+ "uno o mas digitos" o "letra seguida de letras y numeros".
 
 ---
 
@@ -22,27 +22,27 @@ La formula es: `EBNF = BNF + REGEX`
 El preprocesador de Vesta usa EBNF para dos propositos:
 
 1. **Describir la gramatica de Vesta**: documentar formalmente que construcciones
-   son validas en el lenguaje.
+ son validas en el lenguaje.
 
 2. **Extender la gramatica**: con las macros de definicion de sintaxis, el usuario
-   puede anadir nuevas construcciones al lenguaje usando notacion EBNF.
+ puede anadir nuevas construcciones al lenguaje usando notacion EBNF.
 
 ---
 
 ## Notacion EBNF basica
 
-| Simbolo    | Significado                                   | Ejemplo                       |
+| Simbolo | Significado | Ejemplo |
 | :--------- | :-------------------------------------------- | :---------------------------- |
-| `::=`      | Se define como                                | `A ::= B C`                   |
-| `\|`       | Alternativa (o bien ... o bien ...)           | `A ::= B \| C`                |
-| `[ ]`      | Opcional (cero o una vez)                     | `A ::= B [C]`                 |
-| `{ }`      | Repeticion (cero o mas veces)                 | `A ::= B {C}`                 |
-| `( )`      | Agrupacion                                    | `A ::= (B \| C) D`            |
-| `' '`      | Terminal literal (texto exacto)               | `A ::= 'if' B`                |
-| `[a-z]`    | Rango de caracteres (notacion regex)          | `letra ::= [a-z]`             |
-| `[0-9]+`   | Uno o mas digitos                             | `digito ::= [0-9]+`           |
-| `[0-9]*`   | Cero o mas digitos                            |                               |
-| `?`        | Vacio (epsilon, la cadena vacia)              | Caso base en recursion        |
+| `::=` | Se define como | `A ::= B C` |
+| `\|` | Alternativa (o bien ... o bien ...) | `A ::= B \| C` |
+| `[ ]` | Opcional (cero o una vez) | `A ::= B [C]` |
+| `{ }` | Repeticion (cero o mas veces) | `A ::= B {C}` |
+| `( )` | Agrupacion | `A ::= (B \| C) D` |
+| `' '` | Terminal literal (texto exacto) | `A ::= 'if' B` |
+| `[a-z]` | Rango de caracteres (notacion regex) | `letra ::= [a-z]` |
+| `[0-9]+` | Uno o mas digitos | `digito ::= [0-9]+` |
+| `[0-9]*` | Cero o mas digitos | |
+| `?` | Vacio (epsilon, la cadena vacia) | Caso base en recursion |
 
 ---
 

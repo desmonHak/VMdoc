@@ -33,19 +33,19 @@ determinista.
 
 Beneficio vs `malloc/free` manual:
 - **No olvidas el free**: el compilador inserta cleanup automatico al exit del
-  scope (incluido en early returns y exceptions).
+ scope (incluido en early returns y exceptions).
 - **No double-free**: `move` zerifica el slot origen; cleanups subsecuentes son
-  no-op.
+ no-op.
 - **Sin overhead**: un smart pointer es 8-16 bytes en stack; el cleanup son
-  ~3-5 instrucciones VM.
+ ~3-5 instrucciones VM.
 
 ---
 
 ## 2. `unique<T>` - Ownership exclusivo
 
 ```vex
-unique<i32> p = unique_box(42);   // crea + inicializa
-i32 v = *ptr_of(p);                // = 42
+unique<i32> p = unique_box(42); // crea + inicializa
+i32 v = *ptr_of(p); // = 42
 // al exit del scope: free automatico
 ```
 
@@ -59,8 +59,8 @@ i32 v = *ptr_of(p);                // = 42
 
 ```vex
 shared<i32> s = shared_box(78);
-i32 u = use_count(s);              // = 1
-i32 v = *ptr_of(s);                // = 78
+i32 u = use_count(s); // = 1
+i32 v = *ptr_of(s); // = 78
 // al exit del scope: refcount-- (si llega a 0, GC libera ctrl block)
 ```
 
@@ -89,11 +89,11 @@ libera).
 `unique_box(v)` emite:
 
 ```asm
-ALLOCA 16              ; slot stack [ptr | deleter]
-RAW_ALLOC sizeof(T)    ; aloca memoria host
-STORE v en host_ptr    ; inicializa el valor
+ALLOCA 16 ; slot stack [ptr | deleter]
+RAW_ALLOC sizeof(T) ; aloca memoria host
+STORE v en host_ptr ; inicializa el valor
 STORE host_ptr en slot+0
-STORE 0 en slot+8      ; sentinel deleter = NULL (= RAW_FREE)
+STORE 0 en slot+8 ; sentinel deleter = NULL (= RAW_FREE)
 ```
 
 ---
@@ -124,7 +124,7 @@ unique<i64> g = unique_with(VirtualAlloc(0, 4096, 0x3000, 0x04), release_vmem);
 - La función debe tener aridad 1, parámetro compatible con el tipo del primer arg.
 - Puede ser Vesta normal O extern wrapper (cualquiera).
 
-**Implementación** (A.35.next): el type checker `unique_with(v, deleter_fn)`
+**Implementación**: el type checker `unique_with(v, deleter_fn)`
 valida que `deleter_fn` sea `IdentExpr` resolviendo a `Function` con aridad 1.
 El lowering registra el deleter en la `CleanupAction` SMARTPTR_FREE.
 `emit_cleanups_all` distingue 3 rutas: `"free"` (RAW_FREE directo), `"<vesta_fn>"`
@@ -136,9 +136,9 @@ El lowering registra el deleter en la `CleanupAction` SMARTPTR_FREE.
 
 ```vex
 unique<i32> a = unique_box(42);
-unique<i32> b = move(a);          // ownership transferido
+unique<i32> b = move(a); // ownership transferido
 // `a` queda invalidado (slot = 0); cleanup de `a` es no-op
-i32 v = *ptr_of(b);                // = 42
+i32 v = *ptr_of(b); // = 42
 // al exit: solo `b` libera el recurso
 ```
 
@@ -148,7 +148,7 @@ i32 v = *ptr_of(b);                // = 42
 ```
 mov rax, [src_slot]
 mov [dst_slot], rax
-mov qword [src_slot], 0     ; zerifica el slot origen
+mov qword [src_slot], 0 ; zerifica el slot origen
 ```
 
 3 host instrucciones cuando llegue el JIT. Sin LOCK prefix porque move siempre
@@ -165,18 +165,18 @@ cleanup chequea null antes de invocar.
 
 ```vex
 unique<i32> p = unique_box(42);
-i32* raw = ptr_of(p);              // T*: extrae el puntero sin consumir
-i32 v = *raw;                       // = 42; o equivalente: *ptr_of(p)
+i32* raw = ptr_of(p); // T*: extrae el puntero sin consumir
+i32 v = *raw; // = 42; o equivalente: *ptr_of(p)
 
 shared<i32> s = shared_box(100);
-i32 v = *ptr_of(s);                 // payload via offset +16 del ctrl block
-i32 count = use_count(s);           // refcount actual (lee LOAD del ctrl block)
+i32 v = *ptr_of(s); // payload via offset +16 del ctrl block
+i32 count = use_count(s); // refcount actual (lee LOAD del ctrl block)
 ```
 
 - `ptr_of(p)`: devuelve `T*` (host pointer). NO modifica el smart pointer ni
-  transfiere ownership.
+ transfiere ownership.
 - `use_count(s)`: lee el refcount del `shared<T>`. Útil para debug o garantizar
-  ownership único (`use_count(s) == 1`).
+ ownership único (`use_count(s) == 1`).
 - **No hay `get()`** (nombre reservado para properties); usar `ptr_of()`.
 
 ---
@@ -194,14 +194,14 @@ unique<i64> alloc_vmem(u64 size) {
 }
 
 i32 main() {
-    unique<i32> a = make_buffer();              // SRET: caller aloca 16 bytes
-    unique<i64> b = alloc_vmem(4096);           // SRET: con deleter custom
+    unique<i32> a = make_buffer(); // SRET: caller aloca 16 bytes
+    unique<i64> b = alloc_vmem(4096); // SRET: con deleter custom
     return 0;
     // al exit: ambos liberados en orden inverso (LIFO)
 }
 ```
 
-**Tier 1 (A.35.tier1)**: el slot pasa de 8 bytes a **16 bytes** (`[ptr | deleter]`).
+**Tier 1**: el slot pasa de 8 bytes a **16 bytes** (`[ptr | deleter]`).
 Permite que cualquier deleter custom (incluyendo extern wrappers) viaje cross-funcion.
 
 **ABI SRET para FUNCTION smart-ptr**: funciones que retornan `unique<T>` se
@@ -217,10 +217,10 @@ el smart pointer vino de una factory function), el cleanup LEE el deleter de
 `slot+8` y dispatcha en runtime:
 
 ```asm
-cmpu ptr, 0; je done           ; null = no-op
-cmpu deleter, 0; je default    ; sentinel = RAW_FREE
+cmpu ptr, 0; je done ; null = no-op
+cmpu deleter, 0; je default ; sentinel = RAW_FREE
 mov r1, ptr; mov r15, 1
-callvmr deleter; jmp done      ; deleter custom
+callvmr deleter; jmp done ; deleter custom
 default: free ptr
 done:
 ```
@@ -278,10 +278,10 @@ Patrón idéntico: wrapper de 1 arg + `unique_with(create_call, wrapper)`.
 ### `unique<T>` (Tier 1, 16 bytes en stack)
 
 ```
-slot[0..7]  = host_ptr al payload (resultado de RAW_ALLOC o adopcion)
+slot[0..7] = host_ptr al payload (resultado de RAW_ALLOC o adopcion)
 slot[8..15] = deleter_addr
-              0 = sentinel: usar RAW_FREE
-              otro = puntero a funcion VM (deleter custom)
+    0 = sentinel: usar RAW_FREE
+    otro = puntero a funcion VM (deleter custom)
 ```
 
 ### `shared<T>` (8 bytes en stack + 24 bytes en GcHeap)
@@ -290,9 +290,9 @@ slot[8..15] = deleter_addr
 stack slot[0..7] = puntero al ctrl block en GcHeap
 
 ctrl block (24 bytes):
-  +0  : refcount (i64)
-  +8  : deleter  (i64) - 0 = decrement refcount + GC; otro = deleter custom
-  +16 : payload inline (8 bytes; T extra grandes requieren indirección via GC)
+    +0 : refcount (i64)
+    +8 : deleter (i64) - 0 = decrement refcount + GC; otro = deleter custom
+    +16 : payload inline (8 bytes; T extra grandes requieren indirección via GC)
 ```
 
 ---
@@ -300,22 +300,22 @@ ctrl block (24 bytes):
 ## 11. Limitaciones
 
 1. **Tier 1 actual**: slot de 16 bytes. Tier 2 (con destructor inline + flags
-   extra) no implementado todavía.
+ extra) no implementado todavía.
 
 2. **Tipos > 8 bytes inline**: `unique<MyBigStruct>` con T > 8 bytes requiere
-   indirección manual (puntero a T). Phase B candidate para soporte directo.
+ indirección manual (puntero a T). Phase B candidate para soporte directo.
 
 3. **`shared<T>` no es thread-safe** sobre el refcount (no usa atomic
-   increment/decrement). Modelo single-thread por scope; para sharing
-   cross-thread usar futures/mailbox.
+ increment/decrement). Modelo single-thread por scope; para sharing
+ cross-thread usar futures/mailbox.
 
 4. **Cleanup en scope interno** (`{ ... }` dentro de función): NO se emite
-   cleanup automático al exit del bloque, sólo al RET de la función. Para
-   liberar antes, refactorizar a helper auxiliar cuyo return dispare el
-   cleanup, o llamar `move()` para invalidar tempranamente.
+ cleanup automático al exit del bloque, sólo al RET de la función. Para
+ liberar antes, refactorizar a helper auxiliar cuyo return dispare el
+ cleanup, o llamar `move()` para invalidar tempranamente.
 
 5. **No hay `weak_ptr<T>`** equivalente. Para evitar ciclos en `shared<T>`,
-   usar referencias raw `T*` (no cuentan en refcount; cuidado con dangling).
+ usar referencias raw `T*` (no cuentan en refcount; cuidado con dangling).
 
 ---
 

@@ -30,7 +30,7 @@ class Animal {
 class Perro : Animal {
 
     @Override
-    public String sonido() {  // sobreescribe Animal.sonido()
+    public String sonido() { // sobreescribe Animal.sonido()
         return "Guau";
     }
 }
@@ -70,7 +70,7 @@ subclases concretas. Es el equivalente a `abstract class` en Java:
 ```c
 @Abstract
 class Figura {
-    public float area();  // metodo abstracto (sin cuerpo)
+    public float area(); // metodo abstracto (sin cuerpo)
 }
 
 class Circulo : Figura {
@@ -114,7 +114,7 @@ class Contador {
 
     @Synchronized
     public void incrementar() {
-        valor++;  // seguro en entornos multi-hilo
+        valor++; // seguro en entornos multi-hilo
     }
 }
 ```
@@ -126,16 +126,16 @@ class Contador {
 Estos decoradores son procesados por el preprocesador del ensamblador Vesta antes
 de la compilacion. No generan bytecode directamente sino que configuran el emitter:
 
-| Decorador            | Efecto                                                          |
+| Decorador | Efecto |
 | :------------------- | :-------------------------------------------------------------- |
-| `@Module(nombre)`    | Declara el modulo del archivo                                   |
-| `@Export(Simbolo)`   | Exporta el simbolo como publico                                 |
-| `@Generic(T)`        | Registra parametros de tipo para monomorphization               |
-| `@Format("velb")`    | Indica el formato de salida del archivo compilado               |
-| `@SpaceAddress { }`  | Define el espacio de direcciones del ejecutable                 |
-| `@Section { }`       | Define secciones de codigo y datos                              |
-| `@Lib("ruta")`       | Importa una libreria nativa (FFI)                               |
-| `@Import("funcion")` | Importa una funcion especifica de una libreria                  |
+| `@Module(nombre)` | Declara el modulo del archivo |
+| `@Export(Simbolo)` | Exporta el simbolo como publico |
+| `@Generic(T)` | Registra parametros de tipo para monomorphization |
+| `@Format("velb")` | Indica el formato de salida del archivo compilado |
+| `@SpaceAddress { }` | Define el espacio de direcciones del ejecutable |
+| `@Section { }` | Define secciones de codigo y datos |
+| `@Lib("ruta")` | Importa una libreria nativa (FFI) |
+| `@Import("funcion")` | Importa una funcion especifica de una libreria |
 
 Para mas detalle sobre los decoradores del ensamblador ver
 [[Anotaciones modulo y genericos.md]] y [[../Preprocesador/Macros anotaciones.md]].
@@ -178,9 +178,9 @@ Cuando una clase o metodo tiene varios decoradores, se aplican de abajo a arriba
 (el decorador mas cercano al elemento se aplica primero):
 
 ```c
-@Decorador1         // se aplica tercero
-@Decorador2         // se aplica segundo
-@Decorador3         // se aplica primero (el mas cercano)
+@Decorador1 // se aplica tercero
+@Decorador2 // se aplica segundo
+@Decorador3 // se aplica primero (el mas cercano)
 class MiClase { }
 ```
 

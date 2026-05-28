@@ -55,7 +55,7 @@ Es la manera estándar de modelar errores sin excepciones implícitas.
 
 ```vex
 Result<i32, i64> divide(i32 a, i32 b) {
-    if (b == 0) return Err(1);             // E = código de error
+    if (b == 0) return Err(1); // E = código de error
     return Ok(a / b);
 }
 
@@ -78,12 +78,12 @@ struct (info del error), clase. Layout fijo (24 bytes).
 
 Constructores. Cero alocaciones en heap: escriben el slot stack del caller via SRET.
 
-| Builtin   | Retorno         | Significado                  |
+| Builtin | Retorno | Significado |
 | :-------- | :-------------- | :--------------------------- |
-| `Some(v)` | `Optional<T>`   | Optional con valor v         |
-| `None()`  | `Optional<T>`   | Optional sin valor           |
-| `Ok(v)`   | `Result<V, E>`  | Result éxito con valor V     |
-| `Err(e)`  | `Result<V, E>`  | Result error con valor E     |
+| `Some(v)` | `Optional<T>` | Optional con valor v |
+| `None()` | `Optional<T>` | Optional sin valor |
+| `Ok(v)` | `Result<V, E>` | Result éxito con valor V |
+| `Err(e)` | `Result<V, E>` | Result error con valor E |
 
 ```vex
 Optional<i32> a = Some(42);
@@ -101,18 +101,18 @@ declarado de la variable destino, signature de la función que retorna, etc.).
 
 ### Optional
 
-| Builtin           | Retorno | Descripción                                  |
+| Builtin | Retorno | Descripción |
 | :---------------- | :-----: | :------------------------------------------- |
-| `isPresent(opt)`  | `bool`  | true si tiene valor (Some)                   |
-| `unwrap(opt)`     | `T`     | extrae valor; FATAL si None                  |
+| `isPresent(opt)` | `bool` | true si tiene valor (Some) |
+| `unwrap(opt)` | `T` | extrae valor; FATAL si None |
 
 ### Result
 
-| Builtin     | Retorno | Descripción                                |
+| Builtin | Retorno | Descripción |
 | :---------- | :-----: | :----------------------------------------- |
-| `isOk(r)`   | `bool`  | true si es Ok                              |
-| `value(r)`  | `V`     | extrae valor; FATAL si Err                 |
-| `error(r)`  | `E`     | extrae error; FATAL si Ok                  |
+| `isOk(r)` | `bool` | true si es Ok |
+| `value(r)` | `V` | extrae valor; FATAL si Err |
+| `error(r)` | `E` | extrae error; FATAL si Ok |
 
 ```vex
 Optional<i32> opt = ...;
@@ -139,8 +139,8 @@ Cuando asignas un valor directo a una variable de tipo `Optional<T>`, el compila
 inserta `Some(...)` automáticamente:
 
 ```vex
-Optional<i32> a = 50;          // = Some(50)
-Optional<i32> b = null;        // = None()  (null literal -> None)
+Optional<i32> a = 50; // = Some(50)
+Optional<i32> b = null; // = None() (null literal -> None)
 
 // Equivalente explícito:
 Optional<i32> a_explicit = Some(50);
@@ -161,12 +161,12 @@ El compilador rechaza en compile-time las `ExprStmt` cuyo `CallExpr` retorna un
 Result<i32, i64> divide(i32 a, i32 b) { ... }
 
 i32 main() {
-    divide(10, 2);              // ERROR de compilación: Result no consumido
-    
-    Result<i32, i64> r = divide(10, 2);  // OK: capturado en variable
-    if (isOk(r)) { ... }                 // OK: inspeccionado
-    
-    i32 v = value(divide(10, 2));        // OK: extraído inline
+    divide(10, 2); // ERROR de compilación: Result no consumido
+ 
+    Result<i32, i64> r = divide(10, 2); // OK: capturado en variable
+    if (isOk(r)) { ... } // OK: inspeccionado
+ 
+    i32 v = value(divide(10, 2)); // OK: extraído inline
     return 0;
 }
 ```
@@ -184,16 +184,16 @@ Sintaxis postfix azúcar para `unwrap()`:
 
 ```vex
 Optional<i32> opt = Some(42);
-i32 v = !!opt;                  // = unwrap(opt) = 42
+i32 v = !!opt; // = unwrap(opt) = 42
 
 i32? maybe = nullable_call();
-i32 v = !!maybe;                // unwrap nullable reference (lanza FATAL si null)
+i32 v = !!maybe; // unwrap nullable reference (lanza FATAL si null)
 ```
 
 Funciona sobre:
 - `Optional<T>` -> equivalente a `unwrap(opt)`.
 - Referencias `T?` (nullable) -> equivalente al opcode `unwrap` runtime (lanza
-  `FATAL_NULL_POINTER` si null).
+ `FATAL_NULL_POINTER` si null).
 
 ---
 
@@ -204,8 +204,8 @@ Funciona sobre:
 Marca una referencia como NO nullable. El compilador rechaza asignar `null` literal:
 
 ```vex
-nonnull MyClass obj = new MyClass();   // OK
-nonnull MyClass bad = null;            // ERROR de compilación
+nonnull MyClass obj = new MyClass(); // OK
+nonnull MyClass bad = null; // ERROR de compilación
 ```
 
 Las clases son **nullable por defecto** (modelo legacy compatible). `nonnull` solo
@@ -217,11 +217,11 @@ Sintaxis para combinar `nonnull` + auto-unwrap del init:
 
 ```vex
 // Var-decl: inyecta unwrap automático si maybe es nullable
-i32 !!v = maybe_value();      // si maybe_value() retorna null/None, FATAL al entry
+i32 !!v = maybe_value(); // si maybe_value() retorna null/None, FATAL al entry
 
 // Param: el callee garantiza non-null antes de usar
 void process(MyClass !!obj) {
-    obj.method();             // sin null-check necesario
+    obj.method(); // sin null-check necesario
 }
 ```
 
@@ -234,24 +234,24 @@ mensaje claro en lugar de propagar el null hacia adentro del código.
 
 Vex tiene DOS modelos para "valor que puede no existir":
 
-| Característica | `Optional<T>`               | `T?` (nullable)          |
+| Característica | `Optional<T>` | `T?` (nullable) |
 | :------------- | :-------------------------- | :----------------------- |
-| Tipo aplicable | cualquier T (val o ref)     | sólo referencias (CLASS) |
-| Layout         | 16 bytes en stack           | 8 bytes (puntero)        |
-| Coste          | cero heap                   | cero heap                |
-| Inspección     | `isPresent(opt)`            | `obj == null`            |
-| Unwrap         | `unwrap(opt)` o `!!opt`     | `obj!!` o `unwrap(obj)`  |
-| Implicit Some  | sí                          | no aplicable             |
-| Construcción   | `Some(v)` / `None()`        | asignación directa o `null` |
+| Tipo aplicable | cualquier T (val o ref) | sólo referencias (CLASS) |
+| Layout | 16 bytes en stack | 8 bytes (puntero) |
+| Coste | cero heap | cero heap |
+| Inspección | `isPresent(opt)` | `obj == null` |
+| Unwrap | `unwrap(opt)` o `!!opt` | `obj!!` o `unwrap(obj)` |
+| Implicit Some | sí | no aplicable |
+| Construcción | `Some(v)` / `None()` | asignación directa o `null` |
 
 **Cuándo usar cuál**:
 - **`Optional<T>`** para tipos value (i32, struct, etc.) donde no quieres heap allocations
-  ni indirection.
+ ni indirection.
 - **`T?`** para referencias a clases cuando es semánticamente "puede no apuntar a nada".
 
 ```vex
-Optional<i32> idx = find(arr, x);    // valor primitivo, mejor Optional
-Person? owner = item.owner;           // referencia opcional, mejor nullable
+Optional<i32> idx = find(arr, x); // valor primitivo, mejor Optional
+Person? owner = item.owner; // referencia opcional, mejor nullable
 ```
 
 ---
@@ -262,11 +262,11 @@ Person? owner = item.owner;           // referencia opcional, mejor nullable
 
 ```
 +---------+---------+
-|  tag    | payload |
-| (8 b)   | (8 b)   |
+| tag | payload |
+| (8 b) | (8 b) |
 +---------+---------+
-   0=None
-   1=Some
+    0=None
+    1=Some
 ```
 
 Total: 16 bytes en stack. El payload se promueve a i64 (cualquier T <= 8 bytes
@@ -276,11 +276,11 @@ cabe directo; tipos más grandes están restringidos por el ABI actual).
 
 ```
 +---------+---------+---------+
-|  tag    | value_v | error_e |
-| (8 b)   | (8 b)   | (8 b)   |
+| tag | value_v | error_e |
+| (8 b) | (8 b) | (8 b) |
 +---------+---------+---------+
-   0=Err
-   1=Ok
+    0=Err
+    1=Ok
 ```
 
 Total: 24 bytes en stack. Tanto V como E se promueven a i64.

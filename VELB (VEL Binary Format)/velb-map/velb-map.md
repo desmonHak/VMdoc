@@ -15,12 +15,12 @@ Un **map file** es un archivo de texto que describe:
 - espacios de direcciones
 - relocaciones aplicadas
 - modulos incluidos
-- tamano final del ejecutable
+- tamaño final del ejecutable
 
 ```c
 VELB MAP FILE
 Executable: program.velb
-Generated: 2026-03-29 04:28
+Generated:  04:28
 Linker Version: 1.0
 
 === MODULES INCLUDED ===
@@ -29,23 +29,23 @@ Linker Version: 1.0
 [2] math.vela:module_mul
 
 === GLOBAL SYMBOLS ===
-0x100000000  main
-0x100000020  add
-0x100000040  mul
-0x100000080  msg
+0x100000000 main
+0x100000020 add
+0x100000040 mul
+0x100000080 msg
 
 === SECTIONS ===
 [.code]
-  Range: 0x100000000 - 0x100001000
-  Size: 4096 bytes
+Range: 0x100000000 - 0x100001000
+Size: 4096 bytes
 
 [.data]
-  Range: 0x100001000 - 0x100002000
-  Size: 4096 bytes
+Range: 0x100001000 - 0x100002000
+Size: 4096 bytes
 
 === ADDRESS SPACES ===
 [0] anonymous: 0x00000000 - 0xFFFFFFFFFFFFFFFF
-[1] stack:     0x100000000 - 0x1FFFFFFFFFF
+[1] stack: 0x100000000 - 0x1FFFFFFFFFF
 ...
 
 === RELOCATIONS APPLIED ===

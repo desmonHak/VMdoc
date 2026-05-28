@@ -8,10 +8,10 @@ Este tutorial muestra como imprimir texto en VestaVM sin hardcodear el string co
 
 VestaVM tiene dos espacios de memoria completamente separados:
 
-| Espacio        | Quien lo gestiona   | Acceso desde el bytecode  |
+| Espacio | Quien lo gestiona | Acceso desde el bytecode |
 | :------------- | :------------------ | :------------------------ |
-| **VM memory**  | TLB + ArenaManager  | `mov`, `adds`, `db`, `dq` |
-| **Host memory**| OS / `alloc`        | cursores, `alloc`, `free` |
+| **VM memory** | TLB + ArenaManager | `mov`, `adds`, `db`, `dq` |
+| **Host memory**| OS / `alloc` | cursores, `alloc`, `free` |
 
 Las funciones nativas como `puts`, `WriteConsoleA` o `printf` reciben **punteros host** - no entienden las direcciones virtuales de la VM. Por eso, cualquier string que queramos pasar a una funcion nativa debe estar primero en host memory.
 
@@ -21,17 +21,17 @@ Las funciones nativas como `puts`, `WriteConsoleA` o `printf` reciben **punteros
 
 ```vel
 // "Hello\0\0\0" en little-endian como qword: 0x0000006F6C6C6548
-mov    r1, 8
-alloc  r1
-mov    r10, r0
-xchg   cur0, r0
-mov    r5, 0x0000006F6C6C6548   // "Hello\0\0\0"
+mov r1, 8
+alloc r1
+mov r10, r0
+xchg cur0, r0
+mov r5, 0x0000006F6C6C6548 // "Hello\0\0\0"
 writecur cur0, r5
 
-mov    r15, 1
-mov    r1, r10
-calln  @Method("msvcrt.dll:puts")
-free   r10
+mov r15, 1
+mov r1, r10
+calln @Method("msvcrt.dll:puts")
+free r10
 hlt
 ```
 
@@ -59,35 +59,35 @@ hlt
 
 @Import {
     @Method {
-        @Lib("msvcrt.dll")   // puts de la CRT de Windows
-        @Name("puts")
+    @Lib("msvcrt.dll") // puts de la CRT de Windows
+    @Name("puts")
     }
 }
 
 code:
     // 1. Obtener la direccion VM del string.
-    //    @Absolute resuelve la etiqueta en tiempo de enlace (relocation).
-    mov    r1, @Absolute("all.hello")     // r1 = VM address de "Hola, Mundo!"
+    // @Absolute resuelve la etiqueta en tiempo de enlace (relocation).
+    mov r1, @Absolute("all.hello") // r1 = VM address de "Hola, Mundo!"
 
     // 2. Reservar buffer host para la copia.
-    mov    r2, 16
-    alloc  r2                             // r0 = puntero host
-    mov    r10, r0                        // guardar para free + calln
-    xchg   cur0, r0                       // cur0 = host ptr  |  r0 = 0
+    mov r2, 16
+    alloc r2 // r0 = puntero host
+    mov r10, r0 // guardar para free + calln
+    xchg cur0, r0 // cur0 = host ptr | r0 = 0
 
     // 3. Copiar string de VM memory al buffer host en una instruccion.
-    //    vmcopy avanza cur0 y r1 automaticamente en 13 bytes.
-    mov    r2, 13                         // "Hola, Mundo!\0" = 13 bytes
+    // vmcopy avanza cur0 y r1 automaticamente en 13 bytes.
+    mov r2, 13 // "Hola, Mundo!\0" = 13 bytes
     vmcopy cur0, r1, r2
 
     // 4. Llamar puts(host_ptr).
-    //    puts imprime hasta '\0' y anade un newline automatico.
-    mov    r15, 1
-    mov    r1, r10
-    calln  @Method("msvcrt.dll:puts")
+    // puts imprime hasta '\0' y anade un newline automatico.
+    mov r15, 1
+    mov r1, r10
+    calln @Method("msvcrt.dll:puts")
 
     // 5. Liberar y terminar.
-    free   r10
+    free r10
     hlt
 end_code:
 
@@ -154,12 +154,12 @@ Solo cambia la biblioteca:
 ```vel
 @Import {
     @Method {
-        @Lib("libc.so.6")   // Linux
-        @Name("puts")
+    @Lib("libc.so.6") // Linux
+    @Name("puts")
     }
 }
 // o en macOS:
-//   @Lib("libSystem.dylib")
+// @Lib("libSystem.dylib")
 ```
 
 El resto del codigo es identico.
@@ -171,19 +171,19 @@ El resto del codigo es identico.
 Si necesitas construir el buffer en varias pasadas puedes combinar `vmcopy` con `addcur`:
 
 ```vel
-mov    r1, @Absolute("all.parte1")
-mov    r2, 6
-vmcopy cur0, r1, r2        // copia "Hola, " (6 bytes); cur0 avanza 6
+mov r1, @Absolute("all.parte1")
+mov r2, 6
+vmcopy cur0, r1, r2 // copia "Hola, " (6 bytes); cur0 avanza 6
 
 // cur0 ahora apunta al offset 6 del buffer
 // r1 ahora apunta 6 bytes mas alla de parte1 (ya no util aqui)
 
-mov    r1, @Absolute("all.parte2")
-mov    r2, 7
-vmcopy cur0, r1, r2        // copia "Mundo!\0" (7 bytes); cur0 avanza 7
+mov r1, @Absolute("all.parte2")
+mov r2, 7
+vmcopy cur0, r1, r2 // copia "Mundo!\0" (7 bytes); cur0 avanza 7
 
 // retroceder el cursor al inicio para pasar el puntero a puts
-addcur cur0, 0xFFF1        // -13 en int16 (0x10000 - 13 = 0xFFF3... ajustar)
+addcur cur0, 0xFFF1 // -13 en int16 (0x10000 - 13 = 0xFFF3... ajustar)
 // alternativa: guardar r10 = host ptr y usar r10 directamente
 ```
 

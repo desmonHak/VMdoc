@@ -14,8 +14,8 @@ directiva del ensamblador que le indica al loader donde mapear el programa).
 
 Este valor se escogio para permitir tener direcciones arriba y abajo donde poder hacer reservas de memoria. La cantidad de memoria inferior va desde kis siguientes rangos:
 ```c
-0x00000000  <- "inicio de la memoria mapeada"
-0xFFFFFFFF  <- "final de la memoria limite"
+0x00000000 <- "inicio de la memoria mapeada"
+0xFFFFFFFF <- "final de la memoria limite"
 // partes baja de la memoria de inicio
 0x100000000 <- "limite de inicio para los programas por defecto"
 // partes alta de la memoria de inicio
@@ -33,56 +33,56 @@ La cantidad de paginas a mapear en este rango de 32bits es de unas `0xFFFFFFFF /
 0xFFFFFFFFFFF = 0x100000000 de paginas = 4.294.967.296
 ```
 
-Se fija un limite de tamano de stack de 4GB (``0x00000000-0xFFFFFFFF``) aunque los programas pueden alterar este tamano si es necesario. Este tamano permite ejecutar en paralelo una cantidad de `4.096` instancias en un mismo manager donde cada instancia tiene un maximo de ``4Gb`` para stacks
+Se fija un limite de tamaño de stack de 4GB (``0x00000000-0xFFFFFFFF``) aunque los programas pueden alterar este tamaño si es necesario. Este tamaño permite ejecutar en paralelo una cantidad de `4.096` instancias en un mismo manager donde cada instancia tiene un maximo de ``4Gb`` para stacks
 
 ```c
 ----------
 
-0x0000000000000000  <- Uso "libre"
+0x0000000000000000 <- Uso "libre"
 ...
-0x00000000FFFFFFFF  <- Uso "libre"
+0x00000000FFFFFFFF <- Uso "libre"
 
 ----------
 
-0x0000000100000000  <- Uso "stack"
+0x0000000100000000 <- Uso "stack"
 ...
-0x00000FFFFFFFFFFF  <- Uso "stack"
+0x00000FFFFFFFFFFF <- Uso "stack"
 
 ----------
 
-0x0000100000000000  <- Uso "codigo"
+0x0000100000000000 <- Uso "codigo"
 ...
-0x00001FFFFFFFFFFF  <- Uso "codigo"
+0x00001FFFFFFFFFFF <- Uso "codigo"
 
 ----------
 
-0x0000200000000000  <- Uso "metadatos de codigo"
+0x0000200000000000 <- Uso "metadatos de codigo"
 ...
-0x00002FFFFFFFFFFF  <- Uso "metadatos de codigo"
+0x00002FFFFFFFFFFF <- Uso "metadatos de codigo"
 
 ----------
 
-0x0000300000000000  <- Uso "zona de codigo JIT"
+0x0000300000000000 <- Uso "zona de codigo JIT"
 ...
-0x00003FFFFFFFFFFF  <- Uso "zona de codigo JIT"
+0x00003FFFFFFFFFFF <- Uso "zona de codigo JIT"
 
 ----------
 
-0x1000000000000000  <- Uso "mapeo de direcciones Host reales o virtuales"
+0x1000000000000000 <- Uso "mapeo de direcciones Host reales o virtuales"
 ...
-0x1FFFFFFFFFFFFFFF  <- ptrHostLocal a ptrVirtualLocal
+0x1FFFFFFFFFFFFFFF <- ptrHostLocal a ptrVirtualLocal
 
 ----------
 
-0x2000000000000000  <- ptrManager a ptrVirtualLocal
+0x2000000000000000 <- ptrManager a ptrVirtualLocal
 ...
-0x2FFFFFFFFFFFFFFF  <- ptrManager a ptrVirtualLocal
+0x2FFFFFFFFFFFFFFF <- ptrManager a ptrVirtualLocal
 
 ----------
 
-0x3000000000000000  <- ptrVirtualHostRemoto a ptrVirtualLocal
+0x3000000000000000 <- ptrVirtualHostRemoto a ptrVirtualLocal
 ...
-0x3FFFFFFFFFFFFFFF  <- ptrVirtualHostRemoto a ptrVirtualLocal
+0x3FFFFFFFFFFFFFFF <- ptrVirtualHostRemoto a ptrVirtualLocal
 
 ----------
 ```

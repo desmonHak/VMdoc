@@ -28,14 +28,14 @@ no tienes que gestionar el desastre tu mismo; el seguro (handler) se activa auto
 ## `THROW` - lanzar una excepcion
 
 ```c
-throw  reg_exc    // reg_exc = host ptr al ObjectHeader del objeto excepcion
+throw reg_exc // reg_exc = host ptr al ObjectHeader del objeto excepcion
 ```
 
-| Campo     | Valor                                                            |
+| Campo | Valor |
 | :-------: | :--------------------------------------------------------------- |
-| Opcode1   | `0x00`                                                           |
-| Opcode2   | `0xD3`                                                           |
-| Tamano    | 4 bytes (FIXED_4)                                                |
+| Opcode1 | `0x00` |
+| Opcode2 | `0xD3` |
+| Tamaño | 4 bytes (FIXED_4) |
 | `reg_exc` | registro con host pointer al `ObjectHeader` del objeto excepcion |
 
 Si `reg_exc == 0` (null): error de segmentacion (`EVT_ERROR`) inmediato.
@@ -49,16 +49,16 @@ manejar esta excepcion:
 1. Guarda exception_ptr en vm->current_exception
 2. Lee exc_class = ObjectHeader.class_ptr (que clase es la excepcion)
 3. Recorre la cadena vm->frame_stack (mas reciente -> mas antiguo):
-   Para cada FrameHeader:
-     a. Calcula pc_offset = RIP - method->code_vaddr
-        (en que punto del metodo estabamos cuando se lanzo la excepcion)
-     b. Para cada HandlerException h en method->handlers[]:
-        - Si pc_offset NO esta en [h.start_pc, h.end_pc): este handler no aplica
-        - Si h.type == nullptr (catch-all) O is_instance_of(exc_class, h.type):
-          * Elimina los FrameHeader mas recientes que este
-          * R0 = exception_ptr
-          * RIP = method->code_vaddr + h.handler_pc (salta al bloque catch)
-          * Retorna (handler encontrado, excepcion manejada)
+    Para cada FrameHeader:
+    a. Calcula pc_offset = RIP - method->code_vaddr
+    (en que punto del metodo estabamos cuando se lanzo la excepcion)
+    b. Para cada HandlerException h en method->handlers[]:
+    - Si pc_offset NO esta en [h.start_pc, h.end_pc): este handler no aplica
+    - Si h.type == nullptr (catch-all) O is_instance_of(exc_class, h.type):
+    * Elimina los FrameHeader mas recientes que este
+    * R0 = exception_ptr
+    * RIP = method->code_vaddr + h.handler_pc (salta al bloque catch)
+    * Retorna (handler encontrado, excepcion manejada)
 4. Si no hay ningun handler: mata el proceso con EVT_ERROR (excepcion sin manejar)
 ```
 
@@ -68,21 +68,21 @@ Cada `MethodInfo` puede declarar una tabla de `HandlerException`:
 
 ```cpp
 struct HandlerException {
-    ClassInfo *type;       // null = catch-all (catch de cualquier excepcion / finally)
-    uint32_t   start_pc;   // inicio del bloque try (offset desde code_vaddr)
-    uint32_t   end_pc;     // fin exclusivo del bloque try
-    uint32_t   handler_pc; // donde saltar al capturar (offset desde code_vaddr)
-};  // 24 bytes total
+    ClassInfo *type; // null = catch-all (catch de cualquier excepcion / finally)
+    uint32_t start_pc; // inicio del bloque try (offset desde code_vaddr)
+    uint32_t end_pc; // fin exclusivo del bloque try
+    uint32_t handler_pc; // donde saltar al capturar (offset desde code_vaddr)
+}; // 24 bytes total
 ```
 
 Layout en memoria:
 
 ```
-+0   type        (8B)  ClassInfo* (null = catch-all)
-+8   start_pc    (4B)  uint32_t - inicio del bloque try
-+12  end_pc      (4B)  uint32_t - fin exclusivo del bloque try
-+16  handler_pc  (4B)  uint32_t - destino del bloque catch
-+20  --          (4B)  padding de alineacion
++0 type (8B) ClassInfo* (null = catch-all)
++8 start_pc (4B) uint32_t - inicio del bloque try
++12 end_pc (4B) uint32_t - fin exclusivo del bloque try
++16 handler_pc (4B) uint32_t - destino del bloque catch
++20 -- (4B) padding de alineacion
 ```
 
 El campo `type` se compara con herencia transitiva: un handler de tipo `Exception` captura
@@ -101,18 +101,18 @@ Cuando `THROW` encuentra un handler y transfiere el control:
 
 ```c
 // Suponer que method_info tiene:
-//   code_vaddr    = direccion de try_section
-//   handler_count = 1
-//   handlers[0]:  type=null (catch-all), start_pc=0, end_pc=4, handler_pc=4
+// code_vaddr = direccion de try_section
+// handler_count = 1
+// handlers[0]: type=null (catch-all), start_pc=0, end_pc=4, handler_pc=4
 
 try_section:
-    throw r2            // offset +0 (4 bytes FIXED_4): lanza el objeto en r2
-                        // THROW busca handler: [0,4) cubre offset 0 -> handler_pc=4
+throw r2 // offset +0 (4 bytes FIXED_4): lanza el objeto en r2
+// THROW busca handler: [0,4) cubre offset 0 -> handler_pc=4
 
-catch_handler:          // offset +4: aqui llega el control si throw ocurre en [0,4)
-    // R0 = objeto excepcion (el mismo que estaba en r2 antes del throw)
-    mov  r10, 0xAA      // procesamiento del error
-    ret                 // vuelve al caller del metodo que contenia este try/catch
+catch_handler: // offset +4: aqui llega el control si throw ocurre en [0,4)
+// R0 = objeto excepcion (el mismo que estaba en r2 antes del throw)
+mov r10, 0xAA // procesamiento del error
+ret // vuelve al caller del metodo que contenia este try/catch
 ```
 
 ---
@@ -120,14 +120,14 @@ catch_handler:          // offset +4: aqui llega el control si throw ocurre en [
 ## `RETHROW` - relanzar la excepcion activa
 
 ```c
-rethrow    // sin operandos; relanza vm->current_exception
+rethrow // sin operandos; relanza vm->current_exception
 ```
 
-| Campo   | Valor             |
+| Campo | Valor |
 | :-----: | :---------------- |
-| Opcode1 | `0x00`            |
-| Opcode2 | `0xD4`            |
-| Tamano  | 2 bytes (FIXED_2) |
+| Opcode1 | `0x00` |
+| Opcode2 | `0xD4` |
+| Tamaño | 2 bytes (FIXED_2) |
 
 Equivalente a `throw vm->current_exception`. Util para:
 - **Bloques finally**: ejecutar limpieza y luego relanzar.
@@ -139,9 +139,9 @@ Si `vm->current_exception == 0` (no hay excepcion activa): mismo comportamiento 
 ```c
 // Handler que solo hace logging y luego relanza:
 catch_all:
-    // R0 = excepcion activa (guardada automaticamente por THROW)
-    // ... aqui podrias llamar a una funcion de log ...
-    rethrow             // relanza hacia el frame anterior
+// R0 = excepcion activa (guardada automaticamente por THROW)
+// ... aqui podrias llamar a una funcion de log ...
+rethrow // relanza hacia el frame anterior
 ```
 
 ---
@@ -153,14 +153,14 @@ un handler. Visualmente:
 
 ```
 Antes de THROW (excepcion lanzada en method_C):
-  frame_stack (tope a la izquierda):  [C] -> [B] -> [A] -> null
+    frame_stack (tope a la izquierda): [C] -> [B] -> [A] -> null
 
 Suponer que method_A tiene un handler que cubre el rango donde llamo a method_B.
 
 Despues de THROW (handler encontrado en frame A):
-  frame_stack:  [A] -> null   (FrameHeaders de B y C eliminados)
-  RIP = code_vaddr_A + handler_pc_A
-  R0  = exception_ptr
+    frame_stack: [A] -> null (FrameHeaders de B y C eliminados)
+    RIP = code_vaddr_A + handler_pc_A
+    R0 = exception_ptr
 ```
 
 ---
@@ -173,8 +173,8 @@ Despues de THROW (handler encontrado en frame A):
 // Si la jerarquia es: IOException -> Exception -> Throwable
 // y el handler tiene type=Exception:
 // is_instance_of comprueba:
-//   exc_class == ExceptionClassInfo   -> true  (mismo tipo)
-//   exc_class.supers[0] == Exception  -> true  (si RuntimeException hereda de Exception)
+// exc_class == ExceptionClassInfo -> true (mismo tipo)
+// exc_class.supers[0] == Exception -> true (si RuntimeException hereda de Exception)
 // Por tanto captura IOException, RuntimeException y cualquier subclase de Exception
 ```
 
@@ -185,8 +185,8 @@ Despues de THROW (handler encontrado en frame A):
 // Patron: hacer limpieza y relanzar
 
 finally_block:
-    // limpieza de recursos...
-    rethrow             // la excepcion sigue propagandose hacia arriba
+// limpieza de recursos...
+rethrow // la excepcion sigue propagandose hacia arriba
 ```
 
 ### Multiples handlers en un metodo
@@ -196,9 +196,9 @@ primero que coincida con el tipo y el rango de PC gana:
 
 ```
 // Tabla de handlers (en orden de evaluacion):
-handlers[0]: type=FileNotFound, [0, 20), handler_pc=20    // catch especifico
-handlers[1]: type=IOException,  [0, 20), handler_pc=40    // catch mas general
-handlers[2]: type=null (finally),[0, 60), handler_pc=60   // siempre se ejecuta
+handlers[0]: type=FileNotFound, [0, 20), handler_pc=20 // catch especifico
+handlers[1]: type=IOException, [0, 20), handler_pc=40 // catch mas general
+handlers[2]: type=null (finally),[0, 60), handler_pc=60 // siempre se ejecuta
 ```
 
 Si la excepcion es `FileNotFoundException`:
@@ -215,18 +215,18 @@ Si la excepcion es `FileNotFoundException`:
 
 ```
 +--------+--------+--------------------+--------------------+
-| 0x00   | 0xD3   |  mode<<6 | 0x00   |  0000 | reg_exc    |
+| 0x00 | 0xD3 | mode<<6 | 0x00 | 0000 | reg_exc |
 +--------+--------+--------------------+--------------------+
-  byte 0   byte 1       byte 2               byte 3
+    byte 0 byte 1 byte 2 byte 3
 ```
 
 ### RETHROW (2 bytes)
 
 ```
 +--------+--------+
-| 0x00   | 0xD4   |
+| 0x00 | 0xD4 |
 +--------+--------+
-  byte 0   byte 1
+    byte 0 byte 1
 ```
 
 ---

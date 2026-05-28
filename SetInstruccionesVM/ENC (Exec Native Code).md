@@ -11,9 +11,9 @@ nivel del sistema: salta a codigo maquina real sin pasar por el interprete de by
 > que hospeda la VM. Un error en el shellcode puede producir un crash de la VM entera o
 > abrir una vulnerabilidad de seguridad.
 
-| Instruccion | opcode0 | opcode1 | Tamano  | Descripcion                                         |
+| Instruccion | opcode0 | opcode1 | Tamaño | Descripcion |
 | :---------: | :-----: | :-----: | :-----: | :-------------------------------------------------- |
-| `enc`       |  0x00   |  0x0C   | 4 bytes | Ejecutar codigo nativo en la dir host apuntada por R0 |
+| `enc` | 0x00 | 0x0C | 4 bytes | Ejecutar codigo nativo en la dir host apuntada por R0 |
 
 ---
 
@@ -21,24 +21,24 @@ nivel del sistema: salta a codigo maquina real sin pasar por el interprete de by
 
 ```c
 // Paso 1: escribir el shellcode en memoria host (usando alloc + writecur)
-mov   r1, 32              // tamano del shellcode en bytes
-alloc r1                  // R0 = puntero host al buffer
-mov   r8, r0              // guardar el puntero
+mov r1, 32 // tamaño del shellcode en bytes
+alloc r1 // R0 = puntero host al buffer
+mov r8, r0 // guardar el puntero
 
-mov   r14, r0
-xchg  cur0, r14           // cur0 = puntero al buffer
+mov r14, r0
+xchg cur0, r14 // cur0 = puntero al buffer
 
 // Escribir instrucciones nativas x86-64 (ejemplo: nop + ret):
-mov   r5, 0x90C3          // 0x90 = NOP, 0xC3 = RET en x86-64
-writecur cur0, r5w        // escribir 2 bytes
+mov r5, 0x90C3 // 0x90 = NOP, 0xC3 = RET en x86-64
+writecur cur0, r5w // escribir 2 bytes
 
 // Paso 2: ejecutar el shellcode
-mov   r0, r8              // R0 = puntero host al shellcode
-enc                       // saltar al codigo nativo en R0
-                          // el control vuelve aqui cuando el nativo hace RET
+mov r0, r8 // R0 = puntero host al shellcode
+enc // saltar al codigo nativo en R0
+// el control vuelve aqui cuando el nativo hace RET
 
 // Paso 3: liberar el buffer
-free  r8
+free r8
 ```
 
 ---
@@ -68,12 +68,12 @@ ejecutar codigo nativo de forma programatica:
 ## Notas de seguridad
 
 - `ENC` es una instruccion de **uso avanzado**. Solo se necesita en casos muy especificos:
-  JIT compilation, acceso a instrucciones de hardware no cubiertas por la VM, interop
-  con shellcode existente.
+ JIT compilation, acceso a instrucciones de hardware no cubiertas por la VM, interop
+ con shellcode existente.
 - Para llamar funciones nativas de bibliotecas ya cargadas, usa `CALLN`/`CALLNR`/`LOADLIB`+
-  `GETPROC`, que son mucho mas seguros y con mejor soporte de depuracion.
+ `GETPROC`, que son mucho mas seguros y con mejor soporte de depuracion.
 - El permiso `ENC` deberia estar desactivado en produccion salvo que sea estrictamente
-  necesario.
+ necesario.
 
 ---
 

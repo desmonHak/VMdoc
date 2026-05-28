@@ -4,10 +4,10 @@ La instruccion **NOP** (no operation = no operacion) es la instruccion mas simpl
 no hace absolutamente nada. El procesador la lee, la decodifica, y pasa a la siguiente
 instruccion sin modificar ningun registro, flag ni memoria.
 
-| Instruccion | opcode  | Tamano   | Descripcion    |
+| Instruccion | opcode | Tamaño | Descripcion |
 | :---------: | :-----: | :------: | :------------- |
-| `nop`       | 0x33    | 1 byte   | No hacer nada (variante corta) |
-| `nop2`      | 0x00 0x33 | 2 bytes | No hacer nada (variante larga) |
+| `nop` | 0x33 | 1 byte | No hacer nada (variante corta) |
+| `nop2` | 0x00 0x33 | 2 bytes | No hacer nada (variante larga) |
 
 ---
 
@@ -24,13 +24,13 @@ esos bytes con NOPs.
 ```c
 // Supongamos que una etiqueta necesita estar en una direccion multiplo de 8:
 // Tenemos 3 bytes de instrucciones y necesitamos llegar al siguiente multiplo de 8.
-nop             // relleno: ocupa 1 byte extra
-nop             // relleno: 2 bytes
-nop             // relleno: 3 bytes
+nop // relleno: ocupa 1 byte extra
+nop // relleno: 2 bytes
+nop // relleno: 3 bytes
 // Ahora la siguiente etiqueta esta alineada a 8 bytes:
 funcion_alineada:
-    mov r0, 42
-    hlt
+mov r0, 42
+hlt
 ```
 
 ### 2. Reservar espacio para parchear codigo
@@ -40,8 +40,8 @@ reales sin tener que reubicar todo el codigo.
 
 ```c
 // Espacio para una instruccion futura (2 bytes):
-nop2    // sera reemplazado mas tarde si se necesita
-nop2    // o quedara como NOP si no se necesita
+nop2 // sera reemplazado mas tarde si se necesita
+nop2 // o quedara como NOP si no se necesita
 ```
 
 ### 3. Debugging y medicion de tiempos
@@ -62,18 +62,18 @@ En arquitecturas donde el codigo puede modificarse a si mismo, una serie de NOPs
 
 ```
 +--------+
-| 0x33   |
+| 0x33 |
 +--------+
-  byte0
+    byte0
 ```
 
 ### NOP de 2 bytes
 
 ```
 +--------+--------+
-| 0x00   | 0x33   |
+| 0x00 | 0x33 |
 +--------+--------+
-  byte0    byte1
+    byte0 byte1
 ```
 
 La variante de 2 bytes usa el prefijo extendido `0x00` seguido del opcode `0x33`.
@@ -85,7 +85,7 @@ La variante de 2 bytes usa el prefijo extendido `0x00` seguido del opcode `0x33`
 - **No modifica ningun registro**: r0-r15, rip (avanza normalmente), rsp, rbp quedan igual.
 - **No modifica rflags**: las banderas (ZF, SF, CF, OF, DM) no cambian.
 - **No accede a memoria**: no lee ni escribe ninguna posicion de memoria.
-- **Solo avanza RIP**: el puntero de instruccion avanza el tamano de la instruccion NOP (1 o 2 bytes).
+- **Solo avanza RIP**: el puntero de instruccion avanza el tamaño de la instruccion NOP (1 o 2 bytes).
 
 ---
 
@@ -95,16 +95,16 @@ La variante de 2 bytes usa el prefijo extendido `0x00` seguido del opcode `0x33`
 @Section { @Name("code"), @SpaceAddress("mem") @Align(0x1000) }
 
 code:
-    // codigo que ocupa, digamos, 7 bytes
-    mov r0, 42          // 10 bytes (mov reg, imm64)
-    hlt                 // 1 byte
+// codigo que ocupa, digamos, 7 bytes
+mov r0, 42 // 10 bytes (mov reg, imm64)
+hlt // 1 byte
 
-    // Para que la siguiente funcion empiece en multiplo de 8:
-    nop                 // relleno de 1 o 2 bytes segun necesidad
-    nop2
+// Para que la siguiente funcion empiece en multiplo de 8:
+nop // relleno de 1 o 2 bytes segun necesidad
+nop2
 
-funcion_alineada:       // ahora esta en multiplo de 8
-    mov r0, 99
-    hlt
+funcion_alineada: // ahora esta en multiplo de 8
+mov r0, 99
+hlt
 end_code:
 ```

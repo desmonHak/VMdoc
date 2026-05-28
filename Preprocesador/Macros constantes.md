@@ -16,26 +16,26 @@ El preprocesador de Vesta incluye un conjunto de macros predefinidas:
 
 ```c
 // Informacion del fichero y la linea
-__FILE__          // nombre del fichero actual como cadena: "mi_modulo.vel"
-__LINE__          // numero de linea actual en el archivo fuente
+__FILE__ // nombre del fichero actual como cadena: "mi_modulo.vel"
+__LINE__ // numero de linea actual en el archivo fuente
 
 // Contador monotono (se incrementa con cada expansion de __COUNTER__)
-__COUNTER__       // 0 en la primera expansion, 1 en la segunda, etc.
+__COUNTER__ // 0 en la primera expansion, 1 en la segunda, etc.
 
 // Hora y fecha de compilacion (hora local)
-__TIME__          // hora local de compilacion: "HH:MM:SS"
-__DATE__          // fecha local de compilacion: "MMM DD YYYY"
-__DATE_NUM__      // fecha como numero: YYYYMMDD (ej. 20260425)
-__TIME_NUM__      // hora como numero: HHMMSS (ej. 143022)
+__TIME__ // hora local de compilacion: "HH:MM:SS"
+__DATE__ // fecha local de compilacion: "MMM DD YYYY"
+__DATE_NUM__ // fecha como numero: YYYYMMDD (ej. 20260425)
+__TIME_NUM__ // hora como numero: HHMMSS (ej. 143022)
 
 // Hora y fecha UTC
-__UTC_DATE__      // fecha UTC de compilacion
-__UTC_TIME__      // hora UTC de compilacion
-__UTC_DATE_NUM__  // fecha UTC como numero
-__UTC_TIME_NUM__  // hora UTC como numero
+__UTC_DATE__ // fecha UTC de compilacion
+__UTC_TIME__ // hora UTC de compilacion
+__UTC_DATE_NUM__ // fecha UTC como numero
+__UTC_TIME_NUM__ // hora UTC como numero
 
 // Timestamp POSIX
-__POSIX_TIME__    // segundos POSIX (Unix timestamp) de compilacion
+__POSIX_TIME__ // segundos POSIX (Unix timestamp) de compilacion
 ```
 
 Estas macros son utiles para insertar informacion de version o depuracion
@@ -43,12 +43,12 @@ directamente en el binario compilado.
 
 ```c
 // Ejemplo: embeber version de build en el bytecode
-#define BUILD_INFO  __FILE__ " @ " __DATE__ " " __TIME__
+#define BUILD_INFO __FILE__ " @ " __DATE__ " " __TIME__
 
 // Ejemplo: generar etiquetas unicas con __COUNTER__
-#define UNIQUE_LABEL  label_##__COUNTER__
-UNIQUE_LABEL:   // -> label_0:
-UNIQUE_LABEL:   // -> label_1:
+#define UNIQUE_LABEL label_##__COUNTER__
+UNIQUE_LABEL: // -> label_0:
+UNIQUE_LABEL: // -> label_1:
 ```
 
 ---
@@ -66,7 +66,7 @@ Se definen con la directiva `#define`:
 #define VERSION "1.0.0"
 
 // Uso en codigo
-uint64_t capacidad = MAX_USUARIOS;  // el preprocesador lo convierte en 1000
+uint64_t capacidad = MAX_USUARIOS; // el preprocesador lo convierte en 1000
 float area = PI * radio * radio;
 ```
 
@@ -77,12 +77,12 @@ float area = PI * radio * radio;
 Algunas macros pueden calcularse a partir de otras en tiempo de preprocesamiento:
 
 ```c
-#define ANCHO  800
-#define ALTO   600
-#define PIXELS (ANCHO * ALTO)  // calculado en preprocesamiento: 480000
+#define ANCHO 800
+#define ALTO 600
+#define PIXELS (ANCHO * ALTO) // calculado en preprocesamiento: 480000
 
 // El compilador solo ve literales, no operaciones
-uint64_t pantalla = PIXELS;  // equivalente a: uint64_t pantalla = 480000;
+uint64_t pantalla = PIXELS; // equivalente a: uint64_t pantalla = 480000;
 ```
 
 ---
@@ -95,8 +95,8 @@ Las macros constantes permiten compilar codigo de forma condicional:
 #define DEBUG 1
 
 #if DEBUG
-    // Este codigo solo se incluye cuando DEBUG es 1
-    print("Modo debug activado");
+// Este codigo solo se incluye cuando DEBUG es 1
+print("Modo debug activado");
 #endif
 ```
 

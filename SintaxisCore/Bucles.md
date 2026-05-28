@@ -21,7 +21,7 @@ Primero comprueba la condicion; si es falsa desde el principio, el cuerpo no se 
 // Ejemplo: contar de 0 a 9
 uint8_t i = 0;
 while (i < 10) {
-    i++;  // incrementar i en cada vuelta
+    i++; // incrementar i en cada vuelta
 }
 // Al salir, i vale 10
 ```
@@ -41,7 +41,7 @@ condicion para decidir si repite.
 // Forma 1: do { ... } while (cond)
 uint8_t i = 0;
 do {
-    i++;  // se ejecuta siempre al menos una vez
+    i++; // se ejecuta siempre al menos una vez
 } while (i < 10);
 
 // Forma 2: while (cond) do { ... }
@@ -67,7 +67,7 @@ loop {
     // este bloque se ejecuta infinitamente
     // hasta que se encuentre un break o se lance una excepcion
     if (condicion_de_parada) {
-        break;  // salir del bucle
+        break; // salir del bucle
     }
 }
 ```
@@ -109,10 +109,10 @@ No crea un array en memoria - el compilador lo transforma en un bucle ordinario.
 
 ```c
 // forEach(inicio, fin) { variable ->
-//     cuerpo
+// cuerpo
 // }
 forEach(1, 10) { i ->
-    print(i)  // i es el iterador; imprime 1, 2, ..., 10
+    print(i) // i es el iterador; imprime 1, 2, ..., 10
 }
 ```
 
@@ -136,8 +136,8 @@ switch (text) {
 
     // Caso simple: requiere break para no "caer" al siguiente caso
     case "texto1":
-        /* accion para texto1 */
-        break;
+    /* accion para texto1 */
+    break;
 
     // Caso con llaves: el break es implicito al cerrar las llaves
     case "texto2": {
@@ -153,9 +153,9 @@ switch (text) {
 
     // Lista de valores en un solo caso (sintaxis alternativa)
     case [
-        "texto5",
-        "texto6",
-        "texto7"
+    "texto5",
+    "texto6",
+    "texto7"
     ]: {
         // se ejecuta si el valor es cualquiera de los tres
     }
@@ -168,24 +168,24 @@ switch (text) {
 
 ### Notas sobre switch
 
-| Sintaxis         | Break implicito | Descripcion                                 |
+| Sintaxis | Break implicito | Descripcion |
 | :--------------- | :-------------: | :------------------------------------------ |
-| `case X: stmt`   | No              | Necesita `break` manual                     |
-| `case X: { }`   | Si              | Las llaves delimitan el bloque; break implicito |
-| `case [X,Y]: {}` | Si              | Lista de valores equivalentes               |
-| `_ =>`           | Si              | Caso por defecto (default)                  |
+| `case X: stmt` | No | Necesita `break` manual |
+| `case X: { }` | Si | Las llaves delimitan el bloque; break implicito |
+| `case [X,Y]: {}` | Si | Lista de valores equivalentes |
+| `_ =>` | Si | Caso por defecto (default) |
 
 ---
 
 ## Tabla comparativa de bucles
 
-| Bucle    | Comprueba condicion | Garantiza al menos una ejecucion | Usa cuando...                              |
+| Bucle | Comprueba condicion | Garantiza al menos una ejecucion | Usa cuando... |
 | :------- | :-----------------: | :------------------------------: | :----------------------------------------- |
-| `while`  | Al inicio           | No                               | No sabes cuantas vueltas dara              |
-| `do-while` | Al final          | Si                               | El cuerpo debe ejecutarse al menos una vez |
-| `loop`   | Nunca (infinito)    | Si                               | Necesitas un bucle eterno con break        |
-| `for`    | Al inicio           | No                               | Sabes exactamente el rango de iteracion    |
-| `forEach`| Al inicio (macro)   | No                               | Iteracion funcional sobre un rango         |
+| `while` | Al inicio | No | No sabes cuantas vueltas dara |
+| `do-while` | Al final | Si | El cuerpo debe ejecutarse al menos una vez |
+| `loop` | Nunca (infinito) | Si | Necesitas un bucle eterno con break |
+| `for` | Al inicio | No | Sabes exactamente el rango de iteracion |
+| `forEach`| Al inicio (macro) | No | Iteracion funcional sobre un rango |
 
 ---
 
@@ -194,12 +194,12 @@ switch (text) {
 ```c
 // break: sale del bucle inmediatamente
 while (true) {
-    if (condicion) break;  // salir del bucle
+    if (condicion) break; // salir del bucle
 }
 
 // continue: salta al inicio de la siguiente vuelta
 for (uint8_t i = 0; i < 10; i++) {
-    if (i == 5) continue;  // salta i=5, continua con i=6
+    if (i == 5) continue; // salta i=5, continua con i=6
     print(i);
 }
 ```
@@ -215,12 +215,12 @@ Los bucles de alto nivel se compilan a instrucciones de bajo nivel de la VM:
 for (uint8_t i = 0; i < 10; i++) { }
 
 // ...se convierte en bytecode similar a esto:
-// mov r1, 0          // i = 0
+// mov r1, 0 // i = 0
 // inicio_bucle:
-//   cmp r1, 10       // comparar i con 10
-//   jmp.jge fin      // si i >= 10, salir
-//   add r1, 1        // i++
-//   jmp inicio_bucle // volver al inicio
+// cmp r1, 10 // comparar i con 10
+// jmp.jge fin // si i >= 10, salir
+// add r1, 1 // i++
+// jmp inicio_bucle // volver al inicio
 // fin_bucle:
 ```
 

@@ -102,10 +102,10 @@ Ambas formas son intercambiables; los parentesis son obligatorios.
 ```vex
 i32 i = 0;
 while (i < 100) {
-    if (i == 42) break;        // sale del while
+    if (i == 42) break; // sale del while
     if (i % 2 == 0) {
         i = i + 1;
-        continue;              // salta al header
+        continue; // salta al header
     }
     println("impar: ${i}");
     i = i + 1;
@@ -116,7 +116,7 @@ while (i < 100) {
 - `continue;` salta al header del loop actual sin ejecutar el resto del body.
 - Funcionan correctamente con loops anidados (afectan al loop MAS interno).
 - `continue` contribuye PHI args al header del loop para variables que se modifican
-  en branches (cerrado en A.34).
+ en branches (cerrado en A.34).
 
 **Limitación**: no hay `break loop_label;` (labeled break). Usar `goto` para salir
 de loops anidados.
@@ -146,13 +146,13 @@ i32 main() {
 - Un label es `nombre:` ANTES de cualquier statement.
 - Útil para early-exit de loops anidados (reemplaza labeled break) y patrones retry.
 - **Forward goto**: el label puede declararse DESPUÉS del goto; el lowering resuelve
-  las referencias pendientes cuando encuentra el label.
+ las referencias pendientes cuando encuentra el label.
 
 **Limitaciones documentadas**:
 - Backward goto que forma ciclo NO inserta PHI nodes (a diferencia de loops). Usar
-  `while`/`for` cuando se necesite back-edge cíclico.
+ `while`/`for` cuando se necesite back-edge cíclico.
 - Goto a label en scope anidado con cleanup actions (destructores RAII, monexit, etc.)
-  NO ejecuta los cleanups al saltar.
+ NO ejecuta los cleanups al saltar.
 
 ---
 
@@ -177,9 +177,9 @@ Sintaxis para destructuring de ADTs (`enum`) con bindings y exhaustividad obliga
 
 ```vex
 enum Color {
-    Red,                    // variante sin payload
-    Green(i32),             // variante con payload i32
-    Blue(i32, i32)          // variante con payload (i32, i32)
+    Red, // variante sin payload
+    Green(i32), // variante con payload i32
+    Blue(i32, i32) // variante con payload (i32, i32)
 }
 ```
 
@@ -196,19 +196,19 @@ Color c3 = Color.Blue(10, 20);
 ```vex
 i32 describe(Color c) {
     match c {
-        case Red       => return 0;
-        case Green(n)  => return n;
+        case Red => return 0;
+        case Green(n) => return n;
         case Blue(x, y) => return x + y;
     }
 }
 ```
 
 - **Exhaustividad obligatoria**: el type checker rechaza el match si faltan variantes.
-  Usar `case _ => default;` para catch-all si no se quieren enumerar todas.
+ Usar `case _ => default;` para catch-all si no se quieren enumerar todas.
 - Los **bindings** (`n`, `x`, `y`) tienen el tipo del payload de la variante.
 - El `return` dentro de un arm sale de la función envolvente.
-- Lowering: cadena de `cmp_eq tag + br_cond` (O(N)). Optimización futura: `jumptable`
-  (0x27) para N >= 4 variantes (deferido).
+- Lowering: cadena de `cmp_eq tag + br_cond` (O(N)). Optimización futura:
+  uso de `jumptable` (0x27) para N >= 4 variantes.
 
 **Layout runtime** del enum: `[+0 i64 tag][+8 payload[0]][+16 payload[1]]...` en stack.
 Tag indica qué variante; los payloads se promueven a i64 para acceso uniforme.
@@ -233,7 +233,7 @@ if (cache_hit || lookup_expensive()) {
 - `||` evalúa el lado derecho SOLO si el izquierdo es `false`.
 - Ambos producen `bool`.
 - Lowering: crea bloques basicos con BR_COND para evitar evaluar el lado derecho
-  cuando no es necesario (semántica estándar C/Java/JavaScript).
+ cuando no es necesario (semántica estándar C/Java/JavaScript).
 
 **Importante**: no confundir con `&` / `|` (AND/OR bitwise sobre enteros, evalúan
 SIEMPRE ambos lados).

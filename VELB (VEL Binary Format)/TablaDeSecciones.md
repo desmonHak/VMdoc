@@ -12,22 +12,22 @@ La tabla de secciones contienen la informacion de donde se ubica cada seccion. E
 
 La tabla de secciones debe indicar donde esta cada seccion y su direccion de inicio y final:
 ```c
-typedef struct PACKED name_section {  
-    union {  
-        struct {  
-            uint64_t hi;  
-            uint64_t lo;  
-        } as_u64;  
-  
-        char name[16];  
-    };  
-} name_section;  
-  
-typedef struct PACKED section_range_memory {  
-    range_memory address;  
-  
-    // nombre de la seccion, maximo 16 bytes.  
-    name_section name;  
+typedef struct PACKED name_section { 
+    union { 
+        struct { 
+            uint64_t hi; 
+            uint64_t lo; 
+        } as_u64; 
+ 
+        char name[16]; 
+    }; 
+} name_section; 
+ 
+typedef struct PACKED section_range_memory { 
+    range_memory address; 
+ 
+    // nombre de la seccion, maximo 16 bytes. 
+    name_section name; 
     uint64_t offset; // donde empieza el bytecode o los datos dentro del archivo
 } section_range_memory;
 ```

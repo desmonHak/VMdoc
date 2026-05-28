@@ -4,12 +4,12 @@ VestaVM implementa un modelo de concurrencia basado en **promesas** (futures) qu
 a los procesos esperar resultados de otros procesos de forma cooperativa y sin bloquear
 hilos nativos del sistema operativo.
 
-| Instruccion | opcode0 | opcode1 | Modo | Tamano  | Descripcion                              |
+| Instruccion | opcode0 | opcode1 | Modo | Tamaño | Descripcion |
 | :---------: | :-----: | :-----: | :--: | :-----: | :--------------------------------------- |
-| `future`    |  0x00   |  0x29   | NONE | 2 bytes | Crea un FutureObject (estado PENDING)    |
-| `await`     |  0x00   |  0x2A   | REG  | 4 bytes | Suspende hasta que el future se resuelva |
-| `fulfill`   |  0x00   |  0x2B   | REG  | 4 bytes | Resuelve el future con un valor          |
-| `reject`    |  0x00   |  0x2C   | REG  | 4 bytes | Rechaza el future con un error           |
+| `future` | 0x00 | 0x29 | NONE | 2 bytes | Crea un FutureObject (estado PENDING) |
+| `await` | 0x00 | 0x2A | REG | 4 bytes | Suspende hasta que el future se resuelva |
+| `fulfill` | 0x00 | 0x2B | REG | 4 bytes | Resuelve el future con un valor |
+| `reject` | 0x00 | 0x2C | REG | 4 bytes | Rechaza el future con un error |
 
 Implementacion: `src/runtime/exec_instruction_async.cpp`
 
@@ -37,17 +37,17 @@ recibe el resultado).
 ```cpp
 // Estado posible de un future:
 enum class FutureState : uint8_t {
-    PENDING  = 0,   // aun no resuelto (nadie ha llamado fulfill/reject)
-    RESOLVED = 1,   // resuelto con exito (fulfill fue llamado)
-    REJECTED = 2,   // rechazado con error (reject fue llamado)
+    PENDING = 0, // aun no resuelto (nadie ha llamado fulfill/reject)
+    RESOLVED = 1, // resuelto con exito (fulfill fue llamado)
+    REJECTED = 2, // rechazado con error (reject fue llamado)
 };
 
 // El objeto que representa la promesa:
 struct alignas(8) FutureObject {
-    ObjectHeader header;    // gestionado por GC (OBJ_FLAG_GC_OWNED)
-    FutureState  state;     // estado actual del future
-    uint64_t     result;    // valor de resolucion o codigo de error
-    uint64_t     waiter_pid;// PID codificado del proceso en AWAIT (0=nadie espera)
+    ObjectHeader header; // gestionado por GC (OBJ_FLAG_GC_OWNED)
+    FutureState state; // estado actual del future
+    uint64_t result; // valor de resolucion o codigo de error
+    uint64_t waiter_pid;// PID codificado del proceso en AWAIT (0=nadie espera)
 };
 ```
 
@@ -66,7 +66,7 @@ bits 31.. 0 = local_pid
 ### `future` - crear un nuevo future
 
 ```c
-future    // R0 = GcHandle del nuevo FutureObject (estado PENDING)
+future // R0 = GcHandle del nuevo FutureObject (estado PENDING)
 ```
 
 Sin operandos. Aloca un `FutureObject` en el GC heap, lo inicializa en estado `PENDING`
@@ -78,7 +78,7 @@ como el productor (el que llama `fulfill`) deben compartir.
 ### `await r_fut` - esperar el resultado
 
 ```c
-await r1    // bloquea hasta que el future en r1 este resuelto; R0 = resultado
+await r1 // bloquea hasta que el future en r1 este resuelto; R0 = resultado
 ```
 
 **Primera ejecucion (estado PENDING):**
@@ -96,7 +96,7 @@ await r1    // bloquea hasta que el future en r1 este resuelto; R0 = resultado
 ### `fulfill r_fut, r_val` - resolver con exito
 
 ```c
-fulfill r1, r2    // resuelve el future en r1 con el valor de r2
+fulfill r1, r2 // resuelve el future en r1 con el valor de r2
 ```
 
 1. Escribe `state = RESOLVED` y `result = regs[r_val]` en el `FutureObject`.
@@ -108,7 +108,7 @@ El proceso que llama `fulfill` **no se bloquea**; continua ejecutandose.
 ### `reject r_fut, r_err` - rechazar con error
 
 ```c
-reject r1, r3    // rechaza el future en r1 con el codigo de error de r3
+reject r1, r3 // rechaza el future en r1 con el codigo de error de r3
 ```
 
 Identico a `FULFILL` pero escribe `state = REJECTED`. El proceso en `AWAIT` recibira el
@@ -120,15 +120,15 @@ entre un resultado exitoso y un error (ver ejemplo mas abajo).
 ## Diagrama de estados del FutureObject
 
 ```
-     future (crear)
-          |
-          v
-       [PENDING]
-      /          \
- fulfill         reject
-    |               |
-    v               v
-[RESOLVED]    [REJECTED]
+    future (crear)
+    |
+    v
+    [PENDING]
+    / \
+    fulfill reject
+    | |
+    v v
+[RESOLVED] [REJECTED]
 ```
 
 Una vez resuelto o rechazado, el estado es final: no puede volver a PENDING.
@@ -140,44 +140,44 @@ Una vez resuelto o rechazado, el estado es final: no puede volver a PENDING.
 ```c
 // Seccion de datos (memoria compartida):
 all:
-    fut_handle: 0x00 0x00 0x00 0x00   // 4 bytes para guardar el GcHandle
+fut_handle: 0x00 0x00 0x00 0x00 // 4 bytes para guardar el GcHandle
 
 code:
-    mov   rsp, 0x00FF0000
-    mov   rbp, 0x00FF0000
+mov rsp, 0x00FF0000
+mov rbp, 0x00FF0000
 
-    // 1. Crear el future (antes de lanzar al productor):
-    future                          // R0 = GcHandle del future
-    mov   r11, r0                   // guardar handle en r11
+// 1. Crear el future (antes de lanzar al productor):
+future // R0 = GcHandle del future
+mov r11, r0 // guardar handle en r11
 
-    // Guardar el handle en memoria para que el hijo lo lea:
-    mov   r5, @Absolute("all.fut_handle")
-    xchg  cur0, r5
-    writecur cur0, r11d             // guardar los 32 bits bajos del handle
+// Guardar el handle en memoria para que el hijo lo lea:
+mov r5, @Absolute("all.fut_handle")
+xchg cur0, r5
+writecur cur0, r11d // guardar los 32 bits bajos del handle
 
-    // 2. Lanzar el proceso productor:
-    mov   r1, @Absolute("code.productor")
-    spawn r1                        // el hijo se ejecuta concurrentemente
+// 2. Lanzar el proceso productor:
+mov r1, @Absolute("code.productor")
+spawn r1 // el hijo se ejecuta concurrentemente
 
-    // 3. Esperar el resultado del productor:
-    mov   r1, r11
-    await r1                        // R0 = valor producido (bloquea hasta FULFILL)
-    // El proceso padre estaba en WAIT_IO; ahora se ha despertado con el resultado.
+// 3. Esperar el resultado del productor:
+mov r1, r11
+await r1 // R0 = valor producido (bloquea hasta FULFILL)
+// El proceso padre estaba en WAIT_IO; ahora se ha despertado con el resultado.
 
-    // R0 = 42 (el valor que produjo el hijo)
-    hlt
+// R0 = 42 (el valor que produjo el hijo)
+hlt
 
 // Proceso productor (el hijo):
 productor:
-    // ... realizar trabajo ...
-    // Leer el handle del future desde memoria compartida:
-    mov   r5, @Absolute("all.fut_handle")
-    xchg  cur0, r5
-    readcur r1d, cur0               // r1 = GcHandle del future
+// ... realizar trabajo ...
+// Leer el handle del future desde memoria compartida:
+mov r5, @Absolute("all.fut_handle")
+xchg cur0, r5
+readcur r1d, cur0 // r1 = GcHandle del future
 
-    mov   r2, 42                    // resultado a enviar al padre
-    fulfill r1, r2                  // despertar al proceso padre
-    hlt
+mov r2, 42 // resultado a enviar al padre
+fulfill r1, r2 // despertar al proceso padre
+hlt
 ```
 
 ---
@@ -189,25 +189,25 @@ un protocolo para distinguirlos. Una convencion comun es usar el bit mas signifi
 
 ```c
 // Productor: reportar un error
-mov   r2, 0x8000000000000001   // bit 63 = 1 indica error; bits 0..62 = codigo de error
+mov r2, 0x8000000000000001 // bit 63 = 1 indica error; bits 0..62 = codigo de error
 reject r1, r2
 
 // Consumidor: distinguir exito de error despues del await
-await r1                        // R0 = resultado o codigo de error
+await r1 // R0 = resultado o codigo de error
 
-mov   r2, r0
-shr   r2, 63                    // bit 63: 1 = error, 0 = exito
-cmpu  r2, 1
-jmp.je rechazado                // si bit 63 == 1, fue un reject
+mov r2, r0
+shr r2, 63 // bit 63: 1 = error, 0 = exito
+cmpu r2, 1
+jmp.je rechazado // si bit 63 == 1, fue un reject
 
 // Resultado exitoso en R0 (bit 63 = 0)
 jmp fin
 
 rechazado:
-    // r0 tiene el codigo de error en los bits 0..62
-    // Manejar el error aqui
+// r0 tiene el codigo de error en los bits 0..62
+// Manejar el error aqui
 fin:
-    hlt
+hlt
 ```
 
 ---
@@ -215,14 +215,14 @@ fin:
 ## Consideraciones importantes
 
 - Un `FutureObject` puede tener **como maximo un proceso esperando** en `AWAIT`.
-  Si un segundo proceso hace `AWAIT` sobre el mismo future PENDING, sobreescribira
-  `waiter_pid` y el primer proceso nunca sera despertado.
+ Si un segundo proceso hace `AWAIT` sobre el mismo future PENDING, sobreescribira
+ `waiter_pid` y el primer proceso nunca sera despertado.
 - `FUTURE` debe ejecutarse **antes** de lanzar al proceso productor con `SPAWN`,
-  para que el handle sea valido cuando el productor llame a `FULFILL`.
+ para que el handle sea valido cuando el productor llame a `FULFILL`.
 - El `FutureObject` esta gestionado por el GC. Guarda el `GcHandle` en un registro
-  vivo o en memoria VM para que el GC no lo recolecte.
+ vivo o en memoria VM para que el GC no lo recolecte.
 - `FULFILL` y `REJECT` son seguros desde cualquier proceso del mismo scheduler.
-  No son thread-safe entre schedulers distintos en la version actual.
+ No son thread-safe entre schedulers distintos en la version actual.
 
 ---
 
@@ -232,9 +232,9 @@ fin:
 
 ```
 +--------+--------+
-| 0x00   | 0x29   |
+| 0x00 | 0x29 |
 +--------+--------+
-  byte0    byte1
+    byte0 byte1
 ```
 
 Sin operandos. El resultado siempre va a R0.
@@ -243,16 +243,16 @@ Sin operandos. El resultado siempre va a R0.
 
 ```
 +--------+--------+--------+--------+
-| 0x00   | opcode | ctrl   | regs   |
+| 0x00 | opcode | ctrl | regs |
 +--------+--------+--------+--------+
-  byte0    byte1    byte2    byte3
+    byte0 byte1 byte2 byte3
 
 byte3 para await:
-  bits 3-0 = r_fut    (registro con el GcHandle del FutureObject)
+    bits 3-0 = r_fut (registro con el GcHandle del FutureObject)
 
 byte3 para fulfill y reject:
-  bits 7-4 = r_fut    (registro con el GcHandle del FutureObject)
-  bits 3-0 = r_val    (registro con el valor / codigo de error)
+    bits 7-4 = r_fut (registro con el GcHandle del FutureObject)
+    bits 3-0 = r_val (registro con el valor / codigo de error)
 ```
 
 ---

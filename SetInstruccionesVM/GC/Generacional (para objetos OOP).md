@@ -17,12 +17,12 @@ virtual (R0-R15), una variable local en la pila VM, o un campo de otro objeto ya
 ```c
 // Ejemplo de grafo de alcanzabilidad:
 //
-//   Registros del proceso (R0..R15)
-//     |-- handle 3  -->  Objeto A  -->  (campo)  -->  handle 7  -->  Objeto B
-//                                                      |
-//                                                      `--> handle 12  -->  Objeto C
+// Registros del proceso (R0..R15)
+// |-- handle 3 --> Objeto A --> (campo) --> handle 7 --> Objeto B
+// |
+// `--> handle 12 --> Objeto C
 //
-//   Objeto D  (ninguna ruta desde los registros llega hasta el)  --> BASURA
+// Objeto D (ninguna ruta desde los registros llega hasta el) --> BASURA
 ```
 
 El GC recorre el grafo de referencias partiendo de las raices. Todo lo que no se puede
@@ -36,7 +36,7 @@ alcanzar es basura y su memoria se puede reutilizar.
 
 ## Stack scanning conservativo (Plan epsilon)
 
-Desde la implementacion A.34.fix8 el set de raices del major GC ya **no** considera
+Desde la implementacion el set de raices del major GC ya **no** considera
 "todo handle vivo en HandleTable" como raiz. En su lugar escanea:
 
 1. La pila VM del proceso en el rango `[rsp, stack_high)`.
@@ -62,8 +62,8 @@ compatible con codigo interpretado y JIT-eado a la vez.
 
 ```cpp
 // Campos nuevos en ProcessVM (include/runtime/proceso_runtime.h):
-uint64_t stack_high;        // base de la pila (inmutable, set al spawn)
-uint64_t stack_low_water;   // minimo rsp visto desde el ultimo GC (actualizado en subsp)
+uint64_t stack_high; // base de la pila (inmutable, set al spawn)
+uint64_t stack_low_water; // minimo rsp visto desde el ultimo GC (actualizado en subsp)
 ```
 
 `stack_high` se inicializa en cuatro puntos:
@@ -81,15 +81,15 @@ cada major GC. Limita el rango escaneado a la porcion de pila realmente en uso.
 ```
 para addr = rsp; addr < stack_high; addr += 8:
     v = vm_mem.read_u64(addr)
-    si v == 0:       continue   // NULL / cero (filtro O(1))
-    si v < 256:      continue   // contador de bucle, flag, etc.
+    si v == 0: continue // NULL / cero (filtro O(1))
+    si v < 256: continue // contador de bucle, flag, etc.
     si v < handles_.size() Y handles_[v].live Y handles_[v].addr != 0:
-        marcar v como BLACK; anadir al worklist BFS
-        continue
+    marcar v como BLACK; anadir al worklist BFS
+    continue
     auto it = ptr_to_handle_.find((uint8_t*)v)
     si it != ptr_to_handle_.end():
-        marcar it->second como BLACK; anadir al worklist BFS
-        continue
+    marcar it->second como BLACK; anadir al worklist BFS
+    continue
     // interior scan: si v cae dentro de un bloque OldGen
     // buscar el ObjectHeader contenedor y marcar su handle
 
@@ -123,7 +123,7 @@ La version anterior trataba como raiz a TODO handle con `live == true` en la Han
 ```cpp
 // ANTES (O(N_handles), todos los handles = raices):
 for (auto& h : handles_)
-    if (h.live) { worklist.push(h); }
+if (h.live) { worklist.push(h); }
 ```
 
 La version actual escanea el stack y los regs:
@@ -131,9 +131,9 @@ La version actual escanea el stack y los regs:
 ```cpp
 // AHORA (O(stack_size + 16 + N_external_refs)):
 scan_stack_roots(rsp, stack_high, registers, vm_mem, worklist);
-mark_external_refs(worklist);         // A.30: plugins con gc_addref
+mark_external_refs(worklist); // A.30: plugins con gc_addref
 if (pending_alloc_root_ != GC_NULL_HANDLE)
-    worklist.push(pending_alloc_root_);
+worklist.push(pending_alloc_root_);
 // BFS transitivo desde worklist...
 ```
 
@@ -154,13 +154,13 @@ acumulaba objetos no alcanzables en OldGen y aumentaba la frecuencia de major GC
 
 ### Coste runtime
 
-| Operacion                  | Coste adicional vs version anterior              |
+| Operacion | Coste adicional vs version anterior |
 | :------------------------- | :----------------------------------------------- |
-| `subsp` (update low_water) | ~1 ns (1 cmp + cmov)                             |
-| Scan por major GC          | ~1-50 us segun tamano de pila activa             |
-| Filtros de slot            | >90% de slots descartados sin lookup             |
-| Scan por minor GC          | Misma logica; idem coste                         |
-| Hot path de instrucciones  | **0%** (cero cambios en ALU/MOV/JMP)             |
+| `subsp` (update low_water) | ~1 ns (1 cmp + cmov) |
+| Scan por major GC | ~1-50 us segun tamaño de pila activa |
+| Filtros de slot | >90% de slots descartados sin lookup |
+| Scan por minor GC | Misma logica; idem coste |
+| Hot path de instrucciones | **0%** (cero cambios en ALU/MOV/JMP) |
 
 ---
 
@@ -174,9 +174,9 @@ frecuentes.
 
 ```c
 // Ejemplo con 10 000 objetos creados en un ciclo tipico:
-//   8 000 mueren antes del primer GC  ->  limpiar Nursery es baratisimo
-//     800 sobreviven y van a OldGen
-//      50 siguen vivos 10 ciclos despues
+// 8 000 mueren antes del primer GC -> limpiar Nursery es baratisimo
+// 800 sobreviven y van a OldGen
+// 50 siguen vivos 10 ciclos despues
 //
 // Limpiar solo la Nursery (1 200 vivos + 8 000 muertos en un espacio pequeno)
 // es mucho mas rapido que revisar los 10 000 objetos completos del heap.
@@ -188,31 +188,31 @@ frecuentes.
 
 ```
 ProcessVM
-  |-- GcHeap
-        |-- Nursery  (bump-pointer, tamano fijo, ej. 1 MB)
-        |     |-- objetos jovenes  -> GcHandle
-        |
-        |-- OldGen   (bloques de arena, mark-and-sweep)
-        |     |-- objetos promovidos  -> GcHandle
-        |
-        |-- HandleTable[]
-        |     GcHandle  -> direccion actual del objeto
-        |
-        |-- RememberedSet  (unordered_set de GcHandle)
-              handles OLD que contienen referencias a objetos YOUNG
+    |-- GcHeap
+    |-- Nursery (bump-pointer, tamaño fijo, ej. 1 MB)
+    | |-- objetos jovenes -> GcHandle
+    |
+    |-- OldGen (bloques de arena, mark-and-sweep)
+    | |-- objetos promovidos -> GcHandle
+    |
+    |-- HandleTable[]
+    | GcHandle -> direccion actual del objeto
+    |
+    |-- RememberedSet (unordered_set de GcHandle)
+    handles OLD que contienen referencias a objetos YOUNG
 ```
 
 ### Nursery y la asignacion por bump-pointer
 
-La Nursery es una zona de tamano fijo. Asignar un objeto es tan sencillo como avanzar un
+La Nursery es una zona de tamaño fijo. Asignar un objeto es tan sencillo como avanzar un
 puntero (`bump`) en N bytes. No hay que buscar huecos libres: O(1) garantizado.
 
 ```
-Antes:  [LLENO][LLENO][bump->           ][ libre...     ][ fin ]
-         obj1   obj2
+Antes: [LLENO][LLENO][bump-> ][ libre... ][ fin ]
+    obj1 obj2
 
 Despues NEWOBJ 64 bytes:
-        [LLENO][LLENO][obj3 64B][bump->  ][ libre...     ][ fin ]
+    [LLENO][LLENO][obj3 64B][bump-> ][ libre... ][ fin ]
 ```
 
 Cuando la Nursery se llena, se lanza el **minor GC**. Los objetos vivos se copian a OldGen
@@ -222,10 +222,10 @@ rastrear individualmente que esta libre y que no.
 ### OldGen y el mark-and-sweep
 
 OldGen crece dinamicamente en bloques de arena. No usa bump-pointer porque los objetos
-tienen distintos tamanos y tiempos de vida. En su lugar usa el algoritmo **mark-and-sweep**:
+tienen distintos tamaños y tiempos de vida. En su lugar usa el algoritmo **mark-and-sweep**:
 
 1. **Marcar** todos los objetos alcanzables (incluyendo los alcanzables transitivamente
-   a traves del grafo de referencias).
+ a traves del grafo de referencias).
 2. **Barrer** (sweep): los no marcados son basura y se liberan.
 
 OldGen solo se limpia cuando su ocupacion supera el umbral configurado con `GCCONFIG`.
@@ -237,18 +237,18 @@ OldGen solo se limpia cuando su ocupacion supera el umbral configurado con `GCCO
 Cada objeto en el heap GC lleva una cabecera interna de 8 bytes **antes del payload**:
 
 ```
-Offset 0                                           Offset 8
+Offset 0 Offset 8
 +----------+-------+-----------+------+----------+
-| size     | color | generacion| _pad | reserved |
-| 32 bits  | 2 bit | 1 bit     | 5 b  | 3 bytes  |
+| size | color | generacion| _pad | reserved |
+| 32 bits | 2 bit | 1 bit | 5 b | 3 bytes |
 +----------+-------+-----------+------+----------+
-              ^       ^
-              |       YOUNG=0 o OLD=1
-              estado tri-color del GC (ver abajo)
+    ^ ^
+    | YOUNG=0 o OLD=1
+    estado tri-color del GC (ver abajo)
 ```
 
 - `size` - bytes del payload (sin la cabecera). El escaner lo usa para saltar al siguiente
-  objeto en el bloque.
+ objeto en el bloque.
 - `color` - estado del objeto durante el GC (WHITE/GREY/BLACK/DEAD).
 - `generacion` - en que generacion vive el objeto (YOUNG o OLD).
 
@@ -264,12 +264,12 @@ Offset 0                                           Offset 8
 
 El algoritmo de marcado usa cuatro estados (codificados en 2 bits):
 
-| Color   | Valor | Significado                                               |
+| Color | Valor | Significado |
 | :------ | :---: | :-------------------------------------------------------- |
-| `WHITE` |   0   | No alcanzado en este ciclo; candidato a liberar           |
-| `GREY`  |   1   | Alcanzado, pero sus hijos aun no han sido inspeccionados  |
-| `BLACK` |   2   | Alcanzado y todos sus hijos inspeccionados; esta vivo     |
-| `DEAD`  |   3   | Slot liberado por sweep; el espacio es reutilizable       |
+| `WHITE` | 0 | No alcanzado en este ciclo; candidato a liberar |
+| `GREY` | 1 | Alcanzado, pero sus hijos aun no han sido inspeccionados |
+| `BLACK` | 2 | Alcanzado y todos sus hijos inspeccionados; esta vivo |
+| `DEAD` | 3 | Slot liberado por sweep; el espacio es reutilizable |
 
 El estado `DEAD` es especial: cuando el sweep libera un objeto, preserva el campo `size`
 y solo cambia el color a `DEAD`. Asi el escaner de bloques puede seguir avanzando
@@ -301,11 +301,11 @@ sigue funcionando sin cambios.
 
 ```c
 // Antes del minor GC:
-//   Handle 5  ->  HandleTable[5] = 0x10000020  (en Nursery)
+// Handle 5 -> HandleTable[5] = 0x10000020 (en Nursery)
 //
 // Despues del minor GC (el objeto se copio a OldGen):
-//   Handle 5  ->  HandleTable[5] = 0x30000080  (en OldGen)
-//   (el bytecode no sabe ni que paso nada)
+// Handle 5 -> HandleTable[5] = 0x30000080 (en OldGen)
+// (el bytecode no sabe ni que paso nada)
 ```
 
 `GC_NULL_HANDLE = 0xFFFFFFFF` es el handle invalido. Si `NEWOBJ` o `GCALLOC` retornan
@@ -318,10 +318,10 @@ Esto forma el **grafo de objetos** que el GC recorre transitivamente.
 
 ```c
 // Payload de Objeto A (16 bytes):
-//   offset 0: [handle_B = 0x00000002]  // 4 bytes: indice en HandleTable
-//   offset 4: [42       = 0x0000002A]  // dato numerico
-//   offset 8: [handle_C = 0x00000005]  // otra referencia GC
-//   offset 12:[0x00000000            ]  // campo vacio (null)
+// offset 0: [handle_B = 0x00000002] // 4 bytes: indice en HandleTable
+// offset 4: [42 = 0x0000002A] // dato numerico
+// offset 8: [handle_C = 0x00000005] // otra referencia GC
+// offset 12:[0x00000000 ] // campo vacio (null)
 ```
 
 > Este escaneo es **conservativo**: el GC trata cualquier valor de 4 bytes que encaje como
@@ -335,33 +335,33 @@ Esto forma el **grafo de objetos** que el GC recorre transitivamente.
 
 ```c
 // NEWOBJ/GCALLOC
-//   |
-//   |-- espacio en Nursery? --> asignar en Nursery (bump, O(1))
-//   |
-//   |-- Nursery llena --> minor_gc()
-//   |     |
-//   |     |-- objeto alcanzable? --> do_evacuate() --> copiar a OldGen (color=BLACK)
-//   |     |    |
-//   |     |    `-> escaneo transitivo del payload (Cheney BFS):
-//   |     |        si el payload apunta a otro objeto YOUNG no evacuado,
-//   |     |        tambien se evacua aunque su handle este soltado
-//   |     |
-//   |     |-- objeto no alcanzable? --> abandonado; bump se resetea a base (O(1))
-//   |     |
-//   |     `-- old_used >= old_threshold? --> major_gc()
-//   |           |
-//   |           |-- PRE-MARK: todos los objetos no-DEAD --> WHITE
-//   |           |-- MARK:     BFS transitivo desde handles vivos --> BLACK
-//   |           |             (sigue handles embebidos en payloads)
-//   |           `-- SWEEP:    WHITE --> DEAD, old_used--, stats++
-//   |
-//   `-- sigue sin espacio --> asignar directamente en OldGen
+// |
+// |-- espacio en Nursery? --> asignar en Nursery (bump, O(1))
+// |
+// |-- Nursery llena --> minor_gc()
+// | |
+// | |-- objeto alcanzable? --> do_evacuate() --> copiar a OldGen (color=BLACK)
+// | | |
+// | | `-> escaneo transitivo del payload (Cheney BFS):
+// | | si el payload apunta a otro objeto YOUNG no evacuado,
+// | | tambien se evacua aunque su handle este soltado
+// | |
+// | |-- objeto no alcanzable? --> abandonado; bump se resetea a base (O(1))
+// | |
+// | `-- old_used >= old_threshold? --> major_gc()
+// | |
+// | |-- PRE-MARK: todos los objetos no-DEAD --> WHITE
+// | |-- MARK: BFS transitivo desde handles vivos --> BLACK
+// | | (sigue handles embebidos en payloads)
+// | `-- SWEEP: WHITE --> DEAD, old_used--, stats++
+// |
+// `-- sigue sin espacio --> asignar directamente en OldGen
 //
 // DROP handle
-//   |
-//   `-> HandleTable[handle].live = false
-//       (addr se preserva hasta que el GC confirme la muerte del objeto;
-//        el slot fisico en OldGen lo recoge el siguiente major_gc)
+// |
+// `-> HandleTable[handle].live = false
+// (addr se preserva hasta que el GC confirme la muerte del objeto;
+// el slot fisico en OldGen lo recoge el siguiente major_gc)
 ```
 
 ---
@@ -373,9 +373,9 @@ El minor GC realiza una evacuacion completa en dos fases:
 **Fase 1 - Semilla de raices:**
 
 1. Escanea todos los handles vivos (`live == true`) cuya direccion cae dentro de la Nursery
-   y evacua cada objeto joven (`gen == YOUNG`) a OldGen.
+ y evacua cada objeto joven (`gen == YOUNG`) a OldGen.
 2. Escanea los handles del **remembered set** (objetos OLD que contienen referencias a
-   YOUNG) y los usa como raices adicionales.
+ YOUNG) y los usa como raices adicionales.
 
 **Fase 2 - BFS transitivo (Cheney):**
 
@@ -386,7 +386,7 @@ pendientes.
 
 ```c
 // Nursery antes del minor GC:
-//   [A vivo]  [B solo referenciado por A]  [C muerto - nadie lo referencia]
+// [A vivo] [B solo referenciado por A] [C muerto - nadie lo referencia]
 //
 // Fase 1: evacua A (tiene handle vivo)
 // Fase 2: escanea payload de A, encuentra handle B --> evacua B tambien
@@ -400,7 +400,7 @@ libre instantaneamente. Los handles no-vivos que todavia apuntaban a Nursery tie
 Si tras la evacuacion `old_used >= old_threshold`, se lanza `major_gc` automaticamente.
 
 > **Pausa del minor GC:** proporcional al numero de objetos **vivos** en Nursery, no al
-> tamano total. Cuanto mas corta sea la vida media de los objetos, menor es la pausa.
+> tamaño total. Cuanto mas corta sea la vida media de los objetos, menor es la pausa.
 
 ---
 
@@ -418,7 +418,7 @@ mecanismo de reset automatico.
 
 Construye el worklist inicial desde las raices:
 - `scan_stack_roots(rsp, stack_high, regs, vm_mem)` escanea la pila VM del proceso y los
-  16 GP regs buscando GcHandles directos, host_ptrs y punteros interiores a bloques OldGen.
+ 16 GP regs buscando GcHandles directos, host_ptrs y punteros interiores a bloques OldGen.
 - Itera `external_refs_` (A.30) y marca BLACK cualquier handle con refcount > 0.
 - Si `pending_alloc_root_ != GC_NULL_HANDLE` lo marca BLACK.
 
@@ -428,14 +428,14 @@ hasta vaciar el worklist.
 
 ```c
 // Ejemplo de recorrido BFS (igual que antes, solo cambia el seed):
-//   Worklist = [A]           // A aparece en stack/regs (raiz conservativa)
-//   Procesar A -> payload tiene handle B -> B marcado BLACK, anadir B
-//   Worklist = [B]
-//   Procesar B -> payload tiene handle C -> C marcado BLACK, anadir C
-//   Worklist = [C]
-//   Procesar C -> payload vacio -> worklist vacio -> MARK terminado
+// Worklist = [A] // A aparece en stack/regs (raiz conservativa)
+// Procesar A -> payload tiene handle B -> B marcado BLACK, anadir B
+// Worklist = [B]
+// Procesar B -> payload tiene handle C -> C marcado BLACK, anadir C
+// Worklist = [C]
+// Procesar C -> payload vacio -> worklist vacio -> MARK terminado
 //
-//   Objeto D (no en stack/regs, no en external_refs) -> permanece WHITE -> SWEEP lo libera
+// Objeto D (no en stack/regs, no en external_refs) -> permanece WHITE -> SWEEP lo libera
 ```
 
 Esto garantiza que el grafo completo de objetos alcanzables desde las raices reales
@@ -464,7 +464,7 @@ apunta a un objeto de la Nursery, el minor GC podria no verlo como alcanzable.
 
 ```c
 // Problema:
-//   OldGen: Objeto A  -->  campo  -->  Handle B (en Nursery)
+// OldGen: Objeto A --> campo --> Handle B (en Nursery)
 //
 // Si nadie en los registros apunta a B directamente, y A no esta en el
 // remembered set, el minor GC pensaria que B esta muerto aunque A lo referencia.
@@ -480,9 +480,9 @@ El bytecode debe emitir `GCWB old_handle` **cada vez que escribe un handle dentr
 payload de un objeto OLD**:
 
 ```c
-gcderef  cur0, r_handle_A   // cur0 = payload de A (objeto OLD)
-writecur cur0, r_handle_B   // escribir handle de B (YOUNG) en el campo
-gcwb     r_handle_A         // registrar que A ahora referencia algo YOUNG
+gcderef cur0, r_handle_A // cur0 = payload de A (objeto OLD)
+writecur cur0, r_handle_B // escribir handle de B (YOUNG) en el campo
+gcwb r_handle_A // registrar que A ahora referencia algo YOUNG
 ```
 
 `GCWB` es idempotente: llamarlo varias veces con el mismo handle no tiene coste adicional
@@ -490,12 +490,12 @@ gcwb     r_handle_A         // registrar que A ahora referencia algo YOUNG
 
 ### Cuando llamar GCWB
 
-| Situacion                             | GCWB necesario? | Razon                                    |
+| Situacion | GCWB necesario? | Razon |
 | :------------------------------------ | :-------------: | :--------------------------------------- |
-| Objeto YOUNG escribe ref a YOUNG      | No              | El minor GC escanea toda la Nursery      |
-| Objeto YOUNG escribe ref a OLD        | No              | El minor GC evacua el YOUNG; ref seguida |
-| **Objeto OLD escribe ref a YOUNG**    | **Si**          | El minor GC no escanea OldGen sin RS     |
-| Objeto OLD escribe ref a OLD          | No              | El major GC hace mark completo de OldGen |
+| Objeto YOUNG escribe ref a YOUNG | No | El minor GC escanea toda la Nursery |
+| Objeto YOUNG escribe ref a OLD | No | El minor GC evacua el YOUNG; ref seguida |
+| **Objeto OLD escribe ref a YOUNG** | **Si** | El minor GC no escanea OldGen sin RS |
+| Objeto OLD escribe ref a OLD | No | El major GC hace mark completo de OldGen |
 
 > Si no puedes saber en tiempo de compilacion si el objeto es OLD o YOUNG, **emite siempre
 > `GCWB`**. El coste extra es minimo (hash set con deduplicacion automatica).
@@ -504,13 +504,13 @@ gcwb     r_handle_A         // registrar que A ahora referencia algo YOUNG
 
 ## Instrucciones bytecode
 
-| Instruccion          | Opcode0 | Opcode1 | Descripcion                                           |
+| Instruccion | Opcode0 | Opcode1 | Descripcion |
 | :------------------- | :-----: | :-----: | :---------------------------------------------------- |
-| `newobj size`        |  0x00   |  0xA0   | Reserva `size` bytes; retorna GcHandle en R0          |
-| `gcrun`              |  0x00   |  0xA1   | Dispara minor + (si procede) major GC manualmente     |
-| `gcconfig threshold` |  0x00   |  0xA2   | Configura el umbral de OldGen para major GC           |
-| `drop handle`        |  0x00   |  0xA3   | Libera el handle directo; el objeto puede morir en GC |
-| `gcwb old_handle`    |  0x00   |  0xA4   | Registra referencia OLD->YOUNG en el remembered set   |
+| `newobj size` | 0x00 | 0xA0 | Reserva `size` bytes; retorna GcHandle en R0 |
+| `gcrun` | 0x00 | 0xA1 | Dispara minor + (si procede) major GC manualmente |
+| `gcconfig threshold` | 0x00 | 0xA2 | Configura el umbral de OldGen para major GC |
+| `drop handle` | 0x00 | 0xA3 | Libera el handle directo; el objeto puede morir en GC |
+| `gcwb old_handle` | 0x00 | 0xA4 | Registra referencia OLD->YOUNG en el remembered set |
 
 ---
 
@@ -520,57 +520,57 @@ gcwb     r_handle_A         // registrar que A ahora referencia algo YOUNG
 
 ```c
 // Crear un objeto de 64 bytes y escribir un valor en el
-mov    r1, 64
-newobj r1              // R0 = GcHandle del nuevo objeto
+mov r1, 64
+newobj r1 // R0 = GcHandle del nuevo objeto
 
-gcderef cur0, r0       // cur0 apunta al inicio del payload
-mov     r5, 42
-writecur cur0, r5      // payload[0] = 42 (primer qword)
+gcderef cur0, r0 // cur0 apunta al inicio del payload
+mov r5, 42
+writecur cur0, r5 // payload[0] = 42 (primer qword)
 
 // Leer el valor de vuelta
-readcur r6, cur0       // r6 = 42
+readcur r6, cur0 // r6 = 42
 
 // Liberar el handle cuando ya no se necesite
-drop   r0
+drop r0
 ```
 
 ### Grafo de objetos: A referencia a B
 
 ```c
 // Crear objeto A (contenedor, 16 bytes) y objeto B (hijo, 8 bytes)
-mov    r1, 16
-newobj r1              // R0 = handle A
-mov    r8, r0
+mov r1, 16
+newobj r1 // R0 = handle A
+mov r8, r0
 
-mov    r1, 8
-newobj r1              // R0 = handle B
-mov    r9, r0
+mov r1, 8
+newobj r1 // R0 = handle B
+mov r9, r0
 
 // Escribir el handle de B en el primer campo del payload de A
-gcderef cur0, r8       // cur0 = payload de A
-writecur cur0, r9      // A.campo[0] = handle B (4 bytes del handle)
-gcwb    r8             // OBLIGATORIO: A (puede ser OLD) ahora referencia a B (YOUNG)
+gcderef cur0, r8 // cur0 = payload de A
+writecur cur0, r9 // A.campo[0] = handle B (4 bytes del handle)
+gcwb r8 // OBLIGATORIO: A (puede ser OLD) ahora referencia a B (YOUNG)
 
 // Soltar el handle directo de B: A lo mantiene vivo a traves del grafo
-drop   r9
+drop r9
 
 // B sobrevive aunque su handle este soltado porque A lo referencia
 gcrun
 
 // Para acceder a B mas tarde: leer el handle desde el payload de A
 gcderef cur0, r8
-readcur r9, cur0       // r9 = handle B recuperado
-gcderef cur1, r9       // cur1 = payload de B
+readcur r9, cur0 // r9 = handle B recuperado
+gcderef cur1, r9 // cur1 = payload de B
 
-mov     r5, 99
-writecur cur1, r5      // escribir en B a traves del handle recuperado
+mov r5, 99
+writecur cur1, r5 // escribir en B a traves del handle recuperado
 ```
 
 ### Ajustar el umbral y forzar GC
 
 ```c
 // Aumentar el umbral antes de una rafaga de asignaciones
-mov    r1, 16777216   // 16 MB
+mov r1, 16777216 // 16 MB
 gcconfig r1
 
 // ... muchas asignaciones ...
@@ -579,7 +579,7 @@ gcconfig r1
 gcrun
 
 // Reducir el umbral para liberar memoria mas agresivamente al terminar
-mov    r1, 1048576    // 1 MB
+mov r1, 1048576 // 1 MB
 gcconfig r1
 ```
 
@@ -589,18 +589,18 @@ gcconfig r1
 
 Accesibles en C++ via `GcHeap::stats()` (tipo `GcStats`):
 
-| Campo              | Descripcion                                            |
+| Campo | Descripcion |
 | :----------------- | :----------------------------------------------------- |
-| `alloc_count`      | Llamadas exitosas a `alloc()`                          |
-| `alloc_bytes`      | Bytes totales asignados                                |
-| `freed_count`      | Objetos recogidos por sweep                            |
-| `freed_bytes`      | Bytes recuperados por sweep                            |
-| `promoted_count`   | Objetos evacuados de Nursery a OldGen                  |
-| `promoted_bytes`   | Bytes promovidos                                       |
-| `minor_gc_count`   | Veces que se ejecuto minor GC                          |
-| `major_gc_count`   | Veces que se ejecuto major GC                          |
-| `peak_nursery`     | Maximo de bytes vivos en Nursery en cualquier momento  |
-| `peak_old`         | Maximo de bytes vivos en OldGen en cualquier momento   |
+| `alloc_count` | Llamadas exitosas a `alloc()` |
+| `alloc_bytes` | Bytes totales asignados |
+| `freed_count` | Objetos recogidos por sweep |
+| `freed_bytes` | Bytes recuperados por sweep |
+| `promoted_count` | Objetos evacuados de Nursery a OldGen |
+| `promoted_bytes` | Bytes promovidos |
+| `minor_gc_count` | Veces que se ejecuto minor GC |
+| `major_gc_count` | Veces que se ejecuto major GC |
+| `peak_nursery` | Maximo de bytes vivos en Nursery en cualquier momento |
+| `peak_old` | Maximo de bytes vivos en OldGen en cualquier momento |
 
 Las estadisticas son acumulativas desde que el proceso arranca. Son utiles para diagnosticar
 presion de memoria, ajustar el threshold de OldGen, y verificar que la hipotesis generacional

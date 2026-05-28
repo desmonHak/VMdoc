@@ -24,14 +24,14 @@ Si el [[VmManager]] gestiona la direccion se considera que es una direccion de m
 ----
 # Tipos de direcciones
 
-Las direcciones de memoria pueden ser del tipo remoto de las cuales se diferencian dos tipos:  
+Las direcciones de memoria pueden ser del tipo remoto de las cuales se diferencian dos tipos: 
 ## Direcciones remotas de tipo [[VmInstance]]
 
 ```
 VMI<1>{0x2000:192.168.1.10:80@0x2000}
 ```
 
--  ``VMI``: indica que es una instancia VM ([[VmInstance]]) remota.
+- ``VMI``: indica que es una instancia VM ([[VmInstance]]) remota.
 - ``<1>``: indica el id de la instancia remota. 
 - ``0x2000``: le sigue la direccion virtual para la instancia actual.
 - `192.168.1.10:80`: seguido de la direccion IP y puerto de la maquina remota.

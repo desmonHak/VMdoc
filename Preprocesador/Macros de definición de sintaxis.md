@@ -20,18 +20,18 @@ Una regla EBNF basica:
 ```c
 // Regla: una expresion es un termino, o una expresion mas un termino, o ...
 <expresion> ::= <termino>
-              | <expresion> '+' <termino>
-              | <expresion> '-' <termino>
+| <expresion> '+' <termino>
+| <expresion> '-' <termino>
 
 <termino> ::= <factor>
-            | <termino> '*' <factor>
-            | <termino> '/' <factor>
+| <termino> '*' <factor>
+| <termino> '/' <factor>
 
 <factor> ::= <numero>
-           | '(' <expresion> ')'
+| '(' <expresion> ')'
 
 <numero> ::= <digito>
-           | <numero> <digito>
+| <numero> <digito>
 
 <digito> ::= '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9'
 ```
@@ -41,7 +41,7 @@ Una regla EBNF basica:
 ## Reglas EBNF para un `if` tipico
 
 ```c
-<if_stmt>   ::= 'if' '(' <condicion> ')' '{' <sentencia> '}' [ 'else' <sentencia> ]
+<if_stmt> ::= 'if' '(' <condicion> ')' '{' <sentencia> '}' [ 'else' <sentencia> ]
 <sentencia> ::= <if_stmt> | <asignacion> | ';'
 ```
 
@@ -108,10 +108,10 @@ Luego el backend emite codigo nativo para la arquitectura objetivo:
 
 ```c
 // Para x86-64:
-mov eax, 5    // CONST_5
-mov ebx, 3    // CONST_3
-add eax, ebx  // ADD: t1 = 5 + 3
-mov [x], eax  // ASSIGN: x = t1
+mov eax, 5 // CONST_5
+mov ebx, 3 // CONST_3
+add eax, ebx // ADD: t1 = 5 + 3
+mov [x], eax // ASSIGN: x = t1
 ```
 
 ---
@@ -130,7 +130,7 @@ Para anadir, por ejemplo, una construccion `unless (cond) { }` (if negado):
 // 3. Uso en el codigo
 uint8_t x = 5;
 unless (x == 0) {
-    print("x no es cero");  // solo se ejecuta si x != 0
+    print("x no es cero"); // solo se ejecuta si x != 0
 }
 ```
 

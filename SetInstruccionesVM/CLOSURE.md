@@ -7,21 +7,21 @@ contiene incluso despues de que la funcion exterior haya terminado. Eso es un cl
 
 VestaVM implementa dos modelos de closure para cubrir distintos casos de uso:
 
-| Modelo  | Instrucciones                          | Descripcion                                           |
+| Modelo | Instrucciones | Descripcion |
 | :-----: | :------------------------------------: | :---------------------------------------------------- |
-| **GC**  | `mkclosure` / `callclosure`            | Closure gestionado por el GC; requiere `MethodInfo*`. |
-| **Raw** | `mkrawclosure` / `callrawclosure`      | Closure sin GC; ciclo de vida manual con `FREE`.      |
+| **GC** | `mkclosure` / `callclosure` | Closure gestionado por el GC; requiere `MethodInfo*`. |
+| **Raw** | `mkrawclosure` / `callrawclosure` | Closure sin GC; ciclo de vida manual con `FREE`. |
 
 ---
 
 ## Tabla de instrucciones
 
-| Instruccion       | opcode0 | opcode1 | Modo | Tamano  | Descripcion                                        |
+| Instruccion | opcode0 | opcode1 | Modo | Tamaño | Descripcion |
 | :---------------: | :-----: | :-----: | :--: | :-----: | :------------------------------------------------- |
-| `mkclosure`       |  0x00   |  0x20   | REG  | 4 bytes | Crear ClosureObject GC (`r_method`, `r_env` -> R0) |
-| `callclosure`     |  0x00   |  0x21   | REG  | 4 bytes | Invocar ClosureObject GC (`r_closure`)             |
-| `mkrawclosure`    |  0x00   |  0x22   | REG  | 4 bytes | Crear RawClosureObject sin GC (`r_fn`, `r_env` -> R0)|
-| `callrawclosure`  |  0x00   |  0x23   | REG  | 4 bytes | Invocar RawClosureObject (`r_closure`)             |
+| `mkclosure` | 0x00 | 0x20 | REG | 4 bytes | Crear ClosureObject GC (`r_method`, `r_env` -> R0) |
+| `callclosure` | 0x00 | 0x21 | REG | 4 bytes | Invocar ClosureObject GC (`r_closure`) |
+| `mkrawclosure` | 0x00 | 0x22 | REG | 4 bytes | Crear RawClosureObject sin GC (`r_fn`, `r_env` -> R0)|
+| `callrawclosure` | 0x00 | 0x23 | REG | 4 bytes | Invocar RawClosureObject (`r_closure`) |
 
 Todas son instrucciones extendidas (prefijo `0x00`).
 
@@ -32,10 +32,10 @@ Implementacion: `src/runtime/exec_instruction_closure.cpp`
 ## Por que hay dos modelos
 
 - **Modelo GC**: para lambdas dentro del sistema OOP de VestaVM. El runtime las gestiona
-  automaticamente con el GC; soportan excepciones y se integran con la herencia.
+ automaticamente con el GC; soportan excepciones y se integran con la herencia.
 - **Modelo Raw**: para callbacks FFI (funciones que se pasan a bibliotecas C nativas) o
-  cuando se necesita el maximo rendimiento sin el overhead del GC. El programador gestiona
-  la memoria manualmente.
+ cuando se necesita el maximo rendimiento sin el overhead del GC. El programador gestiona
+ la memoria manualmente.
 
 ---
 
@@ -46,10 +46,10 @@ Implementacion: `src/runtime/exec_instruction_closure.cpp`
 ```cpp
 // Un ClosureObject en el GC heap:
 struct alignas(8) ClosureObject {
-    ObjectHeader header;   // cabecera GC (class_ptr con CLASS_FLAG_CLOSURE)
-    MethodInfo  *method;   // lambda o funcion capturada (del loader)
-    uint32_t    *captures; // array de GcHandle de variables capturadas
-    size_t       cap_count;// numero de variables capturadas
+    ObjectHeader header; // cabecera GC (class_ptr con CLASS_FLAG_CLOSURE)
+    MethodInfo *method; // lambda o funcion capturada (del loader)
+    uint32_t *captures; // array de GcHandle de variables capturadas
+    size_t cap_count;// numero de variables capturadas
 };
 ```
 
@@ -60,14 +60,14 @@ sean recolectadas mientras el closure siga vivo).
 ### `mkclosure r_method, r_env` - crear closure GC
 
 ```c
-mkclosure r1, r2    // R0 = GcHandle del ClosureObject creado
+mkclosure r1, r2 // R0 = GcHandle del ClosureObject creado
 ```
 
-| Parametro  | Descripcion                                                               |
+| Parametro | Descripcion |
 | :--------: | :------------------------------------------------------------------------ |
-| `r_method` | Registro con el host-pointer a un `MethodInfo` del loader (el lambda).    |
-| `r_env`    | Registro con la direccion VM del bloque de entorno (variables capturadas). |
-| Resultado  | `R0` = `GcHandle` del nuevo `ClosureObject`, o `GC_NULL_HANDLE` si falla. |
+| `r_method` | Registro con el host-pointer a un `MethodInfo` del loader (el lambda). |
+| `r_env` | Registro con la direccion VM del bloque de entorno (variables capturadas). |
+| Resultado | `R0` = `GcHandle` del nuevo `ClosureObject`, o `GC_NULL_HANDLE` si falla. |
 
 Algoritmo:
 1. Lee `method = (MethodInfo*)regs[r_method]` y `env_addr = regs[r_env]`.
@@ -77,16 +77,16 @@ Algoritmo:
 
 ```c
 // Suponer que el loader pone el MethodInfo* del lambda en r9:
-mov   r8, 0            // sin entorno capturado (puede ser 0 si no hay variables capturadas)
-mkclosure r9, r8       // R0 = GcHandle del closure
+mov r8, 0 // sin entorno capturado (puede ser 0 si no hay variables capturadas)
+mkclosure r9, r8 // R0 = GcHandle del closure
 
-mov   r11, r0          // guardar el handle
+mov r11, r0 // guardar el handle
 // Comprobar que no fallo:
-mov   r3, 0xFFFFFFFF   // GC_NULL_HANDLE
-cmpu  r11, r3
-jmp.je error_gc        // saltar si fallo
+mov r3, 0xFFFFFFFF // GC_NULL_HANDLE
+cmpu r11, r3
+jmp.je error_gc // saltar si fallo
 
-callclosure r11        // invocar el lambda; la ejecucion continua tras el RET del lambda
+callclosure r11 // invocar el lambda; la ejecucion continua tras el RET del lambda
 ```
 
 > **Requisito:** `r_method` debe contener un `MethodInfo*` valido con `code_vaddr != 0`.
@@ -95,12 +95,12 @@ callclosure r11        // invocar el lambda; la ejecucion continua tras el RET d
 ### `callclosure r_closure` - invocar closure GC
 
 ```c
-callclosure r11    // invoca el lambda del ClosureObject en r11
+callclosure r11 // invoca el lambda del ClosureObject en r11
 ```
 
-| Parametro    | Descripcion                                      |
+| Parametro | Descripcion |
 | :----------: | :----------------------------------------------- |
-| `r_closure`  | Registro con el `GcHandle` del `ClosureObject`.  |
+| `r_closure` | Registro con el `GcHandle` del `ClosureObject`. |
 
 Algoritmo:
 1. Desreferencia el handle para obtener el `ClosureObject*`.
@@ -121,9 +121,9 @@ El lambda invocado debe terminar con `RET`.
 ```cpp
 // Un RawClosureObject en el raw allocator:
 struct alignas(8) RawClosureObject {
-    uint64_t fn_addr;   // direccion de la funcion (bytecode o nativa)
-    uint64_t env_addr;  // direccion VM del bloque de entorno
-    size_t   env_size;  // tamano del bloque de entorno en bytes
+    uint64_t fn_addr; // direccion de la funcion (bytecode o nativa)
+    uint64_t env_addr; // direccion VM del bloque de entorno
+    size_t env_size; // tamaño del bloque de entorno en bytes
 };
 ```
 
@@ -133,42 +133,42 @@ por el GC**. El bytecode es responsable de liberarlo con `FREE` cuando ya no se 
 ### `mkrawclosure r_fn, r_env` - crear closure raw
 
 ```c
-mkrawclosure r1, r2    // R0 = host-pointer al RawClosureObject
+mkrawclosure r1, r2 // R0 = host-pointer al RawClosureObject
 ```
 
-| Parametro | Descripcion                                                          |
+| Parametro | Descripcion |
 | :-------: | :------------------------------------------------------------------- |
-| `r_fn`    | Registro con la direccion de la funcion (label o funcion nativa).    |
-| `r_env`   | Registro con la direccion VM del bloque de entorno (0 = sin env).    |
-| Resultado | `R0` = puntero raw al `RawClosureObject`, o `0` si falla.            |
+| `r_fn` | Registro con la direccion de la funcion (label o funcion nativa). |
+| `r_env` | Registro con la direccion VM del bloque de entorno (0 = sin env). |
+| Resultado | `R0` = puntero raw al `RawClosureObject`, o `0` si falla. |
 
 ```c
 // Crear un raw closure que apunta a la funcion "sumar":
-mov   r1, @Absolute("code.sumar")   // r1 = direccion de la funcion
-mov   r2, 0                         // r2 = sin entorno capturado
-mkrawclosure r1, r2                 // R0 = ptr al RawClosureObject
+mov r1, @Absolute("code.sumar") // r1 = direccion de la funcion
+mov r2, 0 // r2 = sin entorno capturado
+mkrawclosure r1, r2 // R0 = ptr al RawClosureObject
 
-mov   r10, r0           // guardar el puntero
+mov r10, r0 // guardar el puntero
 
 // Preparar argumentos y llamar:
-mov   r1, 10            // primer argumento
-mov   r2, 32            // segundo argumento
-mov   r15, 2            // argc = 2 (numero de argumentos)
-callrawclosure r10      // llama sumar(10, 32); R0 = 42
+mov r1, 10 // primer argumento
+mov r2, 32 // segundo argumento
+mov r15, 2 // argc = 2 (numero de argumentos)
+callrawclosure r10 // llama sumar(10, 32); R0 = 42
 
 // Liberar el closure cuando ya no se necesita:
-free  r10               // equivalente a free() en C
+free r10 // equivalente a free() en C
 ```
 
 ### `callrawclosure r_closure` - invocar closure raw
 
 ```c
-callrawclosure r10    // invoca fn_addr del RawClosureObject en r10
+callrawclosure r10 // invoca fn_addr del RawClosureObject en r10
 ```
 
-| Parametro    | Descripcion                                          |
+| Parametro | Descripcion |
 | :----------: | :--------------------------------------------------- |
-| `r_closure`  | Registro con el host-pointer al `RawClosureObject`.  |
+| `r_closure` | Registro con el host-pointer al `RawClosureObject`. |
 
 Algoritmo:
 1. Lee `fn_addr = rc->fn_addr`.
@@ -179,12 +179,12 @@ Algoritmo:
 
 ### Convencion de llamada de `callrawclosure`
 
-| Registro | Rol                                                         |
+| Registro | Rol |
 | :------: | :---------------------------------------------------------- |
-| R1-R12   | Argumentos de entrada (establecidos por el llamante)        |
-| R0       | Valor de retorno (establecido por la funcion)               |
-| R14      | Puntero al bloque de entorno (`env_addr` del RawClosure)    |
-| R15      | Numero de argumentos (`argc`)                               |
+| R1-R12 | Argumentos de entrada (establecidos por el llamante) |
+| R0 | Valor de retorno (establecido por la funcion) |
+| R14 | Puntero al bloque de entorno (`env_addr` del RawClosure) |
+| R15 | Numero de argumentos (`argc`) |
 
 La funcion llamada accede a las variables capturadas leyendo desde la direccion en R14.
 
@@ -192,14 +192,14 @@ La funcion llamada accede a las variables capturadas leyendo desde la direccion 
 
 ## Diferencias entre los dos modelos
 
-| Criterio              | GC (`mkclosure`)                    | Raw (`mkrawclosure`)                 |
+| Criterio | GC (`mkclosure`) | Raw (`mkrawclosure`) |
 | :-------------------- | :---------------------------------- | :----------------------------------- |
-| Gestor de memoria     | GC generacional                     | RawAllocator (malloc)                |
-| Ciclo de vida         | Automatico (GC)                     | Manual (requiere `FREE`)             |
-| Requiere              | `MethodInfo*` del loader            | Cualquier direccion de funcion       |
-| Soporte THROW/CATCH   | Si (empuja `FrameHeader`)           | No (no empuja `FrameHeader`)         |
-| Variables capturadas  | Raices GC (no se recolectan)        | No rastreadas (pueden recolectarse)  |
-| Caso de uso tipico    | Lambdas OOP internas del lenguaje   | Callbacks FFI, funciones nativas     |
+| Gestor de memoria | GC generacional | RawAllocator (malloc) |
+| Ciclo de vida | Automatico (GC) | Manual (requiere `FREE`) |
+| Requiere | `MethodInfo*` del loader | Cualquier direccion de funcion |
+| Soporte THROW/CATCH | Si (empuja `FrameHeader`) | No (no empuja `FrameHeader`) |
+| Variables capturadas | Raices GC (no se recolectan) | No rastreadas (pueden recolectarse) |
+| Caso de uso tipico | Lambdas OOP internas del lenguaje | Callbacks FFI, funciones nativas |
 
 ---
 
@@ -207,17 +207,17 @@ La funcion llamada accede a las variables capturadas leyendo desde la direccion 
 
 ```
 +--------+--------+----------+----------+
-| 0x00   | opcode |  ctrl    |  regs    |
+| 0x00 | opcode | ctrl | regs |
 +--------+--------+----------+----------+
-  byte0    byte1    byte2      byte3
+    byte0 byte1 byte2 byte3
 
 byte3 para instrucciones de DOS operandos (mkclosure, mkrawclosure):
-  bits 7-4 = reg2   (nibble alto: r_env)
-  bits 3-0 = reg1   (nibble bajo: r_method o r_fn)
+    bits 7-4 = reg2 (nibble alto: r_env)
+    bits 3-0 = reg1 (nibble bajo: r_method o r_fn)
 
 byte3 para instrucciones de UN operando (callclosure, callrawclosure):
-  bits 7-4 = 0      (sin uso)
-  bits 3-0 = reg1   (registro del closure)
+    bits 7-4 = 0 (sin uso)
+    bits 3-0 = reg1 (registro del closure)
 ```
 
 ---
@@ -227,10 +227,10 @@ byte3 para instrucciones de UN operando (callclosure, callrawclosure):
 Los closures GC se integran con el sistema OOP de VestaVM:
 
 - El `ObjectHeader` del `ClosureObject` puede tener `class_ptr` apuntando a una
-  `ClassInfo` con el flag `CLASS_FLAG_CLOSURE` activado.
+ `ClassInfo` con el flag `CLASS_FLAG_CLOSURE` activado.
 - El GC escanea el array `captures` como raices adicionales durante el marcado,
-  garantizando que las variables capturadas no sean recolectadas.
+ garantizando que las variables capturadas no sean recolectadas.
 - `THROW` y `RETHROW` funcionan correctamente dentro de un lambda invocado con
-  `CALLCLOSURE` porque se empuja un `FrameHeader` con la `ret_addr`.
+ `CALLCLOSURE` porque se empuja un `FrameHeader` con la `ret_addr`.
 
 Ver tambien: [[GC]], [[NEWOBJRAW y NEWOBJ]], [[NativeCall (CallN)]]

@@ -9,15 +9,15 @@ exception-safe automatico.
 ## Indice
 
 - [Sincronizacion en Vex](#sincronizacion-en-vex)
-  - [Indice](#indice)
-  - [1. Modelo de procesos en VestaVM](#1-modelo-de-procesos-en-vestavm)
-  - [2. `synchronized (obj) { ... }`](#2-synchronized-obj---)
-  - [3. Monitores reentrantes](#3-monitores-reentrantes)
-  - [4. `wait`, `notify`, `notifyAll`](#4-wait-notify-notifyall)
-  - [5. Cleanup automatico (try/finally implicito)](#5-cleanup-automatico-tryfinally-implicito)
-  - [6. Layout runtime: ObjectHeader monitor fields](#6-layout-runtime-objectheader-monitor-fields)
-  - [7. Patron productor-consumidor](#7-patron-productor-consumidor)
-  - [8. Limitaciones](#8-limitaciones)
+ - [Indice](#indice)
+ - [1. Modelo de procesos en VestaVM](#1-modelo-de-procesos-en-vestavm)
+ - [2. `synchronized (obj) { ... }`](#2-synchronized-obj---)
+ - [3. Monitores reentrantes](#3-monitores-reentrantes)
+ - [4. `wait`, `notify`, `notifyAll`](#4-wait-notify-notifyall)
+ - [5. Cleanup automatico (try/finally implicito)](#5-cleanup-automatico-tryfinally-implicito)
+ - [6. Layout runtime: ObjectHeader monitor fields](#6-layout-runtime-objectheader-monitor-fields)
+ - [7. Patron productor-consumidor](#7-patron-productor-consumidor)
+ - [8. Limitaciones](#8-limitaciones)
 
 ---
 
@@ -48,7 +48,7 @@ class Counter {
 
 i32 main() {
     Counter c = new Counter();
-    
+ 
     // Spawn 4 procesos que incrementan c.value 1M veces cada uno
     for (i32 i = 0; i < 4; i = i + 1) {
         spawn {
@@ -60,15 +60,15 @@ i32 main() {
         };
     }
     // (esperar a los procesos...)
-    return c.value;     // = 4000000 garantizado (sin race)
+    return c.value; // = 4000000 garantizado (sin race)
 }
 ```
 
-**Lowering** (A.7.1):
+**Lowering**:
 - Convierte `obj` (host_ptr) -> GcHandle vía nuevo opcode `gchandle r_dst, r_src`
-  (0x56, O(1) lookup en `ptr_to_handle_` del GcHeap).
+ (0x56, O(1) lookup en `ptr_to_handle_` del GcHeap).
 - Emite `monenter r_handle` al entry, `monexit r_handle` al exit (en todas
-  las salidas: normal, return, throw).
+ las salidas: normal, return, throw).
 
 ---
 
@@ -79,18 +79,18 @@ Un proceso puede adquirir el monitor del MISMO objeto múltiples veces (recursiv
 ```vex
 class Counter {
     public i32 value = 0;
-    
+ 
     public void increment() {
         synchronized (this) {
             this.value = this.value + 1;
         }
     }
-    
+ 
     public void increment_twice() {
         synchronized (this) {
-            this.increment();    // reentra al mismo monitor (lock_depth = 2)
-            this.increment();    // lock_depth = 3, luego 2
-        }                        // lock_depth = 1, luego 0 (libera)
+            this.increment(); // reentra al mismo monitor (lock_depth = 2)
+            this.increment(); // lock_depth = 3, luego 2
+        } // lock_depth = 1, luego 0 (libera)
     }
 }
 ```
@@ -110,19 +110,19 @@ class Queue {
     public i32[100] data;
     public i32 head = 0;
     public i32 tail = 0;
-    
+ 
     public void produce(i32 v) {
         synchronized (this) {
             this.data[this.tail] = v;
             this.tail = (this.tail + 1) % 100;
-            notify(this);                // despierta UN consumer esperando
+            notify(this); // despierta UN consumer esperando
         }
     }
-    
+ 
     public i32 consume() {
         synchronized (this) {
             while (this.head == this.tail) {
-                wait(this);              // suelta monitor + suspende; reentry al despertar
+                wait(this); // suelta monitor + suspende; reentry al despertar
             }
             i32 v = this.data[this.head];
             this.head = (this.head + 1) % 100;
@@ -132,11 +132,11 @@ class Queue {
 }
 ```
 
-| Builtin            | Bytecode        | Comportamiento                                  |
+| Builtin | Bytecode | Comportamiento |
 | :----------------- | :-------------- | :---------------------------------------------- |
-| `wait(obj)`        | `monwait`       | Suelta monitor + suspende. Re-adquiere al wake. |
-| `notify(obj)`      | `monnoti`       | Despierta UN proceso de la cola de espera.      |
-| `notifyAll(obj)`   | `monnota`       | Despierta TODOS los procesos esperando.         |
+| `wait(obj)` | `monwait` | Suelta monitor + suspende. Re-adquiere al wake. |
+| `notify(obj)` | `monnoti` | Despierta UN proceso de la cola de espera. |
+| `notifyAll(obj)` | `monnota` | Despierta TODOS los procesos esperando. |
 
 **IMPORTANTE**: las 3 deben llamarse DENTRO de `synchronized (obj) { ... }` o
 el comportamiento es indefinido. Validación estática pendiente (hoy es runtime
@@ -147,7 +147,7 @@ check).
 ```vex
 synchronized (obj) {
     while (!condition()) {
-        wait(obj);    // protege contra spurious wakeups
+        wait(obj); // protege contra spurious wakeups
     }
     // ...usar...
 }
@@ -165,25 +165,25 @@ i32 risky() {
     Counter c = ...;
     synchronized (c) {
         if (some_cond) {
-            return c.value;    // monexit se ejecuta antes del ret
+            return c.value; // monexit se ejecuta antes del ret
         }
         if (other_cond) {
-            throw new MyException();  // monexit se ejecuta antes del throw propagado
+            throw new MyException(); // monexit se ejecuta antes del throw propagado
         }
         c.value++;
-    }                          // monexit normal aqui
+    } // monexit normal aqui
     return -1;
 }
 ```
 
-**Implementación** (A.7.1):
+**Implementación**:
 
 1. **`cleanup_stack_`** (vector<CleanupAction>) en `Lowering`. `synchronized`
-   push `tryleave + monexit` antes del body, pop después.
+ push `tryleave + monexit` antes del body, pop después.
 2. **`lower_return`** emite `emit_cleanups_all()` (LIFO) antes del RET.
 3. **Exception safety**: `tryenter catch-all` con handler que hace `monexit +
-   rethrow`. El `lower_try` refactorizado usa SSA values + `{src0}/{src1}`
-   substitution en RAW_ASM para no clobberar SSA values vivos del caller.
+ rethrow`. El `lower_try` refactorizado usa SSA values + `{src0}/{src1}`
+ substitution en RAW_ASM para no clobberar SSA values vivos del caller.
 
 Resultado: `monexit` está GARANTIZADO independientemente de cómo se sale del
 synchronized block.
@@ -193,13 +193,13 @@ synchronized block.
 ## 6. Layout runtime: ObjectHeader monitor fields
 
 ```cpp
-struct alignas(8) ObjectHeader {  // 24 bytes
-    ClassInfo *class_ptr;     // +0
-    uint32_t   flags;          // +8
-    uint32_t   hash_code;      // +12
-    uint32_t   owner_pid;      // +16  local_pid del owner del monitor (0 = libre)
-    uint16_t   lock_depth;     // +20  reentrant lock count
-    uint16_t   _mon_pad;       // +22  alignment padding
+struct alignas(8) ObjectHeader { // 24 bytes
+    ClassInfo *class_ptr; // +0
+    uint32_t flags; // +8
+    uint32_t hash_code; // +12
+    uint32_t owner_pid; // +16 local_pid del owner del monitor (0 = libre)
+    uint16_t lock_depth; // +20 reentrant lock count
+    uint16_t _mon_pad; // +22 alignment padding
 };
 ```
 
@@ -207,12 +207,12 @@ struct alignas(8) ObjectHeader {  // 24 bytes
 - Si `owner_pid == 0` (libre) -> CAS a current_pid, `lock_depth = 1`.
 - Si `owner_pid == current_pid` (reentry) -> `lock_depth++`.
 - Si `owner_pid != current_pid` (held by otro) -> push current_proc a la
-  wait queue del monitor, suspend (state = BLOCKED).
+ wait queue del monitor, suspend (state = BLOCKED).
 
 `monexit`:
 - `lock_depth--`.
 - Si `lock_depth == 0` -> `owner_pid = 0`, despertar el siguiente en la wait
-  queue (FIFO).
+ queue (FIFO).
 
 ---
 
@@ -222,26 +222,26 @@ struct alignas(8) ObjectHeader {  // 24 bytes
 class Channel {
     public i32 buf = 0;
     public bool full = false;
-    
+ 
     public void put(i32 v) {
         synchronized (this) {
             while (this.full) {
-                wait(this);              // espera espacio libre
+                wait(this); // espera espacio libre
             }
             this.buf = v;
             this.full = true;
-            notify(this);                // despierta consumidor
+            notify(this); // despierta consumidor
         }
     }
-    
+ 
     public i32 take() {
         synchronized (this) {
             while (!this.full) {
-                wait(this);              // espera dato disponible
+                wait(this); // espera dato disponible
             }
             i32 v = this.buf;
             this.full = false;
-            notify(this);                // despierta productor
+            notify(this); // despierta productor
             return v;
         }
     }
@@ -249,18 +249,18 @@ class Channel {
 
 i32 main() {
     Channel ch = new Channel();
-    
+ 
     spawn {
         for (i32 i = 0; i < 100; i = i + 1) {
             ch.put(i);
         }
     };
-    
+ 
     i32 sum = 0;
     for (i32 i = 0; i < 100; i = i + 1) {
         sum = sum + ch.take();
     }
-    return sum;        // = 4950 (sum 0..99)
+    return sum; // = 4950 (sum 0..99)
 }
 ```
 
@@ -269,23 +269,23 @@ i32 main() {
 ## 8. Limitaciones
 
 1. **Validación estática wait/notify**: el compilador no verifica que `wait`/
-   `notify`/`notifyAll` se llamen dentro de `synchronized (obj)`. Solo runtime
-   check (falla con FATAL si se llaman fuera del monitor).
+ `notify`/`notifyAll` se llamen dentro de `synchronized (obj)`. Solo runtime
+ check (falla con FATAL si se llaman fuera del monitor).
 
 2. **No hay `tryLock(obj, timeout)`** equivalente. `synchronized` siempre
-   bloquea hasta adquirir. Workaround: spawn child + `await fut con timeout`.
+ bloquea hasta adquirir. Workaround: spawn child + `await fut con timeout`.
 
 3. **No hay `condition variables` separadas**: cada monitor tiene UNA cola
-   de espera única. Para múltiples conditions, usar varios objetos lock o
-   pasar mensajes via mailbox.
+ de espera única. Para múltiples conditions, usar varios objetos lock o
+ pasar mensajes via mailbox.
 
 4. **Sincronización cross-node** (distrib): `synchronized` es local al nodo
-   (mismo VM). Para cross-node, usar `rspawn` + futures + `msgsend` (sin
-   shared memory).
+ (mismo VM). Para cross-node, usar `rspawn` + futures + `msgsend` (sin
+ shared memory).
 
 5. **Reentrancia profunda no validada**: `lock_depth` es u16 (max 65535
-   reentradas). Recursión infinita en `synchronized (this)` desborda
-   silenciosamente.
+ reentradas). Recursión infinita en `synchronized (this)` desborda
+ silenciosamente.
 
 ---
 

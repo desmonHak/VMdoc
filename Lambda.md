@@ -1,7 +1,7 @@
 # Lambdas y Closures en VestaVM
 
 VestaVM soporta funciones anonimas (lambdas) y closures como ciudadanos
-de primera clase del sistema de tipos.  Se implementan mediante dos modelos
+de primera clase del sistema de tipos. Se implementan mediante dos modelos
 complementarios segun el contexto de uso:
 
 ---
@@ -15,9 +15,9 @@ complementarios segun el contexto de uso:
 
 ```c
 // El loader ha puesto el MethodInfo* del lambda en r9
-mov   r8, 0
-mkclosure r9, r8       // R0 = GcHandle del ClosureObject
-callclosure r0         // invocar el lambda; ret_addr en pila; FrameHeader creado
+mov r8, 0
+mkclosure r9, r8 // R0 = GcHandle del ClosureObject
+callclosure r0 // invocar el lambda; ret_addr en pila; FrameHeader creado
 ```
 
 ---
@@ -30,38 +30,38 @@ callclosure r0         // invocar el lambda; ret_addr en pila; FrameHeader cread
 - Adecuado para callbacks FFI y funciones nativas registradas dinamicamente.
 
 ```c
-mov   r1, @Absolute("all.mi_funcion")
-mov   r2, 0                        ; sin entorno capturado
-mkrawclosure r1, r2                ; R0 = puntero raw al RawClosureObject
+mov r1, @Absolute("all.mi_funcion")
+mov r2, 0 ; sin entorno capturado
+mkrawclosure r1, r2 ; R0 = puntero raw al RawClosureObject
 
-mov   r10, r0
-mov   r1, 42                       ; argumento
-mov   r15, 1                       ; argc
-callrawclosure r10                 ; invoca mi_funcion; env en R14
+mov r10, r0
+mov r1, 42 ; argumento
+mov r15, 1 ; argc
+callrawclosure r10 ; invoca mi_funcion; env en R14
 ```
 
 ---
 
 ## Tabla comparativa
 
-| Criterio              | Modelo GC              | Modelo Raw              |
+| Criterio | Modelo GC | Modelo Raw |
 | :-------------------- | :--------------------- | :---------------------- |
-| Instrucciones         | `mkclosure/callclosure`| `mkrawclosure/callrawclosure` |
-| Gestiona el GC        | Si                     | No (manual con FREE)    |
-| Requiere MethodInfo*  | Si (del loader)        | No                      |
-| Soporte THROW/CATCH   | Si (FrameHeader)       | No                      |
-| Uso tipico            | Lambdas OOP internos   | Callbacks FFI           |
+| Instrucciones | `mkclosure/callclosure`| `mkrawclosure/callrawclosure` |
+| Gestiona el GC | Si | No (manual con FREE) |
+| Requiere MethodInfo* | Si (del loader) | No |
+| Soporte THROW/CATCH | Si (FrameHeader) | No |
+| Uso tipico | Lambdas OOP internos | Callbacks FFI |
 
 ---
 
 ## Documentacion detallada
 
 - [[SetInstruccionesVM/CLOSURE.md]] - Referencia completa de las cuatro
-  instrucciones con codificacion binaria, algoritmos y ejemplos.
+ instrucciones con codificacion binaria, algoritmos y ejemplos.
 
 ## Ejemplos
 
 - [[../../examples_codes_vm/ejemplo_closure_raw.vel]] - Ejemplo ejecutable
-  del modelo raw: closure que suma dos enteros.
+ del modelo raw: closure que suma dos enteros.
 - [[../../examples_codes_vm/ejemplo_closure_gc.vel]] - Esqueleto conceptual
-  del modelo GC con MethodInfo del loader.
+ del modelo GC con MethodInfo del loader.

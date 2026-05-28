@@ -3,15 +3,15 @@
 Vex tiene un sistema de metaprogramacion compile-time potente que combina:
 
 - **Macros** (`@Macro`) que ejecutan codigo arbitrario en tiempo de compilacion
-  y emiten codigo Vex que se inyecta en el call site.
+ y emiten codigo Vex que se inyecta en el call site.
 - **Captura raw** de expresiones (`expr` param) para crear DSLs embebidos.
 - **Introspeccion** de tipos con cero overhead runtime (sizeof, alignof,
-  typename, kind, field_count, etc.).
+ typename, kind, field_count, etc.).
 - **FFI compile-time** que invoca DLLs del sistema u funciones in-process
-  durante la compilacion -- los resultados se "fosilizan" como literales en
-  el binario.
+ durante la compilacion -- los resultados se "fosilizan" como literales en
+ el binario.
 - **Estructuras de datos** del lenguaje (arrays, structs, strings) usables
-  dentro del cuerpo de un macro.
+ dentro del cuerpo de un macro.
 
 Todo en compile-time, sin runtime cost: cuando el `.velb` carga, todos los
 macros ya estan resueltos. El binario solo contiene el codigo generado.
@@ -45,7 +45,7 @@ comptime string double_it(i64 n) {
 }
 
 i32 main() {
-    i32 r = double_it(21);  // se compila como `i32 r = 42`
+    i32 r = double_it(21); // se compila como `i32 r = 42`
     return r;
 }
 ```
@@ -92,7 +92,7 @@ comptime string walk(expr code) {
 }
 
 i32 main() {
-    u64 v = walk(root -> 0x100 -> 0x10);   // sintaxis arbitraria valida
+    u64 v = walk(root -> 0x100 -> 0x10); // sintaxis arbitraria valida
     return 42;
 }
 ```
@@ -101,7 +101,7 @@ i32 main() {
 
 - Captura hasta la siguiente coma a depth 0 o el `)` que cierra la llamada.
 - Tracking de paren/bracket/brace: subexpresiones con comas internas
-  funcionan (`f(walk(a, b), c)` captura `a, b` como una sola expr).
+ funcionan (`f(walk(a, b), c)` captura `a, b` como una sola expr).
 - El macro debe estar declarado **antes** de su uso en el archivo.
 - Trim automatico de whitespace al final del span capturado.
 
@@ -188,10 +188,10 @@ El AST evaluator de macros soporta operadores nativos y builtins cortos.
 ```vex
 // Verbose (legacy):
 return comptime_concat(
-    "( *(u64*)((u64)",
-    comptime_concat(current,
-    comptime_concat(" + ",
-    comptime_concat(tok, ") )"))));
+"( *(u64*)((u64)",
+comptime_concat(current,
+comptime_concat(" + ",
+comptime_concat(tok, ") )"))));
 
 // Compacto (preferido):
 return "( *(u64*)((u64)" + current + " + " + tok + ") )";
@@ -208,25 +208,25 @@ Builtins **zero-overhead** que se resuelven en compile-time a un solo
 literal en el `.velb`:
 
 ```vex
-// Tamano y alineamiento.
-u64 sz_i64    = sizeof<i64>();      // 8
-u64 sz_punto  = sizeof<Punto>();    // suma de fields
-u64 al_f64    = alignof<f64>();     // 8
+// Tamaño y alineamiento.
+u64 sz_i64 = sizeof<i64>(); // 8
+u64 sz_punto = sizeof<Punto>(); // suma de fields
+u64 al_f64 = alignof<f64>(); // 8
 
 // Nombre canonico y hash.
-string name   = typename<i32>();    // "i32"
-u32    id     = type_id<i32>();     // hash FNV-1a estable cross-build
+string name = typename<i32>(); // "i32"
+u32 id = type_id<i32>(); // hash FNV-1a estable cross-build
 
 // Kind del tipo.
-i32 k = kind<Punto>();              // STRUCT / CLASS / Primitive / etc.
+i32 k = kind<Punto>(); // STRUCT / CLASS / Primitive / etc.
 
 // Solo en tipos compuestos:
-u32 nf  = field_count<Punto>();
-u32 nm  = method_count<Animal>();
+u32 nf = field_count<Punto>();
+u32 nm = method_count<Animal>();
 u64 off = offsetof<Punto>("y");
 bool hf = has_field<Punto>("z");
 bool hm = has_method<Animal>("speak");
-string fn = field_name<Punto>(0);   // "x"
+string fn = field_name<Punto>(0); // "x"
 string ft = field_type<Punto>("x"); // "i64"
 
 // Predicates de categoria.
@@ -234,9 +234,16 @@ bool ic = is_class<Animal>();
 bool is = is_struct<Punto>();
 bool ip = is_primitive<i32>();
 
+// Newtypes (typedef T name new).
+bool nt = is_newtype<user_id>(); // true si user_id es typedef new
+bool op = is_opaque<session_id>(); // true si es @opaque
+string un = underlying_of<user_id>(); // "u64" -- nombre del underlying
+
 // Relaciones.
-bool sub  = is_subtype<Perro, Animal>();
-bool same = is_same<i32, i32>();
+bool sub = is_subtype<Perro, Animal>();
+bool same = is_same<i32, i32>(); // compara identidad nominal:
+// is_same<user_id, group_id> = false
+// aunque ambos sean u64
 ```
 
 **Verificacion empirica**: cada llamada baja a un solo `CONST` IR op
@@ -264,7 +271,7 @@ comptime for (i in 0..N) {
 comptime string dump_fields() {
     for_each_field<Punto>((string name) => {
         // body invocado UNA vez por campo en compile-time
-    });
+});
     return "...";
 }
 ```
@@ -275,11 +282,11 @@ veces en compile-time, una por cada field/method. Sin loop runtime.
 ### `field_get<T>` y `field_set<T>` directos
 
 ```vex
-i32 val = field_get<Punto>(p, "x");      // baja a LOAD directo al offset
-field_set<Punto>(p, "y", 100);            // baja a STORE directo al offset
+i32 val = field_get<Punto>(p, "x"); // baja a LOAD directo al offset
+field_set<Punto>(p, "y", 100); // baja a STORE directo al offset
 ```
 
-Bypass del path getfield/setfield virtual.  Util cuando el tipo es conocido
+Bypass del path getfield/setfield virtual. Util cuando el tipo es conocido
 en compile-time.
 
 ---
@@ -309,7 +316,7 @@ comptime string fib_at(i64 idx) {
     return to_str(fibs[idx]);
 }
 
-i64 f10 = fib_at(10);   // se reemplaza por el literal 55
+i64 f10 = fib_at(10); // se reemplaza por el literal 55
 ```
 
 ### Structs anidados
@@ -340,10 +347,10 @@ comptime string lookup(i64 key) {
         if (keys[i] == key) return to_str(vals[i]);
         i = i + 1;
     }
-    return "-1";  // not found
+    return "-1"; // not found
 }
 
-i64 v = lookup(5);   // se compila como `i64 v = 555;`
+i64 v = lookup(5); // se compila como `i64 v = 555;`
 ```
 
 Busqueda lineal O(N) pero solo en compile-time. Para N < 100 entries la
@@ -374,7 +381,7 @@ i64 s = sum_squares(4);
 @Macro
 comptime string trace_3x3() {
     i64 mat[9] = {1, 2, 3, 4, 5, 6, 7, 8, 9};
-    return to_str(mat[0] + mat[4] + mat[8]);  // diagonal -> "15"
+    return to_str(mat[0] + mat[4] + mat[8]); // diagonal -> "15"
 }
 ```
 
@@ -396,7 +403,7 @@ comptime string switch_gen() {
 
 i64 sw = switch_gen();
 // Se compila como ternario anidado:
-//   ((x == 1) ? 10 : ((x == 2) ? 20 : ((x == 3) ? 30 : 0)))
+// ((x == 1) ? 10 : ((x == 2) ? 20 : ((x == 3) ? 30 : 0)))
 ```
 
 ---
@@ -417,9 +424,9 @@ extern "kernel32.dll" {
 // Huella unica por compilacion.
 @Macro
 comptime string build_id() {
-    u64 pid  = GetCurrentProcessId();   // FFI en compile-time
-    u64 tick = GetTickCount();          // FFI en compile-time
-    u64 mix  = (pid * 31) ^ (tick * 17);
+    u64 pid = GetCurrentProcessId(); // FFI en compile-time
+    u64 tick = GetTickCount(); // FFI en compile-time
+    u64 mix = (pid * 31) ^ (tick * 17);
     return to_str(mix);
 }
 
@@ -434,15 +441,15 @@ i32 main() {
 **Diferencias clave**:
 
 - **FFI runtime**: el `.velb` contiene `calln @Method("kernel32.dll:Get...")`.
-  La llamada se ejecuta cada vez que el programa corre.
+ La llamada se ejecuta cada vez que el programa corre.
 - **FFI compile-time** (este patron): el `.velb` contiene solo
-  `mov rN, <literal>`. La llamada se hizo UNA vez al compilar. No hay
-  referencia a la DLL en el binario.
+ `mov rN, <literal>`. La llamada se hizo UNA vez al compilar. No hay
+ referencia a la DLL en el binario.
 
 **Capabilities** del FFI compile-time:
 
 - Hasta 12 argumentos primitivos (`int`, `bool`, `char`, `null`, `string literal`,
-  `float bitcast`).
+ `float bitcast`).
 - Return types soportados: `STRING`, `F32`, `F64`, `int`, `bool`, `char`, `ptr`.
 - Strings interpolados (`"a=${a}"`) son validos como argumentos.
 - Strings literales se pasan como `c_str` (null-terminated host pointer).
@@ -462,7 +469,7 @@ static_assert(sizeof<u32>() == 4, "u32 debe ser 4 bytes");
 @Macro
 comptime string size_table() {
     static_assert(sizeof<u64>() + sizeof<u32>() == 12, "size mismatch");
-    return to_str(sizeof<u64>() + sizeof<u32>());  // "12"
+    return to_str(sizeof<u64>() + sizeof<u32>()); // "12"
 }
 ```
 
@@ -478,9 +485,9 @@ Funciones disponibles:
 @Macro
 comptime string demo_virtual_lib() {
     // Queries de tipos via virtual lib (sin extern explicito).
-    u64 sz = comptime_type_sizeof("u64");      // 8
-    u64 al = comptime_type_alignof("f64");     // 8
-    u32 k  = comptime_type_kind("Punto");      // STRUCT
+    u64 sz = comptime_type_sizeof("u64"); // 8
+    u64 al = comptime_type_alignof("f64"); // 8
+    u32 k = comptime_type_kind("Punto"); // STRUCT
     return to_str(sz);
 }
 ```
@@ -514,7 +521,7 @@ comptime string fact(i64 n) {
     return to_str(r);
 }
 
-i64 f10 = fact(10);   // se compila como `i64 f10 = 3628800;`
+i64 f10 = fact(10); // se compila como `i64 f10 = 3628800;`
 ```
 
 `@Pure` permite que el compilador cachee resultados de invocaciones
@@ -620,15 +627,15 @@ soportado en la VM eval -- cae al AST evaluator.
 
 - [TiposDatos.md](./TiposDatos.md) -- tipos primitivos, structs, arrays.
 - [Strings.md](./Strings.md) -- builtins de string runtime (compatibles
-  con los comptime).
+ con los comptime).
 - [FFI.md](./FFI.md) -- FFI runtime tradicional.
 - [ReflexionAOP.md](./ReflexionAOP.md) -- reflexion runtime (`forName`,
-  `getClass`, AOP advice).
+ `getClass`, AOP advice).
 - [examples_codes_vex/159_macro_expr_capture.vex](../../../examples_codes_vex/159_macro_expr_capture.vex)
-  -- demo de `expr` capture.
+ -- demo de `expr` capture.
 - [examples_codes_vex/160_macro_walk_pchase.vex](../../../examples_codes_vex/160_macro_walk_pchase.vex)
-  -- macro `walk` real con DSL.
+ -- macro `walk` real con DSL.
 - [examples_codes_vex/161_macro_ffi_compile_time.vex](../../../examples_codes_vex/161_macro_ffi_compile_time.vex)
-  -- FFI a kernel32 + virtual lib.
+ -- FFI a kernel32 + virtual lib.
 - [examples_codes_vex/162_macro_comptime_data.vex](../../../examples_codes_vex/162_macro_comptime_data.vex)
-  -- arrays, structs, dict via arrays paralelos.
+ -- arrays, structs, dict via arrays paralelos.

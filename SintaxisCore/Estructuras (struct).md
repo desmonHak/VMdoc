@@ -25,7 +25,7 @@ struct Punto {
 };
 
 // Uso: siempre hay que escribir "struct Punto"
-struct Punto p1 = { 1, 2 };  // inicializar con valores
+struct Punto p1 = { 1, 2 }; // inicializar con valores
 struct Punto p2;
 p2.x = 10;
 p2.y = 20;
@@ -63,7 +63,7 @@ typedef struct Punto {
 } Punto;
 
 // Ambas formas son validas:
-Punto        p1 = { 1, 2 };
+Punto p1 = { 1, 2 };
 struct Punto p2 = { 3, 4 };
 ```
 
@@ -88,7 +88,7 @@ typedef struct {
     uint8_t x;
     uint8_t y;
     struct {
-        float z;  // campo z en una sub-estructura anonima
+        float z; // campo z en una sub-estructura anonima
     } coord3d;
 } Punto3D;
 
@@ -121,7 +121,7 @@ Punto sumar(Punto a, Punto b) {
 // Uso
 Punto p1 = { 1, 2 };
 Punto p2 = { 3, 4 };
-Punto suma = sumar(p1, p2);  // suma.x = 4, suma.y = 6
+Punto suma = sumar(p1, p2); // suma.x = 4, suma.y = 6
 ```
 
 ---
@@ -148,7 +148,7 @@ struct Rectangulo {
     // Metodo con referencia
     bool contiene(Punto p) {
         return p.x >= esq_sup.x && p.x <= esq_inf.x &&
-               p.y >= esq_sup.y && p.y <= esq_inf.y;
+        p.y >= esq_sup.y && p.y <= esq_inf.y;
     }
 }
 
@@ -157,7 +157,7 @@ Punto a = { 0, 0 };
 Punto b = { 10, 10 };
 Rectangulo r = Rectangulo(a, b);
 
-float superficie = r.area();         // 100.0
+float superficie = r.area(); // 100.0
 bool dentro = r.contiene({ 5, 5 }); // true
 ```
 
@@ -165,13 +165,13 @@ bool dentro = r.contiene({ 5, 5 }); // true
 
 ## Struct vs Clase OOP
 
-| Caracteristica          | struct                          | class (OOP)                        |
+| Caracteristica | struct | class (OOP) |
 | :---------------------- | :------------------------------ | :--------------------------------- |
-| Hereda de Object        | No (por defecto)                | Si (por defecto)                   |
-| Metodos virtuales       | No                              | Si                                 |
-| GC automatico           | No (manual o stack)             | Si (heap GC)                       |
-| Overhead por objeto     | 0 bytes (solo los campos)       | 24 bytes (ObjectHeader)            |
-| Uso tipico              | Datos simples, FFI, geometria   | Entidades con comportamiento rico  |
+| Hereda de Object | No (por defecto) | Si (por defecto) |
+| Metodos virtuales | No | Si |
+| GC automatico | No (manual o stack) | Si (heap GC) |
+| Overhead por objeto | 0 bytes (solo los campos) | 24 bytes (ObjectHeader) |
+| Uso tipico | Datos simples, FFI, geometria | Entidades con comportamiento rico |
 
 ---
 
@@ -182,17 +182,17 @@ Los campos de un struct se almacenan de forma contigua. Para `struct Punto { uin
 ```
 offset 0: x (1 byte)
 offset 1: y (1 byte)
-total:     2 bytes
+total: 2 bytes
 ```
 
 El compilador puede anadir **padding** (relleno) para alinear los campos a sus
-tamanos naturales:
+tamaños naturales:
 
 ```c
 struct EjemploAlineacion {
-    uint8_t  a;   // offset 0, 1 byte
+    uint8_t a; // offset 0, 1 byte
     // 7 bytes de padding aqui (para alinear b a 8 bytes)
-    uint64_t b;   // offset 8, 8 bytes
+    uint64_t b; // offset 8, 8 bytes
 };
 // sizeof = 16, no 9
 ```
@@ -206,11 +206,11 @@ almacenada en `r1` seria:
 
 ```c
 // Leer el campo x (offset 0) del Punto apuntado por r1:
-// xchg cur0, r1              // cur0 apunta al struct
-// readcur cur0, r0b          // leer 1 byte (uint8_t) en r0
+// xchg cur0, r1 // cur0 apunta al struct
+// readcur cur0, r0b // leer 1 byte (uint8_t) en r0
 ```
 
-El compilador calcula los offsets automaticamente basandose en el tamano de cada campo.
+El compilador calcula los offsets automaticamente basandose en el tamaño de cada campo.
 
 ---
 

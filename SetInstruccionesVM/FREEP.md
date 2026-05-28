@@ -4,9 +4,9 @@
 llamar a `FREEP`, las direcciones virtuales de esa pagina dejan de ser accesibles y
 cualquier intento de leer o escribir en ellas produce un error de acceso a memoria.
 
-| Instruccion | opcode0 | opcode1 | Tamano  | Descripcion                              |
+| Instruccion | opcode0 | opcode1 | Tamaño | Descripcion |
 | :---------: | :-----: | :-----: | :-----: | :--------------------------------------- |
-| `freep`     |  0x00   |  0x0B   | 2 bytes | Liberar la pagina cuya dir esta en R0    |
+| `freep` | 0x00 | 0x0B | 2 bytes | Liberar la pagina cuya dir esta en R0 |
 
 ---
 
@@ -14,9 +14,9 @@ cualquier intento de leer o escribir en ellas produce un error de acceso a memor
 
 ```c
 // Suponer que la pagina en 0x1000 fue reservada anteriormente con RESBP
-mov   r0, 0x1000    // R0 = direccion virtual de la pagina a liberar
-freep               // la pagina 0x1000-0x1FFF queda liberada
-                    // ya no se puede leer ni escribir en ese rango
+mov r0, 0x1000 // R0 = direccion virtual de la pagina a liberar
+freep // la pagina 0x1000-0x1FFF queda liberada
+// ya no se puede leer ni escribir en ese rango
 ```
 
 ---
@@ -24,11 +24,11 @@ freep               // la pagina 0x1000-0x1FFF queda liberada
 ## Notas
 
 - `FREEP` solo puede liberar paginas reservadas por la instancia actual. No puede
-  liberar paginas del manager ni de otras instancias.
+ liberar paginas del manager ni de otras instancias.
 - Si la direccion en R0 no corresponde a una pagina reservada, el comportamiento
-  es un no-op o genera un error de permiso segun la configuracion.
+ es un no-op o genera un error de permiso segun la configuracion.
 - Tras `FREEP`, cualquier acceso a las direcciones liberadas produce
-  `THREAD_SEGMENTATION_FAULT` (violacion de segmento).
+ `THREAD_SEGMENTATION_FAULT` (violacion de segmento).
 
 ---
 

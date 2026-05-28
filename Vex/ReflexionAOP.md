@@ -31,7 +31,7 @@ del `ClassRegistry`.
 
 ```java
 Animal a = new Animal("Rex", 5);
-Class cls = getClass(a);    // equivalente a a.getClass() en Java
+Class cls = getClass(a); // equivalente a a.getClass() en Java
 ```
 
 Baja a un `LOAD i64` desde `obj + 0` (campo `class_ptr` del `ObjectHeader`). Cero overhead.
@@ -44,7 +44,7 @@ Class cls1 = forName("Animal");
 Class cls2 = getClass(a);
 
 if (cls1 == cls2) {
-    println("Mismo ClassInfo*");    // true: un solo objeto ClassInfo por clase
+    println("Mismo ClassInfo*"); // true: un solo objeto ClassInfo por clase
 }
 ```
 
@@ -112,11 +112,11 @@ Baja a la instruccion `findmethod` (0xCD). O(1) amortizado via tabla hash en
 ### `invoke(method, this, args...)` — invocar dinamicamente
 
 ```java
-Class cls    = forName("Calculadora");
-Object obj   = newInstance(cls);     // crear instancia sin constructor
-Method m     = getMethod(cls, "doblar");
-i64 resultado = invoke(m, obj, 21);   // doblar(21) = 42
-println("${resultado}");              // 42
+Class cls = forName("Calculadora");
+Object obj = newInstance(cls); // crear instancia sin constructor
+Method m = getMethod(cls, "doblar");
+i64 resultado = invoke(m, obj, 21); // doblar(21) = 42
+println("${resultado}"); // 42
 ```
 
 Baja a la instruccion `callm` (0xFD). Recorre `MethodInfo::advice_chain` igual que
@@ -137,11 +137,11 @@ class Calculadora {
 
 i32 main(string[] args) {
     // Todo dinamico: sin conocer el tipo en compile time
-    Class cls     = forName("Calculadora");
-    Object obj    = newInstance(cls);
-    Method m      = getMethod(cls, "doblar");
+    Class cls = forName("Calculadora");
+    Object obj = newInstance(cls);
+    Method m = getMethod(cls, "doblar");
     i64 resultado = invoke(m, obj, 21);
-    println("resultado = ${resultado}");   // 42
+    println("resultado = ${resultado}"); // 42
     return (i32)resultado;
 }
 ```
@@ -151,8 +151,8 @@ i32 main(string[] args) {
 ## `newInstance(cls)` — instanciacion sin constructor
 
 ```java
-Class cls   = forName("Animal");
-Object inst = newInstance(cls);    // tipo declarado: i64 (GcHandle/host_ptr)
+Class cls = forName("Animal");
+Object inst = newInstance(cls); // tipo declarado: i64 (GcHandle/host_ptr)
 ```
 
 Equivale a `Class.newInstance()` en Java: aloca el objeto en el GC heap con todos los
@@ -169,14 +169,14 @@ Baja a la instruccion `NEWOBJ` (mismo que `new ClassName()`), pero omitiendo el
 
 ## Tabla de builtins de reflexion
 
-| Builtin                    | Instruccion bytecode | Coste          | Descripcion                         |
+| Builtin | Instruccion bytecode | Coste | Descripcion |
 | :------------------------- | :------------------- | :------------- | :---------------------------------- |
-| `forName("X")`             | `findclass` 0xCC     | O(1) hash      | ClassInfo* por nombre               |
-| `getClass(obj)`            | `LOAD i64 [obj+0]`   | O(1) puntero   | ClassInfo* desde ObjectHeader       |
-| `getField(cls, "name")`    | `findfield` 0xCF     | O(1) hash      | FieldInfo* por nombre               |
-| `getMethod(cls, "name")`   | `findmethod` 0xCD    | O(1) hash      | MethodInfo* por nombre              |
-| `newInstance(cls)`         | `NEWOBJ`             | GC alloc       | Objeto sin constructor              |
-| `invoke(m, this, args...)` | `callm` 0xFD         | vtable + chain | Invoke dinamico con AOP             |
+| `forName("X")` | `findclass` 0xCC | O(1) hash | ClassInfo* por nombre |
+| `getClass(obj)` | `LOAD i64 [obj+0]` | O(1) puntero | ClassInfo* desde ObjectHeader |
+| `getField(cls, "name")` | `findfield` 0xCF | O(1) hash | FieldInfo* por nombre |
+| `getMethod(cls, "name")` | `findmethod` 0xCD | O(1) hash | MethodInfo* por nombre |
+| `newInstance(cls)` | `NEWOBJ` | GC alloc | Objeto sin constructor |
+| `invoke(m, this, args...)` | `callm` 0xFD | vtable + chain | Invoke dinamico con AOP |
 
 ---
 
@@ -207,8 +207,8 @@ class Servicio {
 
 i32 main(string[] args) {
     Servicio s = new Servicio();
-    i64 r = s.calcular(21);   // imprime "Entrando..." + ejecuta + imprime "Saliendo..."
-    println("${r}");          // 42
+    i64 r = s.calcular(21); // imprime "Entrando..." + ejecuta + imprime "Saliendo..."
+    println("${r}"); // 42
     return 0;
 }
 ```
@@ -240,12 +240,12 @@ CALLVIRT r_obj, vtable_slot
     |
     +-- AdviceEntry* chain = method->advice_chain
     |
-    +-- chain == NULL?  --> dispatch directo (fast path, overhead CERO)
+    +-- chain == NULL? --> dispatch directo (fast path, overhead CERO)
     |
-    +-- chain != NULL?  --> ejecutar cadena:
-         1. BEFOREs en orden de registro
-         2. Metodo target (o AROUND si existe)
-         3. AFTERs en orden inverso de registro
+    +-- chain != NULL? --> ejecutar cadena:
+    1. BEFOREs en orden de registro
+    2. Metodo target (o AROUND si existe)
+    3. AFTERs en orden inverso de registro
 ```
 
 El `MethodInfo::advice_chain` es `NULL` por defecto. Solo cuando se registra un aspecto
@@ -254,11 +254,11 @@ SIN aspectos tiene exactamente el mismo coste que antes de introducir AOP.
 
 ### Anotaciones de pointcut
 
-| Anotacion                 | Efecto                                               |
+| Anotacion | Efecto |
 | :------------------------ | :--------------------------------------------------- |
-| `@Before("Cls.met")`      | Consejo ejecutado ANTES del metodo objetivo          |
-| `@After("Cls.met")`       | Consejo ejecutado DESPUES del metodo objetivo        |
-| `@Around("Cls.met")`      | Intercepta; usa `proceed()` para invocar el objetivo |
+| `@Before("Cls.met")` | Consejo ejecutado ANTES del metodo objetivo |
+| `@After("Cls.met")` | Consejo ejecutado DESPUES del metodo objetivo |
+| `@Around("Cls.met")` | Intercepta; usa `proceed()` para invocar el objetivo |
 
 El pointcut es un string `"NombreClase.nombreMetodo"` exacto (no es glob en el MVP
 actual; coincidencia exacta via `findclass` + `findmethod`).
@@ -280,7 +280,7 @@ actual; coincidencia exacta via `findclass` + `findmethod`).
     @Around("BD.query")
     public i64 medir_query() {
         println("[Around] midiendo...");
-        i64 r = proceed();    // invocar BD.query original
+        i64 r = proceed(); // invocar BD.query original
         println("[Around] resultado = ${r}");
         return r;
     }
@@ -288,15 +288,15 @@ actual; coincidencia exacta via `findclass` + `findmethod`).
 
 class BD {
     public i64 query(i64 param) {
-        println("  ejecutando query con ${param}");
+        println(" ejecutando query con ${param}");
         return param * 3;
     }
 }
 
 i32 main(string[] args) {
     BD bd = new BD();
-    i64 r = bd.query(14);    // salida ordenada: Before -> Around -> query -> Around -> After
-    println("resultado final: ${r}");   // 42
+    i64 r = bd.query(14); // salida ordenada: Before -> Around -> query -> Around -> After
+    println("resultado final: ${r}"); // 42
     return 0;
 }
 ```
@@ -305,7 +305,7 @@ Salida esperada:
 ```
 [Antes] query iniciado
 [Around] midiendo...
-  ejecutando query con 14
+    ejecutando query con 14
 [Around] resultado = 42
 [Despues] query completado
 resultado final: 42
@@ -317,17 +317,17 @@ El compiler Vex genera en `__module_init` la instalacion de cada aspecto:
 
 ```c
 // Para @Before("BD.query"):
-findclass r1, params_BD          // r1 = ClassInfo* de BD
-findmethod r2, params_query      // r2 = MethodInfo* de BD.query
-findclass r3, params_Instr       // r3 = ClassInfo* de Instrumentacion
-findmethod r4, params_antes      // r4 = MethodInfo* de antes_query
-addadvice r2, r4, 0              // kind=0 (BEFORE)
+findclass r1, params_BD // r1 = ClassInfo* de BD
+findmethod r2, params_query // r2 = MethodInfo* de BD.query
+findclass r3, params_Instr // r3 = ClassInfo* de Instrumentacion
+findmethod r4, params_antes // r4 = MethodInfo* de antes_query
+addadvice r2, r4, 0 // kind=0 (BEFORE)
 
 // Para @After("BD.query"):
-addadvice r2, r5, 1              // kind=1 (AFTER)
+addadvice r2, r5, 1 // kind=1 (AFTER)
 
 // Para @Around("BD.query"):
-addadvice r2, r6, 2              // kind=2 (AROUND)
+addadvice r2, r6, 2 // kind=2 (AROUND)
 ```
 
 La instruccion `addadvice` (0xCE) enlaza el `AdviceEntry` al final del `advice_chain`
@@ -335,7 +335,7 @@ del metodo objetivo. El orden de registro determina el orden de ejecucion.
 
 ---
 
-## Polimorfismo via tipo interfaz (A.5.2.b)
+## Polimorfismo via tipo interfaz
 
 Cuando el receptor de un metodo esta tipado como interfaz, el lowering emite
 `getclass + findmethod + callm` en lugar de `callvirt vtable_idx`:
@@ -356,11 +356,11 @@ class ImplB : ICalculadora {
 }
 
 void usar(ICalculadora calc) {
-    println("${calc.calcular(5)}");   // callm: dispatch correcto segun tipo real
+    println("${calc.calcular(5)}"); // callm: dispatch correcto segun tipo real
 }
 
-usar(new ImplA());   // 15
-usar(new ImplB());   // 10
+usar(new ImplA()); // 15
+usar(new ImplB()); // 10
 ```
 
 El `callm` recorre el `advice_chain` igual que `CALLVIRT`, por lo que los aspectos
@@ -370,18 +370,18 @@ aplicados a los metodos concretos siguen funcionando aunque el tipo estatico sea
 
 ## Consideraciones de rendimiento
 
-| Patron                      | Coste                                    |
+| Patron | Coste |
 | :-------------------------- | :--------------------------------------- |
-| `obj.method()` tipo estatico| CALLVIRT: 1 lookup vtable + jmp          |
-| `invoke(m, obj, args)`      | CALLM: mismo que CALLVIRT (via chain)    |
-| `forName("X")`              | findclass: O(1) en unordered_map         |
-| `getClass(obj)`             | LOAD obj+0: 1 indireccion               |
-| `getField(cls, "f")`        | findfield: O(1) tabla hash              |
-| Sin advices (chain==NULL)   | 1 cmp + jmp predicted: overhead cero    |
-| Con N advices               | N CALLVIRT adicionales en cadena lineal |
+| `obj.method()` tipo estatico| CALLVIRT: 1 lookup vtable + jmp |
+| `invoke(m, obj, args)` | CALLM: mismo que CALLVIRT (via chain) |
+| `forName("X")` | findclass: O(1) en unordered_map |
+| `getClass(obj)` | LOAD obj+0: 1 indireccion |
+| `getField(cls, "f")` | findfield: O(1) tabla hash |
+| Sin advices (chain==NULL) | 1 cmp + jmp predicted: overhead cero |
+| Con N advices | N CALLVIRT adicionales en cadena lineal |
 
 Para hot paths con muchos objetos donde la clase sea conocida en compile time, usar
-CALLVIRT directo (`obj.method()`) en lugar de `invoke`.  La reflexion es para casos
+CALLVIRT directo (`obj.method()`) en lugar de `invoke`. La reflexion es para casos
 donde el tipo se conoce solo en runtime (plugins, frameworks, configuracion dinamica).
 
 ---
@@ -389,12 +389,13 @@ donde el tipo se conoce solo en runtime (plugins, frameworks, configuracion dina
 ## Limitaciones del MVP
 
 - El pointcut `@Before("Cls.met")` es una cadena exacta; no hay soporte de glob
-  (e.g. `"Servicio.*"` NO funcionaria).
-- Solo el primer `@Around` en la cadena tiene efecto (multi-AROUND nesting requiere
-  stack de `proceed_targets`, deferido).
+ (e.g. `"Servicio.*"` NO funcionaria).
+- Solo el primer `@Around` en la cadena tiene efecto. El soporte para
+  varios `@Around` anidados requeriría un stack de `proceed_targets`
+  y está pendiente de implementación.
 - `invoke` devuelve `i64` sin coercion automatica al tipo logico del metodo.
 - `getInt(field, obj)`/`setInt(field, obj, val)` no estan disponibles en el MVP
-  (requeririan opcodes `freadi`/`fwritei` o exposicion de `FieldInfo->offset`).
+ (requeririan opcodes `freadi`/`fwritei` o exposicion de `FieldInfo->offset`).
 
 ---
 

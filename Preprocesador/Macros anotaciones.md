@@ -28,7 +28,7 @@ class Inmutable { }
 // @Abstract: la clase no puede instanciarse directamente
 @Abstract
 class Figura {
-    public float area();  // metodo sin cuerpo: las subclases lo implementan
+    public float area(); // metodo sin cuerpo: las subclases lo implementan
 }
 
 // @NotExtendObject: la clase no hereda de Object
@@ -55,8 +55,8 @@ de alto nivel) y configuran el modulo, las exportaciones y los genericos:
 @Export(lista_agregar)
 
 // Registrar parametros de tipo para monomorphization
-@Generic(T)         // un parametro de tipo
-@Generic(K, V)      // dos parametros (diccionario clave-valor)
+@Generic(T) // un parametro de tipo
+@Generic(K, V) // dos parametros (diccionario clave-valor)
 ```
 
 Ver [[../SintaxisCore/Anotaciones modulo y genericos.md]] para la referencia completa.
@@ -77,8 +77,8 @@ Ver [[../SintaxisCore/Anotaciones modulo y genericos.md]] para la referencia com
 
 // Secciones del binario
 @Section {
-    .code  { name = ".text";   perms = READ | EXEC; }
-    .data  { name = ".data";   perms = READ | WRITE; }
+    .code { name = ".text"; perms = READ | EXEC; }
+    .data { name = ".data"; perms = READ | WRITE; }
 }
 
 // Punto de entrada
@@ -107,23 +107,23 @@ libreria en el filesystem y resuelve los simbolos importados.
 
 ## Tabla resumen de anotaciones
 
-| Anotacion              | Nivel      | Efecto                                                      |
+| Anotacion | Nivel | Efecto |
 | :--------------------- | :--------- | :---------------------------------------------------------- |
-| `@Override`            | Metodo     | Verifica sobreescritura; error si el padre no tiene el metodo |
-| `@Final`               | Clase      | Impide herencia                                             |
-| `@Abstract`            | Clase      | Impide instanciacion directa                                |
-| `@NotExtendObject`     | Clase      | No hereda de Object                                         |
-| `@Deprecated`          | Metodo     | Emite advertencia al usarse                                 |
-| `@Synchronized`        | Metodo     | Genera monenter/monexit automaticamente                     |
-| `@Module(nombre)`      | Archivo    | Declara el modulo activo                                    |
-| `@Export(Simbolo)`     | Archivo    | Marca simbolo como publico                                  |
-| `@Generic(T)`          | Archivo    | Registra parametros de tipo                                 |
-| `@Format("velb")`      | Archivo    | Formato del binario de salida                               |
-| `@SpaceAddress { }`    | Archivo    | Espacio de direcciones virtuales                            |
-| `@Section { }`         | Archivo    | Definicion de secciones                                     |
-| `@EntryPoint("sym")`   | Archivo    | Punto de entrada del programa                               |
-| `@Lib("ruta")`         | Archivo    | Importar libreria nativa (FFI)                              |
-| `@Import("funcion")`   | Archivo    | Importar funcion especifica                                 |
+| `@Override` | Metodo | Verifica sobreescritura; error si el padre no tiene el metodo |
+| `@Final` | Clase | Impide herencia |
+| `@Abstract` | Clase | Impide instanciacion directa |
+| `@NotExtendObject` | Clase | No hereda de Object |
+| `@Deprecated` | Metodo | Emite advertencia al usarse |
+| `@Synchronized` | Metodo | Genera monenter/monexit automaticamente |
+| `@Module(nombre)` | Archivo | Declara el modulo activo |
+| `@Export(Simbolo)` | Archivo | Marca simbolo como publico |
+| `@Generic(T)` | Archivo | Registra parametros de tipo |
+| `@Format("velb")` | Archivo | Formato del binario de salida |
+| `@SpaceAddress { }` | Archivo | Espacio de direcciones virtuales |
+| `@Section { }` | Archivo | Definicion de secciones |
+| `@EntryPoint("sym")` | Archivo | Punto de entrada del programa |
+| `@Lib("ruta")` | Archivo | Importar libreria nativa (FFI) |
+| `@Import("funcion")` | Archivo | Importar funcion especifica |
 
 ---
 

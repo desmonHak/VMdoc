@@ -30,21 +30,21 @@ i32 main(string[] args) {
     Box<i32> b1 = new Box<i32>(42);
     Box<i64> b2 = new Box<i64>(100);
 
-    println("b1 = ${b1.get()}");   // 42
-    println("b2 = ${b2.get()}");   // 100
+    println("b1 = ${b1.get()}"); // 42
+    println("b2 = ${b2.get()}"); // 100
     return 0;
 }
 ```
 
 ### Nombre mangled generado
 
-| Instanciacion   | Nombre interno   |
+| Instanciacion | Nombre interno |
 | :-------------- | :--------------- |
-| `Box<i32>`      | `Box_i32`        |
-| `Box<i64>`      | `Box_i64`        |
-| `Box<string>`   | `Box_string`     |
-| `Pair<i32,i64>` | `Pair_i32_i64`   |
-| `List<Box<i32>>`| `List_Box_i32`   |
+| `Box<i32>` | `Box_i32` |
+| `Box<i64>` | `Box_i64` |
+| `Box<string>` | `Box_string` |
+| `Pair<i32,i64>` | `Pair_i32_i64` |
+| `List<Box<i32>>`| `List_Box_i32` |
 
 El mangling es recursivo para tipos genericos anidados.
 
@@ -80,7 +80,7 @@ class ContenedorNombrado<T> : Contenedor<T> {
 }
 
 ContenedorNombrado<i32> c = new ContenedorNombrado<i32>(42, "respuesta");
-println(c.toString());   // "respuesta: 42"
+println(c.toString()); // "respuesta: 42"
 ```
 
 ---
@@ -93,7 +93,7 @@ class Pair<A, B> {
     public B second;
 
     public Pair(A a, B b) {
-        this.first  = a;
+        this.first = a;
         this.second = b;
     }
 
@@ -103,8 +103,8 @@ class Pair<A, B> {
 }
 
 Pair<i32, string> p = new Pair<i32, string>(1, "uno");
-println("${p.first}");   // 1
-println(p.toString());   // (1, uno)
+println("${p.first}"); // 1
+println(p.toString()); // (1, uno)
 ```
 
 ---
@@ -131,7 +131,7 @@ class Stringificador : Transformable<i32, string> {
 }
 
 Duplicador d = new Duplicador();
-println("${d.transform(21)}");   // 42
+println("${d.transform(21)}"); // 42
 ```
 
 ---
@@ -142,19 +142,19 @@ Las restricciones siguientes aplican a la implementacion actual. Se levantan
 progresivamente en fases posteriores.
 
 1. **Solo monomorphizacion compile-time**: el codigo fuente del template debe estar
-   disponible en el momento de la compilacion. No hay generacion de codigo en runtime
-   para clases genericas cuya fuente no este disponible (el fallback `specialize` 0x3A
-   esta reservado para fases futuras).
+ disponible en el momento de la compilacion. No hay generacion de codigo en runtime
+ para clases genericas cuya fuente no este disponible (el fallback `specialize` 0x3A
+ esta reservado para fases futuras).
 
 2. **Sin constraints de tipo**: no hay `where T : Comparable` ni `T extends Base`. El
-   type checker acepta cualquier tipo concreto como argumento. Errores de tipo en metodos
-   que usen operadores no soportados por T se detectan al monomorphizar.
+ type checker acepta cualquier tipo concreto como argumento. Errores de tipo en metodos
+ que usen operadores no soportados por T se detectan al monomorphizar.
 
 3. **Sin metodos genericos sueltos**: no hay `T max<T>(T a, T b) { ... }` a nivel
-   de funcion. Los genericos son solo de clase.
+ de funcion. Los genericos son solo de clase.
 
 4. **Sin wildcards**: no hay `Box<?>` ni `Box<? extends T>` al estilo Java. Las
-   referencias son siempre al tipo concreto instanciado.
+ referencias son siempre al tipo concreto instanciado.
 
 ---
 
@@ -169,7 +169,7 @@ generacion de bytecode. Nunca se emite `defclass`/`deffield`/`defmethod` para el
 template base.
 
 ```java
-class Box<T> { ... }    // <-- template, se ignora en codegen
+class Box<T> { ... } // <-- template, se ignora en codegen
 ```
 
 ### Paso 2: Detectar instanciaciones
@@ -178,7 +178,7 @@ Un pre-pase del type checker recorre todos los `TypeNode` y `NewExpr` buscando
 referencias `Cls<T>`:
 
 ```java
-Box<i32> b = new Box<i32>(42);   // <-- detectado: (Box, i32) -> monomorphizar
+Box<i32> b = new Box<i32>(42); // <-- detectado: (Box, i32) -> monomorphizar
 ```
 
 ### Paso 3: Generar clases concretas
@@ -187,13 +187,13 @@ Para cada `(template, args)` unico se genera una nueva `ClassDecl` con:
 
 - **Nombre mangled**: `Box_i32`
 - **AST clonado**: copia profunda del AST del template con todos los type params
-  sustituidos por los args concretos.
+ sustituidos por los args concretos.
 - **Registro normal**: la clase concreta sigue el pipeline normal de type checking
-  y lowering.
+ y lowering.
 
 ```java
-Box<T>  +  T=i32  -->  Box_i32 { i32 value; Box_i32(i32 v); i32 get(); void set(i32 v); }
-Box<T>  +  T=i64  -->  Box_i64 { i64 value; Box_i64(i64 v); i64 get(); void set(i64 v); }
+Box<T> + T=i32 --> Box_i32 { i32 value; Box_i32(i32 v); i32 get(); void set(i32 v); }
+Box<T> + T=i64 --> Box_i64 { i64 value; Box_i64(i64 v); i64 get(); void set(i64 v); }
 ```
 
 Cada clase concreta tiene su propia vtable, sus propios `ClassInfo*` y `FieldInfo[]`.
@@ -252,10 +252,10 @@ s.push(10);
 s.push(20);
 s.push(30);
 
-println("size = ${s.length()}");   // 3
-println("pop  = ${s.pop()}");      // 30
-println("pop  = ${s.pop()}");      // 20
-println("size = ${s.length()}");   // 1
+println("size = ${s.length()}"); // 3
+println("pop = ${s.pop()}"); // 30
+println("pop = ${s.pop()}"); // 20
+println("size = ${s.length()}"); // 1
 ```
 
 ---

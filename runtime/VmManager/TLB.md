@@ -28,12 +28,12 @@ Direccion virtual de 64 bits:
 
 ## Estructura de la tabla de paginas
 
-| Nivel    | Bits | Mascara    | Entradas maximas | Tamano de tabla | Desplazamiento |
+| Nivel | Bits | Mascara | Entradas maximas | Tamaño de tabla | Desplazamiento |
 | :------- | :--: | :--------- | :--------------: | :-------------- | :------------: |
-| PT2      |  24  | `0xFFFFFF` | 16.777.216 (16M) | 128 MB          | bit 40         |
-| PT1      |  16  | `0xFFFF`   | 65.536 (64K)     | 512 KB          | bit 24 (*)     |
-| PT       |  12  | `0xFFF`    | 4.096 (4K)       | 32 KB           | bit 12         |
-| Offset   |  12  | `0xFFF`    | -                | 4 KB (pagina)   | bit 0          |
+| PT2 | 24 | `0xFFFFFF` | 16.777.216 (16M) | 128 MB | bit 40 |
+| PT1 | 16 | `0xFFFF` | 65.536 (64K) | 512 KB | bit 24 (*) |
+| PT | 12 | `0xFFF` | 4.096 (4K) | 32 KB | bit 12 |
+| Offset | 12 | `0xFFF` | - | 4 KB (pagina) | bit 0 |
 
 (*) En la implementacion real, el desplazamiento de PT1 es bit 32 para el rango de 64 bits.
 
@@ -42,11 +42,11 @@ Direccion virtual de 64 bits:
 ## Diagrama de la direccion virtual
 
 ```
-Bit 63                                                   Bit 0
+Bit 63 Bit 0
 +------------------+------------------+----------+----------+
-|   PT2 (24 bits)  |   PT1 (16 bits)  |  PT (12) | Off (12) |
+| PT2 (24 bits) | PT1 (16 bits) | PT (12) | Off (12) |
 +------------------+------------------+----------+----------+
-   0xFFFFFF           0xFFFF             0xFFF      0xFFF
+    0xFFFFFF 0xFFFF 0xFFF 0xFFF
 ```
 
 ---
@@ -57,7 +57,7 @@ Bit 63                                                   Bit 0
 2. La VM consulta el TLB: "he traducido esta direccion antes?".
 3. Si esta en el TLB (**TLB hit**): usa la direccion host almacenada. O(1).
 4. Si NO esta en el TLB (**TLB miss**): recorre la tabla de paginas de 3 niveles,
-   obtiene la direccion host, y la guarda en el TLB para futuras consultas.
+ obtiene la direccion host, y la guarda en el TLB para futuras consultas.
 
 El TLB hace que el acceso a memoria sea rapido en el caso comun (acceso repetido
 a las mismas paginas), sin necesidad de recorrer los 3 niveles cada vez.
@@ -81,11 +81,11 @@ o libera una pagina.
 
 ```
 Programa: accede a 0x1000
-     |
-     v
+    |
+    v
 TLB: esta en cache? -> Si -> usar dir host directamente (rapido)
-                    -> No -> recorrer PT2 -> PT1 -> PT -> obtener dir host
-                             -> guardar en TLB -> usar dir host
+    -> No -> recorrer PT2 -> PT1 -> PT -> obtener dir host
+    -> guardar en TLB -> usar dir host
 ```
 
 ---

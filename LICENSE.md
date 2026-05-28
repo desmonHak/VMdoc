@@ -1,6 +1,6 @@
 # VMProject - Licencia de Uso
 
-**Copyright ? 2026 David Lopez T. (Castilla y Leon, Espana)**  
+**Copyright ? 2026 David Lopez T. (Castilla y Leon, Espana)** 
 **Todos los derechos reservados para uso comercial.**
 
 ## Terminos de Licencia
@@ -24,16 +24,16 @@
 
 ```c
 /*
- * VestaVM - Maquina Virtual Distribuida
- * 
- * Copyright ? 2026 David Lopez.T (DesmonHak) (Castilla y Leon, ES)
- * Licencia VMProject
- * 
- * USO LIBRE NO COMERCIAL con atribucion obligatoria.
- * PROHIBIDO lucro sin permiso escrito.
- * 
- * Descargo: Autor no responsable por modificaciones.
- */
+* VestaVM - Maquina Virtual Distribuida
+* 
+* Copyright ? 2026 David Lopez.T (DesmonHak) (Castilla y Leon, ES)
+* Licencia VMProject
+* 
+* USO LIBRE NO COMERCIAL con atribucion obligatoria.
+* PROHIBIDO lucro sin permiso escrito.
+* 
+* Descargo: Autor no responsable por modificaciones.
+*/
 ```
 
 Este proyecto utiliza VMProject

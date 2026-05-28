@@ -42,16 +42,16 @@ fn(i32, i32) -> i32 sum = (a, b) => a + b;
 - **Expression body**: el valor de la expresion es el return.
 - **Block body**: usar `return` explicito.
 - **Parametros sin tipo**: el compilador infiere del tipo declarado de la variable
-  destino (`fn(T1, T2) -> R` declarada -> los params son T1, T2).
+ destino (`fn(T1, T2) -> R` declarada -> los params son T1, T2).
 
 ---
 
 ## 2. Tipo `fn(...)->R`
 
 ```vex
-fn(i32, i32) -> i32 op;        // funcion que toma 2 i32, devuelve i32
-fn() -> void noop;              // funcion sin params ni retorno
-fn(string) -> bool predicate;  // funcion que toma string, devuelve bool
+fn(i32, i32) -> i32 op; // funcion que toma 2 i32, devuelve i32
+fn() -> void noop; // funcion sin params ni retorno
+fn(string) -> bool predicate; // funcion que toma string, devuelve bool
 ```
 
 `fn(...)` es un primitive kind dedicado (`PrimitiveKind::FUNCTION`). Internamente
@@ -59,8 +59,8 @@ se representa como un slot de **16 bytes** en stack:
 
 ```
 +-------------+-------------+
-|  fn_addr    |  env_addr   |
-| (8 bytes)   | (8 bytes)   |
+| fn_addr | env_addr |
+| (8 bytes) | (8 bytes) |
 +-------------+-------------+
 ```
 
@@ -74,8 +74,8 @@ se representa como un slot de **16 bytes** en stack:
 ```vex
 i32 main() {
     i32 y = 25;
-    fn(i32) -> i32 add_y = (i32 x) => x + y;  // captura `y` por valor
-    return add_y(5);                            // = 30
+    fn(i32) -> i32 add_y = (i32 x) => x + y; // captura `y` por valor
+    return add_y(5); // = 30
 }
 ```
 
@@ -85,9 +85,9 @@ toma en el momento de crear la lambda.
 
 ```vex
 i32 y = 10;
-fn() -> i32 get = () => y;
-y = 999;                       // mutar y DESPUES de crear la lambda
-println("${get()}");           // imprime 10 (NO 999) - by-value snapshot
+fn() -> i32 get = => y;
+y = 999; // mutar y DESPUES de crear la lambda
+println("${get()}"); // imprime 10 (NO 999) - by-value snapshot
 ```
 
 **Lowering**: cada lambda con captura genera un helper sintético `__lambda_<N>`
@@ -103,11 +103,11 @@ el compilador automáticamente la captura por referencia:
 
 ```vex
 i32 main() {
-    i32 sum = 0;                              // se promociona a address-taken
+    i32 sum = 0; // se promociona a address-taken
     fn(i32) -> void add = (i32 x) => { sum = sum + x; };
     add(10);
     add(20);
-    return sum;                                // = 30
+    return sum; // = 30
 }
 ```
 
@@ -115,13 +115,13 @@ i32 main() {
 variables que aparecen como lhs de `=` dentro del body. El lowering:
 
 1. Marca esas variables como address-taken en el outer scope (ALLOCA estable +
-   LOAD/STORE para todos los accesos).
+ LOAD/STORE para todos los accesos).
 2. En `lower_lambda_expr`, el slot del env guarda el PUNTERO de la celda (no el
-   valor).
+ valor).
 3. En `generate_lambda_helper`, el prologue hace LOAD del puntero y bindea el
-   nombre como `address_taken_local` del helper.
+ nombre como `address_taken_local` del helper.
 4. Reads/writes en el body del helper se traducen a LOAD/STORE indirectos via
-   el puntero.
+ el puntero.
 
 Resultado: capture-by-reference puro, las modificaciones desde la lambda se ven
 fuera de ella.
@@ -145,8 +145,8 @@ i32 reduce(fn(i32, i32) -> i32 op, i32 init, i32[] arr) {
 
 i32 main() {
     i32[] data = {1, 2, 3, 4};
-    i32 sum = reduce(add2, 0, data);     // add2 promovido a fn(i32,i32)->i32
-    i32 prod = reduce(mul2, 1, data);    // idem mul2
+    i32 sum = reduce(add2, 0, data); // add2 promovido a fn(i32,i32)->i32
+    i32 prod = reduce(mul2, 1, data); // idem mul2
     return sum + prod;
 }
 ```
@@ -177,8 +177,8 @@ i32 map_sum(i32[] arr, fn(i32) -> i32 transform) {
 
 i32 main() {
     i32[] xs = {1, 2, 3, 4, 5};
-    each(xs, (x) => println("${x}"));          // lambda inline
-    i32 doubles_sum = map_sum(xs, (x) => x * 2);  // = 30
+    each(xs, (x) => println("${x}")); // lambda inline
+    i32 doubles_sum = map_sum(xs, (x) => x * 2); // = 30
     return doubles_sum;
 }
 ```
@@ -194,30 +194,30 @@ Una función que **retorna** una closure (factory):
 
 ```vex
 fn(i32) -> i32 make_adder(i32 n) {
-    return (i32 x) => x + n;     // captura `n`
+    return (i32 x) => x + n; // captura `n`
 }
 
 i32 main() {
     fn(i32) -> i32 add5 = make_adder(5);
     fn(i32) -> i32 add10 = make_adder(10);
-    return add5(20) + add10(30);              // = 25 + 40 = 65
+    return add5(20) + add10(30); // = 25 + 40 = 65
 }
 ```
 
 **Implementación** (A.15, gap O cerrado):
 
 1. **SRET para tipo FUNCTION**: `make_adder` se transforma a
-   `void make_adder(retbuf: ptr, n: i32)`. El caller aloca 16 bytes en stack y
-   pasa el puntero como primer arg hidden.
+ `void make_adder(retbuf: ptr, n: i32)`. El caller aloca 16 bytes en stack y
+ pasa el puntero como primer arg hidden.
 2. **Env block en HEAP RAW** (no stack): cuando la lambda captura variables y la
-   función contenedora retorna FUNCTION, el env se aloca via `RAW_ALLOC` (host
-   heap) en lugar de ALLOCA. Sobrevive al `ret` de make_adder.
+ función contenedora retorna FUNCTION, el env se aloca via `RAW_ALLOC` (host
+ heap) en lugar de ALLOCA. Sobrevive al `ret` de make_adder.
 3. **Bug fix regalloc colateral**: el evacuation de fn_addr a r13 en CALLCLOSURE
-   se extendió para incluir registros de argumento (r1..r12) que el
-   parallel-move podría destruir.
+ se extendió para incluir registros de argumento (r1..r12) que el
+ parallel-move podría destruir.
 
-Coste: leak por env (no hay free automático). Solucionable con escape analysis +
-promoción al GC heap; deferido a Phase B.
+Coste: leak por env (no hay free automático). Solucionable con escape
+analysis y promoción al GC heap; pendiente de implementación.
 
 ---
 
@@ -227,14 +227,14 @@ promoción al GC heap; deferido a Phase B.
 
 ```
 +-------------+-------------+
-|  fn_addr    |  env_addr   |
-| (8 bytes)   | (8 bytes)   |
+| fn_addr | env_addr |
+| (8 bytes) | (8 bytes) |
 +-------------+-------------+
-   |              |
-   v              v
- código       env block:
- del          [captura_0][captura_1]...
- helper       (N * 8 bytes, en stack o heap)
+    | |
+    v v
+    código env block:
+    del [captura_0][captura_1]...
+    helper (N * 8 bytes, en stack o heap)
 ```
 
 ### Call via `callclosure` (opcode IR 0x86)
@@ -250,7 +250,7 @@ El emisor IR para `CALLCLOSURE`:
 El helper sintético `__lambda_<N>`:
 
 1. Lee capturas desde `[r14 + 0]`, `[r14 + 8]`, etc., y las bindea a los
-   nombres del closure.
+ nombres del closure.
 2. Ejecuta el body original como función normal.
 3. Return en r0 (mismo ABI que cualquier función).
 
@@ -259,19 +259,19 @@ El helper sintético `__lambda_<N>`:
 ## 9. Limitaciones
 
 1. **Env leak en factory functions** (gap O remanente): los env blocks alocados
-   en heap RAW para closures que retornan no tienen free automático. Deferido a
-   Phase B con escape analysis + promoción al GC heap.
+ en heap RAW para closures que retornan no tienen free automático. Deferido a
+ Phase B con escape analysis + promoción al GC heap.
 
 2. **`++`/`--` dentro de lambdas**: no soportados directamente (Vex en general).
-   Usar `x = x + 1` explícito.
+ Usar `x = x + 1` explícito.
 
 3. **Recursión directa en lambda**: una lambda no puede referenciarse a si misma
-   por nombre (no tiene nombre). Workaround: declarar función top-level con
-   nombre y usar la promoción automática del paso 5.
+ por nombre (no tiene nombre). Workaround: declarar función top-level con
+ nombre y usar la promoción automática del paso 5.
 
 4. **Function values en colecciones**: técnicamente se puede `fn(i32)->i32[]`
-   pero el storage es 16 bytes/elemento (no 8). Las APIs de `ArrayList<T>` etc.
-   asumen 8 bytes/elemento — usar wrappers manuales.
+ pero el storage es 16 bytes/elemento (no 8). Las APIs de `ArrayList<T>` etc.
+ asumen 8 bytes/elemento — usar wrappers manuales.
 
 ---
 

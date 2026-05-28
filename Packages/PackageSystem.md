@@ -21,29 +21,29 @@ package "nombre.del.paquete" 1.2.3
 
 entry "src/main.vel"
 
-dep "org.vendor.lib"    >= 2.0.0
-dep "org.another.pkg"  == 1.5.0
-dep "com.util"         ^  3.0.0
+dep "org.vendor.lib" >= 2.0.0
+dep "org.another.pkg" == 1.5.0
+dep "com.util" ^ 3.0.0
 ```
 
 ### Campos
 
-| Campo     | Descripcion                                              |
+| Campo | Descripcion |
 | :-------- | :------------------------------------------------------- |
 | `package` | Nombre completo del paquete y su version (mayor.menor.parche) |
-| `entry`   | Ruta relativa al archivo `.vel` de entrada (opcional)    |
-| `dep`     | Dependencia con operador de version                      |
+| `entry` | Ruta relativa al archivo `.vel` de entrada (opcional) |
+| `dep` | Dependencia con operador de version |
 
 ### Operadores de version
 
-| Operador | Semantica                                                     |
+| Operador | Semantica |
 | :------- | :------------------------------------------------------------ |
-| `>=`     | Version mayor o igual (cualquier patch)                       |
-| `==`     | Version exacta (los tres componentes deben coincidir)         |
-| `^`      | Compatible semver: mismo major, minor >= indicado             |
-| `~`      | Patch flexible: mismo major.minor, patch >= indicado          |
-| `<`      | Version estrictamente menor                                   |
-| `>`      | Version estrictamente mayor                                   |
+| `>=` | Version mayor o igual (cualquier patch) |
+| `==` | Version exacta (los tres componentes deben coincidir) |
+| `^` | Compatible semver: mismo major, minor >= indicado |
+| `~` | Patch flexible: mismo major.minor, patch >= indicado |
+| `<` | Version estrictamente menor |
+| `>` | Version estrictamente mayor |
 
 ---
 
@@ -62,8 +62,8 @@ Ejemplo:
 ```
 VESTA_PKG_PATH=/opt/vesta/pkgs:/home/user/vesta_libs
 # Para "org.vendor.lib" busca:
-#   /opt/vesta/pkgs/org/vendor/lib/package.vel
-#   /home/user/vesta_libs/org/vendor/lib/package.vel
+# /opt/vesta/pkgs/org/vendor/lib/package.vel
+# /home/user/vesta_libs/org/vendor/lib/package.vel
 ```
 
 ---
@@ -78,12 +78,12 @@ VESTA_PKG_PATH=/opt/vesta/pkgs:/home/user/vesta_libs
 
 ### Estados de los nodos
 
-| Estado           | Significado                                  |
+| Estado | Significado |
 | :--------------- | :------------------------------------------- |
-| `PKG_UNVISITED`  | No visitado aun                              |
-| `PKG_IN_STACK`   | En la pila de recursion actual (ciclo si se visita de nuevo) |
-| `PKG_RESOLVED`   | Resuelto correctamente                       |
-| `PKG_ERROR`      | Error durante la resolucion                  |
+| `PKG_UNVISITED` | No visitado aun |
+| `PKG_IN_STACK` | En la pila de recursion actual (ciclo si se visita de nuevo) |
+| `PKG_RESOLVED` | Resuelto correctamente |
+| `PKG_ERROR` | Error durante la resolucion |
 
 ### Resultado
 
@@ -93,13 +93,13 @@ VESTA_PKG_PATH=/opt/vesta/pkgs:/home/user/vesta_libs
 
 ### Codigos de error
 
-| Codigo                   | Causa                                                |
+| Codigo | Causa |
 | :----------------------- | :--------------------------------------------------- |
-| `PKG_ERR_NONE`           | Sin errores                                          |
-| `PKG_ERR_NOT_FOUND`      | Paquete no encontrado en VESTA_PKG_PATH              |
-| `PKG_ERR_VERSION_MISMATCH` | La version disponible no satisface el operador     |
-| `PKG_ERR_CYCLE`          | Ciclo de dependencias detectado                      |
-| `PKG_ERR_PARSE`          | Error de sintaxis en un package.vel                  |
+| `PKG_ERR_NONE` | Sin errores |
+| `PKG_ERR_NOT_FOUND` | Paquete no encontrado en VESTA_PKG_PATH |
+| `PKG_ERR_VERSION_MISMATCH` | La version disponible no satisface el operador |
+| `PKG_ERR_CYCLE` | Ciclo de dependencias detectado |
+| `PKG_ERR_PARSE` | Error de sintaxis en un package.vel |
 
 ---
 
@@ -125,7 +125,7 @@ if (result.error.code != loader::PKG_ERR_NONE) {
 // Iterar en orden topologico
 for (loader::PkgNode *node : result.order) {
     // node->manifest.name, node->manifest.version
-    // node->manifest.entry  (ruta al .vel de entrada)
+    // node->manifest.entry (ruta al .vel de entrada)
 }
 
 pkg_load_result_free(&result); // liberar memoria
@@ -137,10 +137,10 @@ pkg_load_result_free(&result); // liberar memoria
 
 El sistema soporta dos modelos de uso:
 
-| Modelo            | Descripcion                                              |
+| Modelo | Descripcion |
 | :---------------- | :------------------------------------------------------- |
-| **Dinamico**      | Los paquetes se buscan y cargan en tiempo de ejecucion usando VESTA_PKG_PATH |
-| **Estatico**      | El compilador HLL resuelve dependencias en tiempo de compilacion, genera bytecode enlazado |
+| **Dinamico** | Los paquetes se buscan y cargan en tiempo de ejecucion usando VESTA_PKG_PATH |
+| **Estatico** | El compilador HLL resuelve dependencias en tiempo de compilacion, genera bytecode enlazado |
 
 En el modelo estatico el HLL puede usar `PackageLoader` para obtener el orden
 topologico y compilar todos los modulos en el orden correcto antes de invocar
@@ -155,6 +155,6 @@ package "com.misempresa.miapp" 1.0.0
 
 entry "src/main.vel"
 
-dep "org.vendor.serializer"  >= 2.1.0
-dep "com.util.collections"   ^  1.0.0
+dep "org.vendor.serializer" >= 2.1.0
+dep "com.util.collections" ^ 1.0.0
 ```

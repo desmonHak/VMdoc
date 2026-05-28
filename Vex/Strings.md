@@ -11,22 +11,22 @@ Vex tiene tres maneras de manejar texto:
 ## Indice
 
 - [Strings en Vex](#strings-en-vex)
-  - [Indice](#indice)
-  - [1. El tipo `string`](#1-el-tipo-string)
-  - [2. Literales: estándar, raw, triple-quoted](#2-literales-estándar-raw-triple-quoted)
-    - [Literal estándar `"..."`](#literal-estándar-)
-    - [Literal raw `r"..."`](#literal-raw-r)
-    - [Triple-quoted `"""..."""`](#triple-quoted-)
-  - [3. Interpolación `${expr}`](#3-interpolación-expr)
-  - [4. Format specifiers `${expr:fmt}`](#4-format-specifiers-exprfmt)
-    - [Format kinds disponibles](#format-kinds-disponibles)
-    - [Format alignment](#format-alignment)
-  - [5. Operadores `+`, `==`, `!=`](#5-operadores---)
-  - [6. Métodos OO sobre string](#6-métodos-oo-sobre-string)
-  - [7. Builtins libres](#7-builtins-libres)
-  - [8. Cstring (`char*`) para FFI](#8-cstring-char-para-ffi)
-  - [9. Encodings y conversion UTF-8 / UTF-16](#9-encodings-y-conversion-utf-8--utf-16)
-  - [Limitaciones conocidas](#limitaciones-conocidas)
+ - [Indice](#indice)
+ - [1. El tipo `string`](#1-el-tipo-string)
+ - [2. Literales: estándar, raw, triple-quoted](#2-literales-estándar-raw-triple-quoted)
+ - [Literal estándar `"..."`](#literal-estándar-)
+ - [Literal raw `r"..."`](#literal-raw-r)
+ - [Triple-quoted `"""..."""`](#triple-quoted-)
+ - [3. Interpolación `${expr}`](#3-interpolación-expr)
+ - [4. Format specifiers `${expr:fmt}`](#4-format-specifiers-exprfmt)
+ - [Format kinds disponibles](#format-kinds-disponibles)
+ - [Format alignment](#format-alignment)
+ - [5. Operadores `+`, `==`, `!=`](#5-operadores---)
+ - [6. Métodos OO sobre string](#6-métodos-oo-sobre-string)
+ - [7. Builtins libres](#7-builtins-libres)
+ - [8. Cstring (`char*`) para FFI](#8-cstring-char-para-ffi)
+ - [9. Encodings y conversion UTF-8 / UTF-16](#9-encodings-y-conversion-utf-8--utf-16)
+ - [Limitaciones conocidas](#limitaciones-conocidas)
 
 ---
 
@@ -36,13 +36,13 @@ Vex tiene tres maneras de manejar texto:
 
 ```
 StringObject (40 bytes header + data[]):
-  ObjectHeader (24 bytes: class_ptr, flags, hash, owner_pid, lock_depth)
-  encoding (1 byte: ASCII=0, ANSI=1, UTF8=2, UTF16=3, UTF32=4)
-  pad[3]
-  length   (u32: code-point count)
-  byte_len (u32: byte count)
-  str_hash (u32: FNV-1a cache, 0 si no computado)
-  data[]   (bytes, +1 NUL extra para FFI con APIs *A)
+    ObjectHeader (24 bytes: class_ptr, flags, hash, owner_pid, lock_depth)
+    encoding (1 byte: ASCII=0, ANSI=1, UTF8=2, UTF16=3, UTF32=4)
+    pad[3]
+    length (u32: code-point count)
+    byte_len (u32: byte count)
+    str_hash (u32: FNV-1a cache, 0 si no computado)
+    data[] (bytes, +1 NUL extra para FFI con APIs *A)
 ```
 
 **3 kinds** internamente:
@@ -70,8 +70,8 @@ interpolación `${expr}`.
 ### Literal raw `r"..."`
 
 ```vex
-string regex = r"\d{3}-\d{4}";        // sin procesar \d como escape
-string path = r"C:\Users\name";       // sin escapar backslash
+string regex = r"\d{3}-\d{4}"; // sin procesar \d como escape
+string path = r"C:\Users\name"; // sin escapar backslash
 ```
 
 NO procesa escapes ni interpolación. Útil para regex, rutas Windows.
@@ -85,13 +85,13 @@ con saltos literales""";
 
 string html = """
 <html>
-  <body>${content}</body>
+<body>${content}</body>
 </html>
 """;
 ```
 
 Permite saltos de línea literales dentro del bloque. Procesa escapes
-(`\t`, `\n`, etc.). Soporta interpolación `${expr}` desde A.34.fix20.
+(`\t`, `\n`, etc.). Soporta interpolación `${expr}` desde .
 
 Modo raw triple-quoted: `r"""..."""` (sin interpolación, sin escapes).
 
@@ -119,7 +119,7 @@ println("Hello ${name}, count is ${count}!");
 `toString()`, enum. Para estos, construir el mensaje con `print` directo o
 toString explícito.
 
-**Implementación** (A.34.fix20): `lower_string_literal_to_string_object` detecta
+**Implementación**: `lower_string_literal_to_string_object` detecta
 `is_interpolated()` y construye el `StringObject` como cadena:
 
 ```
@@ -139,32 +139,32 @@ materializar el fragment.
 ## 4. Format specifiers `${expr:fmt}`
 
 Sintaxis estilo Python/Rust dentro de `${...}` para evitar 40 builtins discretos
-(añadido A.34.fix18):
+(añadido ):
 
 ```vex
 i32 n = 255;
-println("${n}");           // "255"
-println("${n:hex}");       // "0x00000000000000FF"
-println("${n:bin}");       // "0b11111111"
-println("${n:oct}");       // "0o377"
-println("${n:>10}");       // "       255"  (right-align, width 10)
-println("${n:<10}");       // "255       "  (left-align)
-println("${n:>10*}");      // "*******255"  (right-align, fill char '*')
-println("${n:hex:>20}");   // "  0x00000000000000FF"  (combina kind + align)
+println("${n}"); // "255"
+println("${n:hex}"); // "0x00000000000000FF"
+println("${n:bin}"); // "0b11111111"
+println("${n:oct}"); // "0o377"
+println("${n:>10}"); // " 255" (right-align, width 10)
+println("${n:<10}"); // "255 " (left-align)
+println("${n:>10*}"); // "*******255" (right-align, fill char '*')
+println("${n:hex:>20}"); // " 0x00000000000000FF" (combina kind + align)
 ```
 
 ### Format kinds disponibles
 
-| Kind   | Significado                                              |
+| Kind | Significado |
 | :----: | :------------------------------------------------------- |
-| `hex`  | `0x<hex>` con ancho fijo (i64 = 16 dígitos)              |
-| `bin`  | `0b<bin>` compacto                                       |
-| `oct`  | `0o<oct>` compacto                                       |
-| `dec`  | decimal explícito (default)                              |
-| `ptr`  | puntero `0x<hex>` compacto sin ceros líder               |
-| `gc`   | GcHandle como `<gc:N>` (clases)                          |
-| `char` | codepoint UTF-32 -> UTF-8                                |
-| `bool` | `"true"` / `"false"`                                     |
+| `hex` | `0x<hex>` con ancho fijo (i64 = 16 dígitos) |
+| `bin` | `0b<bin>` compacto |
+| `oct` | `0o<oct>` compacto |
+| `dec` | decimal explícito (default) |
+| `ptr` | puntero `0x<hex>` compacto sin ceros líder |
+| `gc` | GcHandle como `<gc:N>` (clases) |
+| `char` | codepoint UTF-32 -> UTF-8 |
+| `bool` | `"true"` / `"false"` |
 
 ### Format alignment
 
@@ -177,7 +177,7 @@ Múltiples specs se separan con `:`: `${n:hex:>20=}` = hex + right-align + width
 
 **Limitaciones**:
 - `width` se cuenta en **bytes** UTF-8 emitidos, no en columnas visuales (los
-  caracteres CJK/emoji multi-byte pueden dar columnas erróneas).
+ caracteres CJK/emoji multi-byte pueden dar columnas erróneas).
 - El fill char debe ser ASCII 1-byte (multi-byte fill no soportado).
 - Format kind `string` no soportado (ignora el spec y usa el camino normal).
 
@@ -188,19 +188,19 @@ Múltiples specs se separan con `:`: `${n:hex:>20=}` = hex + right-align + width
 ```vex
 string s = "hola";
 string t = " mundo";
-string u = s + t;              // "hola mundo" - bytecode strcat (ROPE O(1))
+string u = s + t; // "hola mundo" - bytecode strcat (ROPE O(1))
 
-bool eq = (s == "hola");       // true - bytecode strcmp byte-a-byte
-bool ne = (s != t);            // true
+bool eq = (s == "hola"); // true - bytecode strcmp byte-a-byte
+bool ne = (s != t); // true
 
 // Auto-coerce literal + string (A.18 fase B):
-string r = "prefix " + dynamic_name;  // literal se promociona a StringObject
+string r = "prefix " + dynamic_name; // literal se promociona a StringObject
 ```
 
 - `+` con dos `string` -> `STRCAT` (crea ROPE O(1)).
 - `==` y `!=` -> `STRCMP` (compara byte-a-byte, valor 0/1).
 - **Auto-coerce**: si un lado es `StringLitExpr` (sin interpolación) y el otro es
-  `string`, el literal se promociona automáticamente vía `STRMAKE` inline.
+ `string`, el literal se promociona automáticamente vía `STRMAKE` inline.
 
 ---
 
@@ -211,14 +211,14 @@ Sintaxis natural `s.method()` (azúcar para builtins libres):
 ```vex
 string s = "Hello World";
 
-i32 len = s.length();         // 11 - code-point count
-i32 bytes = s.bytes();        // 11 - byte count
-u8* ptr = s.cstr();           // host_ptr a buffer NUL-terminated
-u32 hash = s.hash();          // FNV-1a cached
-string canon = s.intern();    // canonical (intern pool)
+i32 len = s.length(); // 11 - code-point count
+i32 bytes = s.bytes(); // 11 - byte count
+u8* ptr = s.cstr(); // host_ptr a buffer NUL-terminated
+u32 hash = s.hash(); // FNV-1a cached
+string canon = s.intern(); // canonical (intern pool)
 
-string g = s.concat(" Foo");  // = s + " Foo"
-bool eq = s.equals(t);        // = (s == t)
+string g = s.concat(" Foo"); // = s + " Foo"
+bool eq = s.equals(t); // = (s == t)
 ```
 
 Internamente, los métodos despachan a builtins libres (`str_length(s)`,
@@ -228,25 +228,25 @@ Internamente, los métodos despachan a builtins libres (`str_length(s)`,
 
 ## 7. Builtins libres
 
-| Builtin              | Equivalente método | Descripción                              |
+| Builtin | Equivalente método | Descripción |
 | :------------------- | :----------------- | :--------------------------------------- |
-| `str_length(s)`      | `s.length()`       | code-point count                         |
-| `str_bytes(s)`       | `s.bytes()`        | byte count                               |
-| `str_cstr(s)`        | `s.cstr()`         | host_ptr al buffer NUL-terminated        |
-| `str_wstr(s)`        | `s.wstr()`         | convierte a UTF-16, devuelve host_ptr a `wchar_t*` (Win32 *W) |
-| `str_hash(s)`        | `s.hash()`         | FNV-1a cacheado                          |
-| `str_intern(s)`      | `s.intern()`       | canonical pool (dedup runtime)           |
-| `str_concat(a, b)`   | `a.concat(b)`      | concatenación (ROPE)                     |
-| `str_equals(a, b)`   | `a.equals(b)`      | comparación contenido                    |
-| `str_make(ptr, len)` |                    | crea StringObject desde buffer raw       |
-| `str_convert(s, enc)`|                    | convierte a otro encoding                |
+| `str_length(s)` | `s.length()` | code-point count |
+| `str_bytes(s)` | `s.bytes()` | byte count |
+| `str_cstr(s)` | `s.cstr()` | host_ptr al buffer NUL-terminated |
+| `str_wstr(s)` | `s.wstr()` | convierte a UTF-16, devuelve host_ptr a `wchar_t*` (Win32 *W) |
+| `str_hash(s)` | `s.hash()` | FNV-1a cacheado |
+| `str_intern(s)` | `s.intern()` | canonical pool (dedup runtime) |
+| `str_concat(a, b)` | `a.concat(b)` | concatenación (ROPE) |
+| `str_equals(a, b)` | `a.equals(b)` | comparación contenido |
+| `str_make(ptr, len)` | | crea StringObject desde buffer raw |
+| `str_convert(s, enc)`| | convierte a otro encoding |
 
 Constantes de encoding registradas globalmente:
 
 ```vex
 ENC_ASCII = 0
-ENC_ANSI  = 1
-ENC_UTF8  = 2
+ENC_ANSI = 1
+ENC_UTF8 = 2
 ENC_UTF16 = 3
 ENC_UTF32 = 4
 ```
@@ -255,7 +255,7 @@ Uso:
 
 ```vex
 string utf16 = str_convert(s, ENC_UTF16);
-u8* w_ptr = str_cstr(utf16);   // wchar_t* listo para Win32 *W APIs
+u8* w_ptr = str_cstr(utf16); // wchar_t* listo para Win32 *W APIs
 ```
 
 ---
@@ -278,7 +278,7 @@ u32 attrs = GetFileAttributesA(str_cstr(path));
 en signatures FFI.
 
 ```vex
-typedef cstring = char*;  // alias declarado en el preludio (no hace falta hacer typedef)
+typedef cstring = char*; // alias declarado en el preludio (no hace falta hacer typedef)
 extern fn fopen(cstring path, cstring mode) -> i64;
 ```
 
@@ -291,8 +291,8 @@ El runtime de strings (`stdlib/native/string` + bytecode 0x46-0x54) soporta los
 `str_make` sin encoding explícito) es **UTF-8**.
 
 ```vex
-string utf8_s = "Hola µndo";    // UTF-8 default
-string utf16  = str_convert(utf8_s, ENC_UTF16);
+string utf8_s = "Hola µndo"; // UTF-8 default
+string utf16 = str_convert(utf8_s, ENC_UTF16);
 // utf16.bytes() != utf8_s.bytes() (UTF-16 usa 2-4 bytes/char vs 1-4 UTF-8)
 ```
 
@@ -309,18 +309,18 @@ si todos los caracteres están en ambos encodings (Unicode BMP).
 ## Limitaciones conocidas
 
 1. **Interpolación con `float`/`f64`/`struct`/`class`/`enum`**: no soportada
-   (emite error). Workaround: `print` directo (que sí soporta floats) o
-   stringify explícito. Propuesta futura P1: añadir helper
-   `vio_float_to_vmbuf` y mecanismo `toString()` virtual para clases.
+ (emite error). Workaround: `print` directo (que sí soporta floats) o
+ stringify explícito. Propuesta futura P1: añadir helper
+ `vio_float_to_vmbuf` y mecanismo `toString()` virtual para clases.
 
-2. **Interpolación `${...}` dentro de triple-quoted**: SI soportada desde A.34.fix20.
+2. **Interpolación `${...}` dentro de triple-quoted**: SI soportada desde .
 
 3. **Format spec en STRING**: `${str_var:hex}` ignora el spec (sólo aplica a tipos
-   numéricos). Para alinear strings, medir con `str_length(s)` y usar
-   `print_pad(' ', N - len)` manualmente.
+ numéricos). Para alinear strings, medir con `str_length(s)` y usar
+ `print_pad(' ', N - len)` manualmente.
 
 4. **Width en columnas vs bytes**: `${expr:>N}` mide N bytes UTF-8, no columnas
-   terminal. Texto multi-byte (CJK, emoji) puede dar alineación incorrecta.
+ terminal. Texto multi-byte (CJK, emoji) puede dar alineación incorrecta.
 
 ---
 

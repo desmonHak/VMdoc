@@ -10,7 +10,7 @@ propio basado en JSON. El servidor acepta conexiones de clientes externos
 
 Soporta dos modelos de despliegue:
 
-| Modelo         | Descripcion                                              |
+| Modelo | Descripcion |
 | :------------- | :------------------------------------------------------- |
 | **In-process** | El servidor corre en un hilo del mismo proceso VM. El bytecode sigue ejecutandose mientras el cliente esta conectado. |
 | **Out-of-process** | El cliente externo se conecta al mismo puerto. El servidor es identico. |
@@ -19,10 +19,10 @@ Soporta dos modelos de despliegue:
 
 ## Constantes del protocolo
 
-| Constante             | Valor        | Descripcion                        |
+| Constante | Valor | Descripcion |
 | :-------------------- | :----------- | :--------------------------------- |
-| `DBG_DEFAULT_PORT`    | `9229`       | Puerto TCP por defecto             |
-| `DBG_MAX_MSG_SIZE`    | `4 * 1024 * 1024` | Tamano maximo de mensaje (4 MB)|
+| `DBG_DEFAULT_PORT` | `9229` | Puerto TCP por defecto |
+| `DBG_MAX_MSG_SIZE` | `4 * 1024 * 1024` | Tamaño maximo de mensaje (4 MB)|
 | `DBG_HANDSHAKE_MAGIC` | `0x56444247` | Magic "VDBG" en los 4 bytes del handshake |
 
 ---
@@ -45,8 +45,8 @@ Cada mensaje tiene la estructura:
 Al conectar un cliente, el servidor envia 8 bytes:
 
 ```
-bytes [0..3] = 0x56444247  (magic VDBG, LE)
-bytes [4..7] = 0x00000001  (version del protocolo = 1, LE)
+bytes [0..3] = 0x56444247 (magic VDBG, LE)
+bytes [4..7] = 0x00000001 (version del protocolo = 1, LE)
 ```
 
 ---
@@ -65,7 +65,7 @@ bytes [4..7] = 0x00000001  (version del protocolo = 1, LE)
 ### Respuesta (servidor -> cliente)
 
 ```json
-{"ok": true,  "seq": 1, "data": {...}}
+{"ok": true, "seq": 1, "data": {...}}
 {"ok": false, "seq": 1, "error": "mensaje de error"}
 ```
 
@@ -130,7 +130,7 @@ Respuesta:
 
 ```json
 {"ok": true, "seq": 5, "data": [
-  {"id": 1, "addr": 4096, "pid": 0, "enabled": true, "hits": 3}
+    {"id": 1, "addr": 4096, "pid": 0, "enabled": true, "hits": 3}
 ]}
 ```
 
@@ -270,11 +270,11 @@ Emitido cuando un proceso crea un proceso hijo.
 
 runtime::VM vm;
 debug::Debugger dbg(vm);
-dbg.start(9229);  // inicia en background
+dbg.start(9229); // inicia en background
 
 // ... ejecutar la VM normalmente ...
 
-dbg.stop();  // detiene el servidor
+dbg.stop(); // detiene el servidor
 ```
 
 ### Intercepcion antes de cada instruccion
@@ -311,10 +311,10 @@ dbg.on_process_spawn(parent->pid.local_pid, child->pid.local_pid);
 
 ## Compatibilidad de plataformas
 
-| Plataforma  | Sockets         | Abstraccion                      |
+| Plataforma | Sockets | Abstraccion |
 | :---------- | :-------------- | :------------------------------- |
-| Linux/macOS | BSD sockets     | `SOCK_T = int`, `CLOSE_SOCK = close()` |
-| Windows     | Winsock2        | `SOCK_T = SOCKET`, `CLOSE_SOCK = closesocket()` |
+| Linux/macOS | BSD sockets | `SOCK_T = int`, `CLOSE_SOCK = close()` |
+| Windows | Winsock2 | `SOCK_T = SOCKET`, `CLOSE_SOCK = closesocket()` |
 
 En Windows, la clase `WinsockInit` inicializa y finaliza Winsock automaticamente
 mediante RAII (`WSAStartup` / `WSACleanup`).

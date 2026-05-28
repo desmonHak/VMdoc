@@ -3,11 +3,11 @@
 Vex ofrece tres mecanismos para llamar a funciones escritas en C/C++ u otras DLLs del
 sistema, desde las mas simples hasta las mas flexibles:
 
-| Mecanismo                  | Cuando usarlo                                        |
+| Mecanismo | Cuando usarlo |
 | :------------------------- | :--------------------------------------------------- |
-| **extern declarativo**     | DLL conocida en compile-time; type-safe; zero overhead |
+| **extern declarativo** | DLL conocida en compile-time; type-safe; zero overhead |
 | **Plugins VestaPluginAPI** | Extension compleja con init, callbacks, GC awareness |
-| **ffi_open/sym/call**      | DLL desconocida en compile-time; maxima flexibilidad |
+| **ffi_open/sym/call** | DLL desconocida en compile-time; maxima flexibilidad |
 
 ---
 
@@ -19,12 +19,12 @@ La forma mas sencilla: declarar que funciones se importan y de donde.
 // Importar funciones de una DLL del sistema:
 extern "kernel32.dll" {
     fn GetCurrentProcessId() -> u32;
-    fn GetTickCount()        -> u32;
-    fn Sleep(ms: u32)        -> void;
+    fn GetTickCount() -> u32;
+    fn Sleep(ms: u32) -> void;
 }
 
 // Usar directamente:
-u32 pid  = GetCurrentProcessId();
+u32 pid = GetCurrentProcessId();
 u32 tick = GetTickCount();
 Sleep(100);
 println("PID del proceso: ${pid}");
@@ -38,9 +38,9 @@ runtime comparado con llamadas directas.
 ### Convencion de llamada de funciones nativas
 
 ```
-R1..R12  = argumentos (en orden de declaracion)
-R15      = argc (numero de argumentos, 0..12)
-R0       = valor de retorno
+R1..R12 = argumentos (en orden de declaracion)
+R15 = argc (numero de argumentos, 0..12)
+R0 = valor de retorno
 ```
 
 Las funciones nativas NO reciben parametro implicito de contexto. Solo los argumentos
@@ -48,17 +48,17 @@ declarados en la firma.
 
 ### Tipos admitidos en firmas FFI
 
-| Tipo Vex          | Tipo C equivalente    | Tamano |
+| Tipo Vex | Tipo C equivalente | Tamaño |
 | :---------------- | :-------------------- | :----- |
-| `i8`..`i64`       | `int8_t`..`int64_t`   | 1..8B  |
-| `u8`..`u64`       | `uint8_t`..`uint64_t` | 1..8B  |
-| `f32`             | `float`               | 4B     |
-| `f64`             | `double`              | 8B     |
-| `bool`            | `int` (0/1)           | 8B     |
-| `char*`/`cstring` | `const char*`         | 8B     |
-| `void*`           | `void*`               | 8B     |
-| `T*`              | `T*`                  | 8B     |
-| `void`            | `void`                | -      |
+| `i8`..`i64` | `int8_t`..`int64_t` | 1..8B |
+| `u8`..`u64` | `uint8_t`..`uint64_t` | 1..8B |
+| `f32` | `float` | 4B |
+| `f64` | `double` | 8B |
+| `bool` | `int` (0/1) | 8B |
+| `char*`/`cstring` | `const char*` | 8B |
+| `void*` | `void*` | 8B |
+| `T*` | `T*` | 8B |
+| `void` | `void` | - |
 
 ---
 
@@ -70,14 +70,14 @@ de memoria VM, callbacks de ciclo de vida.
 ### Estructura de un plugin
 
 ```c
-// mi_plugin.c  (compilado como .dll/.so)
+// mi_plugin.c (compilado como .dll/.so)
 #include "vesta_plugin.h"
 
 static const VestaPluginAPI *g_api = NULL;
 
 // Punto de entrada obligatorio: llamado UNA VEZ al cargar el plugin
 VESTA_PLUGIN_EXPORT void vesta_init(const VestaPluginAPI *api) {
-    g_api = api;   // guardar el puntero (valido toda la vida del proceso)
+    g_api = api; // guardar el puntero (valido toda la vida del proceso)
 }
 
 // Funcion exportada al bytecode Vex:
@@ -104,9 +104,9 @@ mi_funcion(proc_ptr, buffer_addr, buffer_len);
 
 ```c
 struct VestaPluginAPI {
-    uint32_t api_version;       // VESTA_PLUGIN_API_VERSION = 2
+    uint32_t api_version; // VESTA_PLUGIN_API_VERSION = 2
 
-    void *manager;              // ManageVM* global
+    void *manager; // ManageVM* global
 
     // Ciclo de vida:
     void (*vm_start)(void *vm);
@@ -114,9 +114,9 @@ struct VestaPluginAPI {
 
     // Acceso a memoria VM (seguro desde fuera del bytecode):
     void (*vm_read_bytes)(void *proc, uint64_t vm_addr,
-                          void *host_buf, size_t len);
+    void *host_buf, size_t len);
     void (*vm_write_bytes)(void *proc, uint64_t vm_addr,
-                           const void *host_buf, size_t len);
+    const void *host_buf, size_t len);
 
     // Log:
     void (*log)(const char *msg);
@@ -144,19 +144,19 @@ i64 handle = ffi_open("kernel32.dll");
 i64 sym_Sleep = ffi_sym(handle, "Sleep");
 
 // Llamar la funcion (los argumentos van despues del simbolo):
-ffi_call(sym_Sleep, 500);    // Sleep(500ms)
+ffi_call(sym_Sleep, 500); // Sleep(500ms)
 
 // Otro ejemplo: MessageBoxA de user32:
-i64 user32  = ffi_open("user32.dll");
-i64 msgbox  = ffi_sym(user32, "MessageBoxA");
+i64 user32 = ffi_open("user32.dll");
+i64 msgbox = ffi_sym(user32, "MessageBoxA");
 ffi_call(msgbox, 0, str_cstr("Texto"), str_cstr("Titulo"), 0);
 ```
 
 ### Tabla de instrucciones FFI runtime
 
-| Instruccion   | Opcode  | Descripcion                                          |
+| Instruccion | Opcode | Descripcion |
 | :------------ | :------ | :--------------------------------------------------- |
-| `ffi_open(s)` | `0x62` dlopen | Carga DLL; retorna handle (i64) en R0          |
+| `ffi_open(s)` | `0x62` dlopen | Carga DLL; retorna handle (i64) en R0 |
 | `ffi_sym(h,s)` | `0x63` dlsym | Resuelve simbolo; retorna puntero (i64) en R0 |
 | `ffi_call(fn, ...)` | `0x64` callni | Invoca por puntero; args en R1..R12; R0 = ret |
 
@@ -173,21 +173,21 @@ La implementacion interna es identica a la del `CALLN` estatico
 ```java
 extern "kernel32.dll" {
     fn CreateFileA(
-        lpFileName: char*,
-        dwDesiredAccess: u32,
-        dwShareMode: u32,
-        lpSecurityAttributes: void*,
-        dwCreationDisposition: u32,
-        dwFlagsAndAttributes: u32,
-        hTemplateFile: void*
-    ) -> i64;
+    lpFileName: char*,
+    dwDesiredAccess: u32,
+    dwShareMode: u32,
+    lpSecurityAttributes: void*,
+    dwCreationDisposition: u32,
+    dwFlagsAndAttributes: u32,
+    hTemplateFile: void*
+) -> i64;
 }
 
 string ruta = "output.txt";
-char*  ptr  = ruta.cstr();           // host pointer nul-terminado (ASCII/UTF-8)
+char* ptr = ruta.cstr(); // host pointer nul-terminado (ASCII/UTF-8)
 
 i64 hfile = CreateFileA(ptr, 0x40000000, 0, null, 2, 0x80, null);
-//                          GENERIC_WRITE           CREATE_ALWAYS FILE_ATTRIBUTE_NORMAL
+// GENERIC_WRITE CREATE_ALWAYS FILE_ATTRIBUTE_NORMAL
 ```
 
 ### Pasar un string UTF-16 a una API Win32 *W
@@ -198,8 +198,8 @@ extern "kernel32.dll" {
 }
 
 string ruta = "directorio\archivo.txt";
-string utf16 = str_convert(ruta, ENC_UTF16);   // convertir a UTF-16LE
-char*  wptr  = utf16.wstr();                    // host pointer a wchar_t*
+string utf16 = str_convert(ruta, ENC_UTF16); // convertir a UTF-16LE
+char* wptr = utf16.wstr(); // host pointer a wchar_t*
 
 u32 attrs = GetFileAttributesW(wptr);
 ```
@@ -212,7 +212,7 @@ u8* buf = malloc(1024);
 
 // Llamar a una funcion nativa que lee/escribe en el buffer:
 extern "msvcrt.dll" { fn memset(ptr: void*, val: i32, n: i64) -> void*; }
-memset((void*)buf, 0, 1024);    // limpiar el buffer
+memset((void*)buf, 0, 1024); // limpiar el buffer
 
 // Leer bytes del buffer:
 u8 primer_byte = buf[0];
@@ -268,9 +268,9 @@ modulos ya cargados (tabla de relocations en VERSION_VELB=0x2).
 ## Builtins de contexto del runtime
 
 ```java
-void* proc = getproc();    // ProcessVM* del proceso actual
-void* vm   = getvm();      // VM* de la instancia VM
-void* mgr  = getmgr();     // ManageVM* del manager global
+void* proc = getproc(); // ProcessVM* del proceso actual
+void* vm = getvm(); // VM* de la instancia VM
+void* mgr = getmgr(); // ManageVM* del manager global
 ```
 
 Necesarios para pasar como primer argumento a plugins que usan `vm_read_bytes`.

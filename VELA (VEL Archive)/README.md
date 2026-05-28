@@ -14,11 +14,11 @@ Es exactamente lo que es un `.a` en Linux o un `.lib` en Windows:
 
 - contiene **multiples modulos objeto**
 - cada modulo tiene:
-    - bytecode
-    - contexto
-    - simbolos exportados
-    - simbolos requeridos
-    - relocaciones
+ - bytecode
+ - contexto
+ - simbolos exportados
+ - simbolos requeridos
+ - relocaciones
 
 - el linker solo extrae los modulos necesarios para resolver simbolos
 
@@ -26,27 +26,27 @@ Es exactamente lo que es un `.a` en Linux o un `.lib` en Windows:
 VELA
 │
 ├── HeaderVELA
-│     - magic = "VELA"
-│     - version
-│     - module_count
-│     - module_table_offset
+│ - magic = "VELA"
+│ - version
+│ - module_count
+│ - module_table_offset
 │
 ├── ModuleTable[] (module_count entradas)
-│     - offset
-│     - size
-│     - symbol_count
-│     - symbol_table_offset
-│     - relocation_count
-│     - relocation_table_offset
+│ - offset
+│ - size
+│ - symbol_count
+│ - symbol_table_offset
+│ - relocation_count
+│ - relocation_table_offset
 │
 ├── Module 0
-│     ├── bytecode
-│     ├── context serializado
-│     ├── symbol table
-│     └── relocation table
+│ ├── bytecode
+│ ├── context serializado
+│ ├── symbol table
+│ └── relocation table
 │
 ├── Module 1
-│     └── ...
+│ └── ...
 │
 └── ...
 ```

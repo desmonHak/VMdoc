@@ -1,7 +1,7 @@
 # Macros de configuracion de ejecutable
 
 Las **macros de configuracion de ejecutable** son directivas del preprocesador que
-permiten controlar como se estructura el archivo binario final (`.velb`): el tamano
+permiten controlar como se estructura el archivo binario final (`.velb`): el tamaño
 de las secciones, los permisos de memoria, los nombres de secciones, el punto de
 entrada y otros metadatos del ejecutable.
 
@@ -14,14 +14,14 @@ seguira y que permisos tiene. La obra (compilacion) usa esa configuracion.
 ## Directiva `@SpaceAddress`
 
 Define el espacio de direcciones virtuales del ejecutable: donde empieza el codigo,
-donde empieza la pila, el tamano del heap, etc.
+donde empieza la pila, el tamaño del heap, etc.
 
 ```c
 // Configurar el espacio de direcciones del ejecutable
 @SpaceAddress {
-    code_start = 0x1000;      // el codigo comienza en la direccion virtual 0x1000
-    stack_size = 0x10000;     // tamano de la pila: 64 KB
-    heap_size  = 0x100000;    // tamano inicial del heap: 1 MB
+    code_start = 0x1000; // el codigo comienza en la direccion virtual 0x1000
+    stack_size = 0x10000; // tamaño de la pila: 64 KB
+    heap_size = 0x100000; // tamaño inicial del heap: 1 MB
 }
 ```
 
@@ -29,24 +29,24 @@ donde empieza la pila, el tamano del heap, etc.
 
 ## Directiva `@Section`
 
-Define secciones del binario con nombres, permisos y tamanos:
+Define secciones del binario con nombres, permisos y tamaños:
 
 ```c
 // Definir secciones del archivo .velb
 @Section {
     .code {
-        name    = ".text";    // nombre de la seccion de codigo
-        perms   = READ | EXEC; // permisos: lectura y ejecucion
+        name = ".text"; // nombre de la seccion de codigo
+        perms = READ | EXEC; // permisos: lectura y ejecucion
     }
 
     .data {
-        name    = ".data";    // seccion de datos inicializados
-        perms   = READ | WRITE;
+        name = ".data"; // seccion de datos inicializados
+        perms = READ | WRITE;
     }
 
     .rodata {
-        name    = ".rodata";  // seccion de solo lectura (constantes)
-        perms   = READ;
+        name = ".rodata"; // seccion de solo lectura (constantes)
+        perms = READ;
     }
 }
 ```
@@ -58,8 +58,8 @@ Define secciones del binario con nombres, permisos y tamanos:
 Indica el formato del archivo de salida:
 
 ```c
-@Format("velb")     // formato VestaLangBinary (por defecto)
-@Format("vela")     // formato VEL Archive (libreria estatica)
+@Format("velb") // formato VestaLangBinary (por defecto)
+@Format("vela") // formato VEL Archive (libreria estatica)
 ```
 
 ---
@@ -73,7 +73,7 @@ Especifica el simbolo que es el punto de entrada del programa (equivalente a `ma
 
 // El runtime comenzara la ejecucion en la etiqueta "inicio" del modulo "mi_programa"
 inicio:
-    // primer codigo que se ejecuta
+// primer codigo que se ejecuta
 ```
 
 ---
@@ -103,13 +103,13 @@ Embebe informacion de version en los metadatos del ejecutable:
 
 @SpaceAddress {
     code_start = 0x1000;
-    stack_size = 0x20000;    // 128 KB de pila
-    heap_size  = 0x400000;   // 4 MB de heap inicial
+    stack_size = 0x20000; // 128 KB de pila
+    heap_size = 0x400000; // 4 MB de heap inicial
 }
 
 @Section {
-    .code  { name = ".text";   perms = READ | EXEC; }
-    .data  { name = ".data";   perms = READ | WRITE; }
+    .code { name = ".text"; perms = READ | EXEC; }
+    .data { name = ".data"; perms = READ | WRITE; }
     .const { name = ".rodata"; perms = READ; }
 }
 
@@ -117,21 +117,21 @@ Embebe informacion de version en los metadatos del ejecutable:
 
 @Export(main)
 main:
-    // codigo del programa
+// codigo del programa
 ```
 
 ---
 
 ## Tabla de macros de configuracion
 
-| Macro             | Proposito                                                    |
+| Macro | Proposito |
 | :---------------- | :----------------------------------------------------------- |
-| `@Format`         | Formato del binario de salida (velb, vela)                   |
-| `@SpaceAddress`   | Espacio de direcciones virtuales (code_start, stack, heap)   |
-| `@Section`        | Definicion de secciones con nombre y permisos                |
-| `@EntryPoint`     | Simbolo de entrada del programa                              |
-| `@Version`        | Metadatos de version embebidos en el binario                 |
-| `@Module`         | Nombre calificado del modulo (ver Anotaciones modulo)        |
+| `@Format` | Formato del binario de salida (velb, vela) |
+| `@SpaceAddress` | Espacio de direcciones virtuales (code_start, stack, heap) |
+| `@Section` | Definicion de secciones con nombre y permisos |
+| `@EntryPoint` | Simbolo de entrada del programa |
+| `@Version` | Metadatos de version embebidos en el binario |
+| `@Module` | Nombre calificado del modulo (ver Anotaciones modulo) |
 
 ---
 

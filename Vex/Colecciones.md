@@ -11,16 +11,16 @@ El dispatch de metodos es CALLN directo (sin vtable, sin CALLVIRT). Las coleccio
 
 ## Tipos de coleccion
 
-| Tipo       | Estructura subyacente       | Operaciones principales                  |
+| Tipo | Estructura subyacente | Operaciones principales |
 | :--------- | :-------------------------- | :--------------------------------------- |
-| `ArrayList`| Array dinamico con grow 2x  | push, pop, get, set, remove_at, size     |
-| `HashMap`  | SwissTable (wyhash64 + SSE2)| put, get, remove, contains_key, size     |
-| `HashSet`  | Wrapper sobre HashMap       | add, contains, remove, size              |
-| `Queue`    | Ring buffer potencia de 2   | push (enqueue), pop (dequeue), peek, size|
-| `Deque`    | Ring buffer doble extremo   | push_front, push_back, pop_front, pop_back|
-| `TreeMap`  | Red-Black tree O(log n)     | put, get, remove, first, last, floor, ceiling |
-| `TreeSet`  | Wrapper sobre TreeMap       | add, contains, remove, first, last       |
-| `Stack`    | Array dinamico LIFO         | push, pop, peek, size                    |
+| `ArrayList`| Array dinamico con grow 2x | push, pop, get, set, remove_at, size |
+| `HashMap` | SwissTable (wyhash64 + SSE2)| put, get, remove, contains_key, size |
+| `HashSet` | Wrapper sobre HashMap | add, contains, remove, size |
+| `Queue` | Ring buffer potencia de 2 | push (enqueue), pop (dequeue), peek, size|
+| `Deque` | Ring buffer doble extremo | push_front, push_back, pop_front, pop_back|
+| `TreeMap` | Red-Black tree O(log n) | put, get, remove, first, last, floor, ceiling |
+| `TreeSet` | Wrapper sobre TreeMap | add, contains, remove, first, last |
+| `Stack` | Array dinamico LIFO | push, pop, peek, size |
 
 ---
 
@@ -28,14 +28,14 @@ El dispatch de metodos es CALLN directo (sin vtable, sin CALLVIRT). Las coleccio
 
 ```java
 // Crear con capacidad inicial:
-ArrayList  lista  = arraylist(16);    // 16 elementos iniciales
-HashMap    mapa   = hashmap(32);      // 32 slots iniciales
-HashSet    conj   = hashset(8);
-Queue      cola   = queue(8);
-Deque      deque  = deque(8);
-TreeMap    arbol  = treemap(0);       // treemap no usa capacidad inicial
-TreeSet    set    = treeset(0);
-Stack      pila   = stack(8);
+ArrayList lista = arraylist(16); // 16 elementos iniciales
+HashMap mapa = hashmap(32); // 32 slots iniciales
+HashSet conj = hashset(8);
+Queue cola = queue(8);
+Deque deque = deque(8);
+TreeMap arbol = treemap(0); // treemap no usa capacidad inicial
+TreeSet set = treeset(0);
+Stack pila = stack(8);
 
 // Las colecciones se liberan automaticamente al salir del scope.
 // No hay free() manual.
@@ -54,25 +54,25 @@ xs.push(20);
 xs.push(30);
 
 // Acceder por indice (0-indexed):
-i64 primer = xs.get(0);     // 10
-xs.set(1, 99);              // cambiar el elemento en indice 1
+i64 primer = xs.get(0); // 10
+xs.set(1, 99); // cambiar el elemento en indice 1
 
 // Insertar en posicion (desplaza el resto):
-xs.insert(1, 55);           // xs = [10, 55, 99, 30]
+xs.insert(1, 55); // xs = [10, 55, 99, 30]
 
 // Eliminar por indice:
-xs.remove_at(2);            // xs = [10, 55, 30]
+xs.remove_at(2); // xs = [10, 55, 30]
 
 // Quitar el ultimo elemento:
-i64 ultimo = xs.pop();      // ultimo = 30, xs = [10, 55]
+i64 ultimo = xs.pop(); // ultimo = 30, xs = [10, 55]
 
 // Tamanio:
-i32 n = xs.size();          // 2
+i32 n = xs.size(); // 2
 
 // Vaciar:
 xs.clear();
 
-println("size = ${xs.size()}");  // 0
+println("size = ${xs.size()}"); // 0
 ```
 
 ### GC-aware: cuando los elementos son GcHandles
@@ -84,11 +84,11 @@ Si los elementos son handles GC (por ejemplo, instancias de clase), usar las var
 ArrayList animales = arraylist(8);
 
 Animal a = new Animal("Rex", 5);
-animales.push_gc(a);        // registra el handle en el GC para que no se recolecte
+animales.push_gc(a); // registra el handle en el GC para que no se recolecte
 
 // ... mas adelante:
-Animal recuperado = animales.get_gc(0);   // devuelve handle GC
-animales.pop_gc();                        // libera el handle GC del GC
+Animal recuperado = animales.get_gc(0); // devuelve handle GC
+animales.pop_gc(); // libera el handle GC del GC
 ```
 
 ---
@@ -104,8 +104,8 @@ m.put(2, 200);
 m.put(3, 300);
 
 // Obtener valor por clave:
-i64 val = m.get(2);          // 200
-bool existe = m.contains_key(3);    // true
+i64 val = m.get(2); // 200
+bool existe = m.contains_key(3); // true
 
 // Eliminar clave:
 m.remove(1);
@@ -114,8 +114,8 @@ m.remove(1);
 i32 n = m.size();
 
 // Obtener todas las claves y valores:
-ArrayList claves   = m.keys();
-ArrayList valores  = m.values();
+ArrayList claves = m.keys();
+ArrayList valores = m.values();
 ```
 
 El HashMap usa **wyhash64** (una multiplicacion de 128 bits + XOR) y **sondeo por grupos
@@ -130,13 +130,13 @@ HashSet s = hashset(8);
 
 s.add(10);
 s.add(20);
-s.add(10);           // elemento duplicado (no se agrega dos veces)
+s.add(10); // elemento duplicado (no se agrega dos veces)
 
-bool tiene = s.contains(20);    // true
-bool no    = s.contains(99);    // false
+bool tiene = s.contains(20); // true
+bool no = s.contains(99); // false
 
 s.remove(10);
-i32 n = s.size();    // 1 (solo 20)
+i32 n = s.size(); // 1 (solo 20)
 ```
 
 ---
@@ -146,15 +146,15 @@ i32 n = s.size();    // 1 (solo 20)
 ```java
 Queue q = queue(4);
 
-q.push(1);     // enqueue
+q.push(1); // enqueue
 q.push(2);
 q.push(3);
 
-i64 primero = q.pop();    // dequeue: 1 (FIFO)
-i64 segundo = q.pop();    // 2
-i64 cabeza  = q.peek();   // mira sin extraer: 3
+i64 primero = q.pop(); // dequeue: 1 (FIFO)
+i64 segundo = q.pop(); // 2
+i64 cabeza = q.peek(); // mira sin extraer: 3
 
-println("size = ${q.size()}");    // 1
+println("size = ${q.size()}"); // 1
 ```
 
 ---
@@ -166,11 +166,11 @@ Deque d = deque(8);
 
 d.push_back(10);
 d.push_back(20);
-d.push_front(5);      // d = [5, 10, 20]
+d.push_front(5); // d = [5, 10, 20]
 
-i64 frente = d.pop_front();    // 5, d = [10, 20]
-i64 atras  = d.pop_back();     // 20, d = [10]
-i64 pico   = d.peek_front();   // 10 (sin extraer)
+i64 frente = d.pop_front(); // 5, d = [10, 20]
+i64 atras = d.pop_back(); // 20, d = [10]
+i64 pico = d.peek_front(); // 10 (sin extraer)
 ```
 
 ---
@@ -185,15 +185,15 @@ t.put(10, 100);
 t.put(20, 200);
 
 // Acceso O(log n):
-i64 val = t.get(20);        // 200
-bool ok  = t.contains_key(10);  // true
+i64 val = t.get(20); // 200
+bool ok = t.contains_key(10); // true
 
 // Extremos en O(log n):
-i64 min_key = t.first_key();    // 10
-i64 max_key = t.last_key();     // 30
+i64 min_key = t.first_key(); // 10
+i64 max_key = t.last_key(); // 30
 
 // Operaciones de rango:
-i64 floor   = t.floor_key(25);   // 20 (mayor clave <= 25)
+i64 floor = t.floor_key(25); // 20 (mayor clave <= 25)
 i64 ceiling = t.ceiling_key(15); // 20 (menor clave >= 15)
 
 // Eliminar:
@@ -211,10 +211,10 @@ s.add(30);
 s.add(10);
 s.add(20);
 
-i64 min = s.first();    // 10
-i64 max = s.last();     // 30
+i64 min = s.first(); // 10
+i64 max = s.last(); // 30
 
-bool tiene = s.contains(20);   // true
+bool tiene = s.contains(20); // true
 s.remove(20);
 ```
 
@@ -229,9 +229,9 @@ st.push(1);
 st.push(2);
 st.push(3);
 
-i64 top = st.peek();     // 3 (sin extraer)
-i64 val = st.pop();      // 3
-i64 n   = st.size();     // 2
+i64 top = st.peek(); // 3 (sin extraer)
+i64 val = st.pop(); // 3
+i64 n = st.size(); // 2
 ```
 
 ---
@@ -247,7 +247,7 @@ char* pos = vstr_indexof(haystack_ptr, h_len, needle_ptr, n_len);
 
 // Verificar prefijos/sufijos:
 bool empieza = vstr_starts_with(s_ptr, s_len, prefix_ptr, p_len);
-bool termina  = vstr_ends_with(s_ptr, s_len, suffix_ptr, suf_len);
+bool termina = vstr_ends_with(s_ptr, s_len, suffix_ptr, suf_len);
 
 // Convertir a mayusculas/minusculas (ASCII):
 vstr_lower_inplace(buf_ptr, len);
@@ -291,11 +291,11 @@ omite el cleanup:
 ArrayList construir() {
     ArrayList xs = arraylist(8);
     xs.push(1); xs.push(2); xs.push(3);
-    return xs;    // xs escapa: no se libera al salir de construir()
-}                 // el llamante es el dueno
+    return xs; // xs escapa: no se libera al salir de construir()
+} // el llamante es el dueno
 
 ArrayList resultado = construir();
-println("${resultado.size()}");    // 3
+println("${resultado.size()}"); // 3
 // resultado se libera aqui
 ```
 
@@ -305,7 +305,7 @@ Para liberacion adelantada dentro de loops:
 for (i32 i = 0; i < 1000; i++) {
     ArrayList tmp = arraylist(4);
     // ... usar tmp ...
-    dispose(tmp);    // libera ahora en lugar de esperar al exit del for
+    dispose(tmp); // libera ahora en lugar de esperar al exit del for
 }
 ```
 

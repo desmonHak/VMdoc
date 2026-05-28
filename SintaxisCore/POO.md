@@ -25,7 +25,7 @@ class Animal {
     // Constructor principal
     public Animal(String nombre, uint8_t edad) {
         this.nombre = nombre;
-        this.edad   = edad;
+        this.edad = edad;
     }
 
     // Constructor por defecto: llama al principal con edad 0
@@ -51,9 +51,9 @@ class Animal {
 
 // Crear instancias
 Animal a1 = new Animal("Rex", 3);
-Animal a2 = new Animal("Fluffy");  // edad = 0
+Animal a2 = new Animal("Fluffy"); // edad = 0
 
-a1.saludar();  // imprime "Hola, soy Rex"
+a1.saludar(); // imprime "Hola, soy Rex"
 ```
 
 ---
@@ -66,7 +66,7 @@ accesores `get` y `set`:
 ```c
 class Persona {
 
-    private uint8_t _edad;  // campo interno privado
+    private uint8_t _edad; // campo interno privado
 
     // Getter: acceso de lectura al campo
     public get edad => _edad;
@@ -80,25 +80,25 @@ class Persona {
     }
 
     public Persona(uint8_t edad) {
-        this.edad = edad;  // usa el setter (con validacion)
+        this.edad = edad; // usa el setter (con validacion)
     }
 }
 
 Persona p = new Persona(25);
-uint8_t e = p.edad;   // usa el getter -> 25
-p.edad = 30;          // usa el setter -> _edad = 30
+uint8_t e = p.edad; // usa el getter -> 25
+p.edad = 30; // usa el setter -> _edad = 30
 ```
 
 ---
 
 ## Modificadores de acceso
 
-| Modificador | Visibilidad                                                              |
+| Modificador | Visibilidad |
 | :---------- | :----------------------------------------------------------------------- |
-| `public`    | Accesible desde cualquier lugar                                          |
-| `private`   | Solo accesible dentro de la propia clase                                 |
-| `protect`   | Accesible desde la clase padre y sus subclases                           |
-| `default`   | Accesible dentro de la misma unidad de compilacion (paquete)             |
+| `public` | Accesible desde cualquier lugar |
+| `private` | Solo accesible dentro de la propia clase |
+| `protect` | Accesible desde la clase padre y sus subclases |
+| `default` | Accesible dentro de la misma unidad de compilacion (paquete) |
 
 Se pueden aplicar de forma individual o en bloque:
 
@@ -152,9 +152,9 @@ class Draco : Perro, Nombre {
     String nombre;
 
     Draco(String nom) => {
-        Perro::nombre  = nom;   // atributo nombre de la clase Perro
-        Nombre::nombre = nom;   // atributo nombre de la clase Nombre
-        this.nombre    = nom;   // atributo nombre de esta clase
+        Perro::nombre = nom; // atributo nombre de la clase Perro
+        Nombre::nombre = nom; // atributo nombre de la clase Nombre
+        this.nombre = nom; // atributo nombre de esta clase
     }
 }
 ```
@@ -189,7 +189,7 @@ class Animal {
 
 class Perro : Animal {
     @Override
-    public String sonido() {  // reemplaza Animal.sonido()
+    public String sonido() { // reemplaza Animal.sonido()
         return "Guau";
     }
 }
@@ -203,7 +203,7 @@ class Gato : Animal {
 
 // Polimorfismo: la llamada al metodo correcto depende del tipo real del objeto
 Animal a = new Perro();
-a.sonido();  // "Guau" (no "...")
+a.sonido(); // "Guau" (no "...")
 ```
 
 Esto funciona porque VestaVM usa una **tabla virtual (vtable)** para resolver el
@@ -217,7 +217,7 @@ metodo correcto en tiempo de ejecucion usando `CALLVIRT`.
 // Clase abstracta: no se puede instanciar directamente
 @Abstract
 class Figura {
-    public float area();     // metodo abstracto: subclases deben implementarlo
+    public float area(); // metodo abstracto: subclases deben implementarlo
     public float perimetro();
 }
 
@@ -245,14 +245,14 @@ Cada objeto en el heap GC tiene un `ObjectHeader` de 24 bytes antes de sus propi
 ```c
 // Layout en memoria de un objeto Animal:
 //
-// offset  0 : class_ptr  (8 bytes) -- puntero a ClassInfo de Animal
-// offset  8 : flags      (4 bytes) -- OBJ_FLAG_GC_OWNED, etc.
-// offset 12 : hash_code  (4 bytes) -- codigo hash del objeto
-// offset 16 : owner_pid  (4 bytes) -- PID propietario del monitor (0 = libre)
+// offset 0 : class_ptr (8 bytes) -- puntero a ClassInfo de Animal
+// offset 8 : flags (4 bytes) -- OBJ_FLAG_GC_OWNED, etc.
+// offset 12 : hash_code (4 bytes) -- codigo hash del objeto
+// offset 16 : owner_pid (4 bytes) -- PID propietario del monitor (0 = libre)
 // offset 20 : lock_depth (2 bytes) -- profundidad de bloqueo reentrante
-// offset 22 : _mon_pad   (2 bytes) -- relleno de alineacion
-// offset 24 : nombre     (primer campo de Animal)
-// offset 32 : edad       (segundo campo de Animal)
+// offset 22 : _mon_pad (2 bytes) -- relleno de alineacion
+// offset 24 : nombre (primer campo de Animal)
+// offset 32 : edad (segundo campo de Animal)
 ```
 
 Los campos del usuario comienzan siempre en el offset **+24** (no +16 como en versiones

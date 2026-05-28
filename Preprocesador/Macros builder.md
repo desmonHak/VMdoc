@@ -18,12 +18,12 @@ preprocesamiento. Los operadores soportados son:
 
 ```c
 #set CONTADOR = 0
-#set CONTADOR++           // CONTADOR = 1
-#set CONTADOR += 10       // CONTADOR = 11
+#set CONTADOR++ // CONTADOR = 1
+#set CONTADOR += 10 // CONTADOR = 11
 #set NOMBRE = "modulo_a"
 
 // El valor se puede usar como macro normal
-mov r1, CONTADOR          // -> mov r1, 11
+mov r1, CONTADOR // -> mov r1, 11
 ```
 
 `#set` es equivalente a `#define` pero no emite advertencia si la variable
@@ -40,27 +40,27 @@ ya estaba definida (semantica de asignacion, no de redefinicion).
 #foreach OP in (add, sub, mul, div)
 // Instruccion OP generada por el preprocesador
 emit_OP:
-    nop1
+nop1
 #endforeach
 
 // Resultado expandido:
 // emit_add:
-//     nop1
+// nop1
 // emit_sub:
-//     nop1
+// nop1
 // emit_mul:
-//     nop1
+// nop1
 // emit_div:
-//     nop1
+// nop1
 ```
 
 Cada iteracion expande `OP` con el elemento correspondiente de la lista.
 Se puede combinar con `##` para construir nombres:
 
 ```c
-#define HANDLER(op)  handle_##op
+#define HANDLER(op) handle_##op
 #foreach OP in (click, key, resize)
-    HANDLER(OP),
+HANDLER(OP),
 #endforeach
 // -> handle_click, handle_key, handle_resize,
 ```
@@ -75,12 +75,12 @@ Se puede combinar con `##` para construir nombres:
 ```c
 // Emitir 4 instrucciones nop consecutivas
 #repeat 4
-    nop1    // iteracion __REPEAT_INDEX__
+nop1 // iteracion __REPEAT_INDEX__
 #endrepeat
 
 // Generar una tabla de registros
 #repeat 8
-    .db r__REPEAT_INDEX__,
+.db r__REPEAT_INDEX__,
 #endrepeat
 // -> .db r0, .db r1, .db r2, ... .db r7,
 ```
@@ -93,11 +93,11 @@ Se puede combinar con `##` para construir nombres:
 
 ```c
 #array OPCODES (add, sub, mul, div, and, or, xor)
-#array REGS    (r1, r2, r3, r4, r5, r6)
+#array REGS (r1, r2, r3, r4, r5, r6)
 
 // Iterar sobre el array
 #foreach OP in OPCODES
-    case OP: ...
+case OP: ...
 #endforeach
 ```
 
@@ -112,11 +112,11 @@ preprocesamiento y guarda su salida como una macro:
 
 ```c
 // Capturar la fecha de build con una herramienta externa
-#exec BUILD_DATE  date +%Y%m%d
+#exec BUILD_DATE date +%Y%m%d
 // BUILD_DATE queda definida con la salida del comando, p.ej. "20260426"
 
 // Obtener el hash del commit actual
-#exec GIT_HASH  git rev-parse --short HEAD
+#exec GIT_HASH git rev-parse --short HEAD
 
 // Usar las macros resultantes
 mov r1, BUILD_DATE
@@ -137,11 +137,11 @@ mov r1, BUILD_DATE
 #assert API_VERSION >= 2
 
 // Con mensaje de error personalizado
-#assert API_VERSION >= 2  "Se requiere API_VERSION >= 2"
+#assert API_VERSION >= 2 "Se requiere API_VERSION >= 2"
 
 // Verificar condicion de plataforma
 #ifdef __WINDOWS__
-    #assert 0  "Este modulo solo compila en Linux"
+#assert 0 "Este modulo solo compila en Linux"
 #endif
 ```
 
@@ -157,10 +157,10 @@ de `\` de continuacion:
 
 ```c
 #macro INIT_REGS(base, count)
-    mov r1, base
-    mov r2, count
-    mov r3, 0
-    adds r3, r1
+mov r1, base
+mov r2, count
+mov r3, 0
+adds r3, r1
 #endmacro
 
 // Uso
@@ -179,18 +179,18 @@ aritmeticas completas, incluyendo la funcion `defined()`:
 #define VERSION 3
 
 #if VERSION >= 2 && defined(FEATURE_X)
-    // codigo para version 2+ con FEATURE_X
+// codigo para version 2+ con FEATURE_X
 #elif VERSION == 1
-    // codigo para version 1
+// codigo para version 1
 #else
-    // fallback
+// fallback
 #endif
 
 // Combinaciones de operadores soportados en #if:
-// Aritmeticos:  + - * / % << >> ~ & | ^
-// Comparacion:  == != < <= > >=
-// Logicos:      && || !
-// Especial:     defined(NAME)
+// Aritmeticos: + - * / % << >> ~ & | ^
+// Comparacion: == != < <= > >=
+// Logicos: && || !
+// Especial: defined(NAME)
 ```
 
 ---

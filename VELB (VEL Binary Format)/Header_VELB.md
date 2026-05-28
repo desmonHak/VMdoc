@@ -20,7 +20,7 @@ que informacion contiene.
 * "VELB", pero en caso de ser big-endian (BE), pondra BLEV
 */
 typedef union velb_magic {
-	uint32_t firma;     // 0x424C4556 == "VELB" en LE
+    uint32_t firma; // 0x424C4556 == "VELB" en LE
     uint8_t firma_byte[4];
 } velb_magic;
 ```
@@ -33,7 +33,7 @@ typedef uint32_t velb_version_format;
 - ``max_vm_version``: ``4 bytes`` con la maxima version compatible en la que el codigo puede ser ejecutado en una VM.
 - `min_vm_version`: ``4 bytes`` con la minima version compatible en la que el codigo puede ser ejecutado en una VM.
 ```c
-typedef uint32_t max_vm_version;  
+typedef uint32_t max_vm_version; 
 typedef uint32_t min_vm_version;
 ```
 
@@ -76,11 +76,11 @@ typedef uint64_t section_table_offset;
 typedef uint64_t number_spaces_address;
 ```
 
-- A continuacion va una tabla estatica de X entradas con el rango de  direcciones, indicado en el apartado de [[EspacioDeDireccionesDeLaMemoria]]. Cada entrada:
+- A continuacion va una tabla estatica de X entradas con el rango de direcciones, indicado en el apartado de [[EspacioDeDireccionesDeLaMemoria]]. Cada entrada:
 ```c
 typedef struct range_memory {
-	uint64_t address_init;
-	uint64_t address_final;
+    uint64_t address_init;
+    uint64_t address_final;
 } range_memory;
 ```
 debe definir una direccion inicial y una direccion final para cada espacio de direcciones, donde conviviran las distintas secciones. En caso de que estos dos valores sean iguales, se estara indicando que esta seccion no existe y por tanto no se usara memoria en esta seccion. Para el resto de los casos, si se define un rango, el codigo sera cargado en estos espacios de direcciones. Un espacio de direcciones puede tener varias secciones. Los espacios de direcciones no reservan toda su memoria en el momento, sino que lo haran segun el codigo lo necesite. Inicialmente solo se reserva memoria para los datos y codigo cargados/mapeados del ejecutable. 
@@ -88,46 +88,46 @@ Aunque los espacios de direcciones esta predefinidos, un usuario puede crear los
 
 Header:
 ```c
-typedef struct PACKED HeaderVELB {  
-    velb_magic magic;  
-    velb_version_format format_v;  
-  
-    max_vm_version max_v;  
-    min_vm_version min_v;  
-  
-    velb_checksum checksum;  
-  
-    velb_flags flags;  
-    build_timestamp timestamp;  
-    target_arch arch;  
-  
-    section_count count;  
-  
-    section_table_offset table_offset;  
-  
-    number_spaces_address n_spaces;  
-    range_memory *address_spaces; // tabla de espacios de direcciones  
+typedef struct PACKED HeaderVELB { 
+    velb_magic magic; 
+    velb_version_format format_v; 
+    
+    max_vm_version max_v; 
+    min_vm_version min_v; 
+    
+    velb_checksum checksum; 
+    
+    velb_flags flags; 
+    build_timestamp timestamp; 
+    target_arch arch; 
+    
+    section_count count; 
+    
+    section_table_offset table_offset; 
+    
+    number_spaces_address n_spaces; 
+    range_memory *address_spaces; // tabla de espacios de direcciones 
 } HeaderVELB;
 ```
 
-La forma correcta de conocer el tamano del header es la siguiente:
+La forma correcta de conocer el tamaño del header es la siguiente:
 ```c
-    uint64_t Linker::compute_sections_base_offset() const {
-        // el hader siempre esta alineado a 16 bytes
-        return align_up(
+uint64_t Linker::compute_sections_base_offset() const {
+    // el hader siempre esta alineado a 16 bytes
+    return align_up(
 
-            // se resta el tamano del puntero de range_memory, ya que en el archivo,
-            // la tabla va espacio de direcciones va direcamente incrustado, en lugar de
-            // ser un puntero.
-            (sizeof(HeaderVELB) - sizeof(range_memory *)) + (
-                // el espacio real de todo_ el hader es la cantidad de espacios de direcciones
-                // po el tamano de una entrada de rango de memoria (16 bytes para inicio y fin)
-                final_header.n_spaces * sizeof(range_memory)
-            ) +
+    // se resta el tamaño del puntero de range_memory, ya que en el archivo,
+    // la tabla va espacio de direcciones va direcamente incrustado, en lugar de
+    // ser un puntero.
+    (sizeof(HeaderVELB) - sizeof(range_memory *)) + (
+    // el espacio real de todo_ el hader es la cantidad de espacios de direcciones
+    // po el tamaño de una entrada de rango de memoria (16 bytes para inicio y fin)
+    final_header.n_spaces * sizeof(range_memory)
+) +
 
-            final_sections.size() * sizeof(section_range_memory)
-        , 16);
-    }
+    final_sections.size() * sizeof(section_range_memory)
+    , 16);
+}
 
 ```
 El ``header`` siempre debera estar alineado a 16 bytes.
@@ -144,23 +144,23 @@ con el `velb_version_format` field.
 Header + secciones (code, data, symbol_table, import_table). El loader las
 mapea al `vm_mem` del proceso segun la tabla de espacios de direcciones.
 
-### v2 (2026-05-03): Reloc table
+### v2: Reloc table
 
 Anyadidos al header:
 
 ```c
-uint64_t offset_reloc_table;     // offset desde inicio de archivo
-uint32_t size_reloc_table;       // tamano en bytes
+uint64_t offset_reloc_table; // offset desde inicio de archivo
+uint32_t size_reloc_table; // tamaño en bytes
 ```
 
 Contiene una tabla de relocations (`entry_relocation_table`, 24 bytes packed):
 
 ```c
 struct entry_relocation_table {
-    uint64_t bytecode_offset;   // offset dentro del code section
-    uint64_t target_value;       // valor original (VA del label)
-    uint8_t  type;               // RelocTypeVELB: ABSOLUTE64, ABSOLUTE32, ...
-    uint8_t  _pad[7];
+    uint64_t bytecode_offset; // offset dentro del code section
+    uint64_t target_value; // valor original (VA del label)
+    uint8_t type; // RelocTypeVELB: ABSOLUTE64, ABSOLUTE32, ...
+    uint8_t _pad[7];
 };
 ```
 
@@ -169,18 +169,18 @@ distinta a la compilada (solape de espacio de direcciones con un modulo ya
 cargado), el loader hace **rebase transparente** patcheando todas las
 referencias `@Absolute(...)` con la nueva VA.
 
-### v3 (2026-05-13): IR section + Symbol section
+### v3: IR section + Symbol section
 
 Anyadidos al header:
 
 ```c
-uint64_t offset_ir_section;      // SSA IR embebido para el JIT
+uint64_t offset_ir_section; // SSA IR embebido para el JIT
 uint32_t size_ir_section;
 
-// Tambien anyadida en v3+:
-uint64_t offset_debug_section;   // debug info opcional (file:line)
+// Tambien añadida en v3+:
+uint64_t offset_debug_section; // debug info opcional (file:line)
 uint32_t size_debug_section;
-uint8_t  debug_level;            // 0 = sin debug, 1+ niveles de detalle
+uint8_t debug_level; // 0 = sin debug, 1+ niveles de detalle
 ```
 
 #### Seccion `@ir` (magic `VEIR`)
@@ -189,8 +189,8 @@ Layout:
 
 ```text
 +--------+--------+----------+----------+
-| magic  | version|reserved  | n_funcs  |
-| 'VEIR' | u16    | u16      | u32      |
+| magic | version|reserved | n_funcs |
+| 'VEIR' | u16 | u16 | u32 |
 +--------+--------+----------+----------+
 
 Funciones serializadas concatenadas: cada IrFunction con sus blocks,
@@ -208,12 +208,12 @@ Layout:
 
 ```text
 +--------+--------+----------+
-| magic  | version| count    |
-| 'VSYM' | u16    | u32      |
+| magic | version| count |
+| 'VSYM' | u16 | u32 |
 +--------+--------+----------+
 
 Entries packed:
-  u16 name_len + char name[name_len] + u64 addr
+    u16 name_len + char name[name_len] + u64 addr
 ```
 
 Mapa de **nombres qualified** (`section.label`, ej. `code.s_1`, `data.foo`)
@@ -224,9 +224,9 @@ Mapa de **nombres qualified** (`section.label`, ej. `code.s_1`, `data.foo`)
 
 | Loader version | Lee v1 | Lee v2 | Lee v3 |
 | :------------- | :----: | :----: | :----: |
-| v1             | si     | no     | no     |
-| v2             | si     | si     | no     |
-| v3 (actual)    | si     | si     | si     |
+| v1 | si | no | no |
+| v2 | si | si | no |
+| v3 (actual) | si | si | si |
 
 Loaders posteriores siempre leen formatos anteriores. Las secciones nuevas
 (`@ir`, `@sym`, debug) tienen offset=0 size=0 cuando no estan presentes; el
@@ -238,7 +238,7 @@ loader las trata como ausentes.
 # Sin debug (default): el .velb no incluye seccion debug.
 vm --vex programa.vex -o programa
 
-# Con debug: anyade seccion DVBG con tabla bytecode_offset -> (file, line).
+# Con debug: añade seccion DVBG con tabla bytecode_offset -> (file, line).
 # Usado por el debugger TCP para breakpoints por file:line.
 vm --vex programa.vex -o programa --vex-debug
 ```

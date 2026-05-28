@@ -6,18 +6,18 @@ Cuando una funcion nativa necesita leer o escribir datos en la **memoria
 virtual de la VM** (no en memoria del proceso host), se usa el patron
 `(proc_ptr, vm_addr, len)`:
 
-| registro | contenido                                       |
+| registro | contenido |
 | :------: | :---------------------------------------------- |
-| `r1`     | `proc_ptr` - resultado de la instruccion `getproc` |
-| `r2`     | `vm_addr`  - direccion virtual dentro de la VM  |
-| `r3`     | `len`      - numero de bytes a operar           |
+| `r1` | `proc_ptr` - resultado de la instruccion `getproc` |
+| `r2` | `vm_addr` - direccion virtual dentro de la VM |
+| `r3` | `len` - numero de bytes a operar |
 
 ```c
-getproc r1                              // r1 = ProcessVM* del proceso actual
-mov     r2, @Absolute("all.buffer")    // r2 = direccion virtual del dato en la VM
-mov     r3, 64                         // r3 = longitud en bytes
-mov     r15, 3
-calln   @Method("mi_lib:mi_funcion")
+getproc r1 // r1 = ProcessVM* del proceso actual
+mov r2, @Absolute("all.buffer") // r2 = direccion virtual del dato en la VM
+mov r3, 64 // r3 = longitud en bytes
+mov r15, 3
+calln @Method("mi_lib:mi_funcion")
 ```
 
 En la funcion nativa (C) se usa `g_api->vm_read_bytes` / `vm_write_bytes`
@@ -47,8 +47,8 @@ Registros:
 - `r01-r12`: los registros se usan para pasar los parametros.
 
 ```c
-mov r15, 1                          ; 1 argumento
-mov r01, hola_mundo                 // puntero al string
+mov r15, 1 ; 1 argumento
+mov r01, hola_mundo // puntero al string
 calln @Method("libc.dll:puts")
 // el valor retornado esta en r00
 hlt
@@ -80,20 +80,20 @@ mov r02, a1
 mov r03, a2
 mov r04, a3
 mov r05, a4
-mov r15, 7      ; total de argumentos (registros + stack)
+mov r15, 7 ; total de argumentos (registros + stack)
 ```
 
 2. **Empujar argumentos extra en el stack (orden natural):**
 ```c
-push a5         ; se empuja primero (quedara mas profundo en la pila)
-push a6         ; se empuja segundo (quedara encima de a5)
+push a5 ; se empuja primero (quedara mas profundo en la pila)
+push a6 ; se empuja segundo (quedara encima de a5)
 ```
 
 Estado del stack tras los pushes (SP crece hacia abajo):
 ```
-SP     -> a6     (top, ultimo empujado)
-SP+8   -> a5
-SP+16  -> ...    (resto del stack del caller)
+SP -> a6 (top, ultimo empujado)
+SP+8 -> a5
+SP+16 -> ... (resto del stack del caller)
 ```
 
 3. **Llamar a la funcion** - [[CALLVM]] empuja automaticamente la direccion de retorno y salta:
@@ -103,25 +103,25 @@ callvm foo
 
 4. **Al entrar en `foo`, el callee ejecuta [[ENTER]]:**
 ```c
-enter 32        ; reserva 32 bytes para variables locales
+enter 32 ; reserva 32 bytes para variables locales
 ```
 equivale a:
 ```c
-push rbp        ; guarda el frame anterior
-mov  rbp, rsp   ; establece el nuevo frame base
-sub  rsp, 32    ; reserva espacio local
+push rbp ; guarda el frame anterior
+mov rbp, rsp ; establece el nuevo frame base
+sub rsp, 32 ; reserva espacio local
 ```
 
 **Layout del stack frame tras `enter 32`:**
 ```
-[rbp+24] = a6               <- argumento extra (segundo empujado)
-[rbp+16] = a5               <- argumento extra (primero empujado)
-[rbp+8]  = return_address   <- empujado por CALLVM
-[rbp+0]  = saved rbp        <- empujado por ENTER (frame anterior)
-[rbp-8]  = local0           ??
-[rbp-16] = local1            ? variables locales
-...                          ?
-[rbp-32] = local3           ??
+[rbp+24] = a6 <- argumento extra (segundo empujado)
+[rbp+16] = a5 <- argumento extra (primero empujado)
+[rbp+8] = return_address <- empujado por CALLVM
+[rbp+0] = saved rbp <- empujado por ENTER (frame anterior)
+[rbp-8] = local0 ??
+[rbp-16] = local1 ? variables locales
+... ?
+[rbp-32] = local3 ??
 ```
 
 ### El callee NO limpia la pila
@@ -129,8 +129,8 @@ sub  rsp, 32    ; reserva espacio local
 El **caller** limpia los argumentos extra del stack despues del retorno (caller-cleans convention, igual que System V / ARM64 / RISC-V):
 ```c
 // tras retornar de foo:
-pop r06    // quitar a6 del stack
-pop r07    // quitar a5 del stack
+pop r06 // quitar a6 del stack
+pop r07 // quitar a5 del stack
 // o bien: add rsp, 16
 ```
 
@@ -147,8 +147,8 @@ Esta convencion permite construir un stack trace para depuracion:
 
 ```c
 frame0_rbp = vm->registers.rbp;
-frame0_ret = mem[frame0_rbp + 8];   // direccion de retorno
-frame1_rbp = mem[frame0_rbp + 0];   // rbp del frame anterior
+frame0_ret = mem[frame0_rbp + 8]; // direccion de retorno
+frame1_rbp = mem[frame0_rbp + 0]; // rbp del frame anterior
 frame1_ret = mem[frame1_rbp + 8];
 frame2_rbp = mem[frame1_rbp + 0];
 // ...
@@ -161,8 +161,8 @@ fnA -> fnB -> fnC -> fnD
 
 > Para que esto funcione, todas las funciones deben usar stack frame (`enter`/`leave`) y se debe mantener un mapa de simbolos `nombre -> direccion`.
 ```
-at foo()  [0x1234]
-at bar()  [0x5678]
+at foo() [0x1234]
+at bar() [0x5678]
 at main() [0x9ABC]
 ```
 
@@ -178,7 +178,7 @@ Una llamada esta en _posicion de cola_ cuando es **lo ultimo** que hace la funci
 // cuerpo...
 // preparar args para foo
 callvm foo
-ret          // <- candidato a TCO
+ret // <- candidato a TCO
 ```
 
 Si hay cualquier operacion despues de la llamada (sumar, comparar, etc.), **no hay TCO**.
@@ -207,7 +207,7 @@ ret
 en:
 ```c
 // preparar nuevos argumentos en r01-r05 y stack
-jmp foo     ; salto directo sin crear nuevo frame
+jmp foo ; salto directo sin crear nuevo frame
 ```
 
 ### Opcion 1: instruccion explicita `tailcall`
@@ -241,19 +241,19 @@ tailcall fn
 
 Las funciones con TCO puro no necesitan `enter`/`leave`:
 ```c
-fact:               ; fact(n=r01, acc=r02)
-    cmp r01, 0
-    jmp.je base_case
+fact: ; fact(n=r01, acc=r02)
+cmp r01, 0
+jmp.je base_case
 
-    ; preparar fact(n-1, acc*n)
-    sub r01, 1
-    mul r02, r01
-    mov r15, 2
-    tailcall fact   // <- sin enter, sin leave, sin ret
+; preparar fact(n-1, acc*n)
+sub r01, 1
+mul r02, r01
+mov r15, 2
+tailcall fact // <- sin enter, sin leave, sin ret
 
 base_case:
-    mov r00, r02
-    ret
+mov r00, r02
+ret
 ```
 
 > Al no usarse `enter`, no es necesario usar `leave` antes del `tailcall`.

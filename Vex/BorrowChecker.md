@@ -13,25 +13,25 @@ reborrow con suspend, lifetime elision).
 ## Indice
 
 - [Borrow checker en Vex (estilo Rust)](#borrow-checker-en-vex-estilo-rust)
-  - [Indice](#indice)
-  - [1. Por qué un borrow checker](#1-por-qué-un-borrow-checker)
-  - [2. `borrow<T>` shared y `borrow_mut<T>` exclusive](#2-borrowt-shared-y-borrow_mutt-exclusive)
-  - [3. Builtins: lend, lend\_mut, read\_borrow, write\_borrow](#3-builtins-lend-lend_mut-read_borrow-write_borrow)
-  - [4. Las 4 reglas: R1-R4](#4-las-4-reglas-r1-r4)
-    - [R1: Exclusividad mutable](#r1-exclusividad-mutable)
-    - [R2: Inmutables compatibles](#r2-inmutables-compatibles)
-    - [R3: No-uso-mientras-prestado](#r3-no-uso-mientras-prestado)
-    - [R4: Lifetime](#r4-lifetime)
-  - [5. Fase F1: Non-Lexical Lifetimes (NLL)](#5-fase-f1-non-lexical-lifetimes-nll)
-  - [6. Fase F2: OwnerKind tracking](#6-fase-f2-ownerkind-tracking)
-  - [7. Fase F3: Reborrow con suspend stack](#7-fase-f3-reborrow-con-suspend-stack)
-    - [Reborrow desde shared (caso simple)](#reborrow-desde-shared-caso-simple)
-    - [Reborrow desde mutable (con suspend semantics)](#reborrow-desde-mutable-con-suspend-semantics)
-    - [Casos cubiertos](#casos-cubiertos)
-  - [8. Fase F4: Lifetime elision (regla 1)](#8-fase-f4-lifetime-elision-regla-1)
-  - [9. Mensajes de error estilo rustc](#9-mensajes-de-error-estilo-rustc)
-  - [10. Limitaciones](#10-limitaciones)
-  - [Resumen: tabla de validación](#resumen-tabla-de-validación)
+ - [Indice](#indice)
+ - [1. Por qué un borrow checker](#1-por-qué-un-borrow-checker)
+ - [2. `borrow<T>` shared y `borrow_mut<T>` exclusive](#2-borrowt-shared-y-borrow_mutt-exclusive)
+ - [3. Builtins: lend, lend\_mut, read\_borrow, write\_borrow](#3-builtins-lend-lend_mut-read_borrow-write_borrow)
+ - [4. Las 4 reglas: R1-R4](#4-las-4-reglas-r1-r4)
+ - [R1: Exclusividad mutable](#r1-exclusividad-mutable)
+ - [R2: Inmutables compatibles](#r2-inmutables-compatibles)
+ - [R3: No-uso-mientras-prestado](#r3-no-uso-mientras-prestado)
+ - [R4: Lifetime](#r4-lifetime)
+ - [5. Fase F1: Non-Lexical Lifetimes (NLL)](#5-fase-f1-non-lexical-lifetimes-nll)
+ - [6. Fase F2: OwnerKind tracking](#6-fase-f2-ownerkind-tracking)
+ - [7. Fase F3: Reborrow con suspend stack](#7-fase-f3-reborrow-con-suspend-stack)
+ - [Reborrow desde shared (caso simple)](#reborrow-desde-shared-caso-simple)
+ - [Reborrow desde mutable (con suspend semantics)](#reborrow-desde-mutable-con-suspend-semantics)
+ - [Casos cubiertos](#casos-cubiertos)
+ - [8. Fase F4: Lifetime elision (regla 1)](#8-fase-f4-lifetime-elision-regla-1)
+ - [9. Mensajes de error estilo rustc](#9-mensajes-de-error-estilo-rustc)
+ - [10. Limitaciones](#10-limitaciones)
+ - [Resumen: tabla de validación](#resumen-tabla-de-validación)
 
 ---
 
@@ -57,14 +57,14 @@ En runtime, los borrows son punteros normales sin checks.
 i32 main() {
     unique<i32> data = unique_box(42);
 
-    borrow<i32> ro = lend(data);            // shared borrow (read-only)
-    i32 v = read_borrow(ro);                 // = 42
+    borrow<i32> ro = lend(data); // shared borrow (read-only)
+    i32 v = read_borrow(ro); // = 42
     println("${v}");
-    
-    borrow_mut<i32> rw = lend_mut(data);    // exclusive borrow (read-write)
+ 
+    borrow_mut<i32> rw = lend_mut(data); // exclusive borrow (read-write)
     write_borrow(rw, 100);
-    i32 w = read_borrow(rw);                 // = 100
-    
+    i32 w = read_borrow(rw); // = 100
+ 
     return read_borrow(rw);
 }
 ```
@@ -78,27 +78,27 @@ i32 main() {
 
 ## 3. Builtins: lend, lend_mut, read_borrow, write_borrow
 
-| Builtin              | Retorno            | Descripción                        |
+| Builtin | Retorno | Descripción |
 | :------------------- | :----------------- | :--------------------------------- |
-| `lend(owner)`        | `borrow<T>`        | Crea borrow shared del owner       |
-| `lend_mut(owner)`    | `borrow_mut<T>`    | Crea borrow exclusive (requiere R1) |
-| `read_borrow(b)`     | `T`                | Lee el valor apuntado              |
-| `write_borrow(m, v)` | `void`             | Escribe vía mut borrow             |
+| `lend(owner)` | `borrow<T>` | Crea borrow shared del owner |
+| `lend_mut(owner)` | `borrow_mut<T>` | Crea borrow exclusive (requiere R1) |
+| `read_borrow(b)` | `T` | Lee el valor apuntado |
+| `write_borrow(m, v)` | `void` | Escribe vía mut borrow |
 
 ```vex
 unique<i32> data = unique_box(0);
 borrow_mut<i32> m = lend_mut(data);
 write_borrow(m, 42);
-i32 v = read_borrow(m);                // = 42
+i32 v = read_borrow(m); // = 42
 ```
 
 **Lowering**:
 - `lend(owner)`/`lend_mut(owner)` emiten `LOAD slot+0` del owner (para
-  unique<T>) o `LOAD slot+0 + ADD 16` (para shared<T>, offset del payload
-  inline). Para variables raw con address-taken, devuelven el SSA value
-  directo del puntero.
+ unique<T>) o `LOAD slot+0 + ADD 16` (para shared<T>, offset del payload
+ inline). Para variables raw con address-taken, devuelven el SSA value
+ directo del puntero.
 - `read_borrow(b)`/`write_borrow(m, v)` emiten LOAD/STORE i64 con
-  `is_host_ptr=true` (el emisor usa `movh`).
+ `is_host_ptr=true` (el emisor usa `movh`).
 
 ---
 
@@ -112,7 +112,7 @@ del mismo owner.
 ```vex
 unique<i32> p = unique_box(42);
 borrow_mut<i32> m = lend_mut(p);
-borrow<i32> r = lend(p);             // ERROR R1: m sigue activo
+borrow<i32> r = lend(p); // ERROR R1: m sigue activo
 ```
 
 ### R2: Inmutables compatibles
@@ -123,8 +123,8 @@ puede activarse mientras haya shared activos.
 ```vex
 unique<i32> p = unique_box(42);
 borrow<i32> r1 = lend(p);
-borrow<i32> r2 = lend(p);           // OK R2: dos shared OK
-borrow_mut<i32> m = lend_mut(p);     // ERROR R2: shared activos
+borrow<i32> r2 = lend(p); // OK R2: dos shared OK
+borrow_mut<i32> m = lend_mut(p); // ERROR R2: shared activos
 ```
 
 ### R3: No-uso-mientras-prestado
@@ -135,7 +135,7 @@ borrows activos.
 ```vex
 unique<i32> p = unique_box(42);
 borrow<i32> r = lend(p);
-unique<i32> q = move(p);             // ERROR R3: p tiene borrow activo
+unique<i32> q = move(p); // ERROR R3: p tiene borrow activo
 ```
 
 ### R4: Lifetime
@@ -146,11 +146,11 @@ Borrows NO pueden escapar via `return` salvo si el owner es Param/Global/Field
 ```vex
 borrow<i32> bad() {
     unique<i32> local = unique_box(42);
-    return lend(local);              // ERROR R4: local muere al ret
+    return lend(local); // ERROR R4: local muere al ret
 }
 
 borrow<i32> ok(unique<i32> param) {
-    return lend(param);              // OK R4: param vive en el caller
+    return lend(param); // OK R4: param vive en el caller
 }
 ```
 
@@ -164,9 +164,9 @@ del scope.
 ```vex
 unique<i32> p = unique_box(42);
 borrow<i32> r = lend(p);
-i32 v = read_borrow(r);              // último uso de `r`
-                                      // -> NLL libera `r` aquí
-unique<i32> q = move(p);             // OK: r ya no está activo
+i32 v = read_borrow(r); // último uso de `r`
+// -> NLL libera `r` aquí
+unique<i32> q = move(p); // OK: r ya no está activo
 ```
 
 **Implementación**: pre-pase DFS en `compute_borrow_last_uses` que numera cada
@@ -193,16 +193,16 @@ Enum `OwnerKind` en `BorrowRecord`: `Local`, `Param`, `Global`, `Field`.
 
 - Si Param/Global/Field -> permite escape (lifetime cubre la función).
 - Si Local -> error con sugerencia: "cambia a `unique<T>`/`shared<T>` o devuelve
-  read_borrow".
+ read_borrow".
 
 ```vex
 borrow<i32> ok_param(unique<i32> p) {
-    return lend(p);                  // OK: owner Param
+    return lend(p); // OK: owner Param
 }
 
 borrow<i32> bad_local() {
     unique<i32> local = unique_box(42);
-    return lend(local);              // ERROR: owner Local
+    return lend(local); // ERROR: owner Local
 }
 ```
 
@@ -222,19 +222,19 @@ owner** siguiendo la cadena. `root_owner_of(borrower)` camina recursivamente
 
 ```vex
 borrow<i32> r = lend(p);
-borrow<i32> r2 = lend(r);           // shared reborrow: shared_count++
+borrow<i32> r2 = lend(r); // shared reborrow: shared_count++
 ```
 
 ### Reborrow desde mutable (con suspend semantics)
 
 ```vex
-borrow_mut<i32> m = lend_mut(p);    // m mut activo
-borrow_mut<i32> m2 = lend_mut(m);   // reborrow mut desde m
-                                     //   suspende `m` (push a stack)
-                                     //   registra `m2` como mut activo
+borrow_mut<i32> m = lend_mut(p); // m mut activo
+borrow_mut<i32> m2 = lend_mut(m); // reborrow mut desde m
+// suspende `m` (push a stack)
+// registra `m2` como mut activo
 write_borrow(m2, 100);
 // last use de m2 -> drop -> pop suspend stack -> `m` reactivado
-write_borrow(m, 200);                // OK: m restaurado
+write_borrow(m, 200); // OK: m restaurado
 ```
 
 **Implementación**: cuando la fuente del `lend/lend_mut` es un `borrow_mut`
@@ -252,7 +252,7 @@ dropear cada reborrow.
 - `lend(borrow_mut)` -> shared reborrow de mut (suspend mut, registrar shared).
 - `lend_mut(borrow_mut)` -> mut reborrow (suspend mut, registrar nuevo mut).
 - `lend_mut(borrow_shared)` -> rechazado por type checker (upgrade shared->mut
-  prohibido).
+ prohibido).
 
 ---
 
@@ -263,7 +263,7 @@ hereda el `borrow_owner_source` del input.
 
 ```vex
 borrow<i32> first_view(borrow<i32> data) {
-    return data;                     // F4: output hereda owner de input
+    return data; // F4: output hereda owner de input
 }
 
 i32 main() {
@@ -294,16 +294,16 @@ borrow<i32> first_view(borrow<i32> b) { return second_view(b); }
 
 ```
 error: no se puede mover 'owner' porque tiene un prestamo shared activo
-  --> 116_borrow_err_move_while_borrowed.vex:6:25
-   |
+    --> 116_borrow_err_move_while_borrowed.vex:6:25
+    |
 note: prestamo shared por 'r' tomado aqui
-  --> 5:25
-   |
+    --> 5:25
+    |
 note: move(...) del owner aqui
-  --> 6:25
-   |
+    --> 6:25
+    |
 note: sugerencia: termina el scope del borrow antes de mover el owner,
-      o usa 'shared<T>'.
+    o usa 'shared<T>'.
 ```
 
 Cada error cita 2-3 puntos relevantes (creación del borrow + uso conflictivo)
@@ -314,38 +314,38 @@ con líneas + columnas + sugerencias contextuales. Inspirado en rustc.
 ## 10. Limitaciones
 
 1. **Lifetimes anotadas (`&'a T`) no soportadas**: borrows a través de
-   fronteras de función con múltiples input-borrows requieren restricciones
-   estáticas no implementadas (la regla 1 del elision-set cubre 1-input;
-   reglas 2 y 3 no implementadas).
+ fronteras de función con múltiples input-borrows requieren restricciones
+ estáticas no implementadas (la regla 1 del elision-set cubre 1-input;
+ reglas 2 y 3 no implementadas).
 
 2. **Escape via field/slot/deref**: detectado solo via escape_detection (A.27),
-   no via borrow_checker directo. Algunos casos podrían pasar (ej. `this.f =
-   borrow_local` con `this` de tipo Class).
+ no via borrow_checker directo. Algunos casos podrían pasar (ej. `this.f =
+ borrow_local` con `this` de tipo Class).
 
 3. **Owner Global/Field tracking**: el OwnerKind soporta Global/Field pero los
-   call sites no los marcan automáticamente todavía (default a Local,
-   conservador).
+ call sites no los marcan automáticamente todavía (default a Local,
+ conservador).
 
 4. **Mutaciones via setter**: `obj.prop = v` con borrow activo no se intercepta
-   (requeriría tracking del receiver kind).
+ (requeriría tracking del receiver kind).
 
 5. **Multi-input-borrows con elision regla 2 (`&self`)**: no implementada (la
-   regla 1 con 1 input cubre la mayoría de casos comunes en práctica).
+ regla 1 con 1 input cubre la mayoría de casos comunes en práctica).
 
 ---
 
 ## Resumen: tabla de validación
 
-| Acción                            | Permitida si...                         |
+| Acción | Permitida si... |
 | :-------------------------------- | :-------------------------------------- |
-| `borrow<T> r = lend(owner)`       | NO hay `borrow_mut` activo del owner    |
+| `borrow<T> r = lend(owner)` | NO hay `borrow_mut` activo del owner |
 | `borrow_mut<T> m = lend_mut(owner)` | NO hay NINGÚN borrow activo del owner |
-| `read_borrow(b)`                  | borrow no dropeado por NLL              |
-| `write_borrow(m, v)`              | `m` es `borrow_mut` no dropeado         |
-| `move(owner)`                     | NO hay borrows activos del owner        |
-| `return borrow<T>`                | owner es Param/Global/Field (R4 + F2)   |
-| `lend(borrow_mut)` (reborrow)     | suspend del mut + registrar shared      |
-| `lend_mut(borrow_mut)` (reborrow) | suspend del mut + registrar nuevo mut   |
+| `read_borrow(b)` | borrow no dropeado por NLL |
+| `write_borrow(m, v)` | `m` es `borrow_mut` no dropeado |
+| `move(owner)` | NO hay borrows activos del owner |
+| `return borrow<T>` | owner es Param/Global/Field (R4 + F2) |
+| `lend(borrow_mut)` (reborrow) | suspend del mut + registrar shared |
+| `lend_mut(borrow_mut)` (reborrow) | suspend del mut + registrar nuevo mut |
 
 ---
 

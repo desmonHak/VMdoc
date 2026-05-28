@@ -11,19 +11,19 @@ memoria en cualquier nodo de la red.
 
 ```
 Nodo fisico (maquina real)
-  |
-  +-- VmManager (gestor local)
-  |     +-- ArenaManager (memoria publica del manager)
-  |
-  +-- VmInstance_1
-  |     +-- ArenaManager (memoria privada)
-  |     +-- Procesos (ProcessVM)
-  |     +-- Registros propios
-  |
-  +-- VmInstance_2
-        +-- ArenaManager (memoria privada)
-        +-- Procesos
-        +-- Registros propios
+    |
+    +-- VmManager (gestor local)
+    | +-- ArenaManager (memoria publica del manager)
+    |
+    +-- VmInstance_1
+    | +-- ArenaManager (memoria privada)
+    | +-- Procesos (ProcessVM)
+    | +-- Registros propios
+    |
+    +-- VmInstance_2
+    +-- ArenaManager (memoria privada)
+    +-- Procesos
+    +-- Registros propios
 ```
 
 Cada nodo tiene sus propias instancias de VM, cada instancia puede tener sus
@@ -41,7 +41,7 @@ instrucciones normales (`mov`, `readcur`, etc.):
 
 ```c
 // Direccion virtual local en el rango de codigo (0x100000000...)
-mov r1, [0x1234]   // leer la direccion virtual local 0x1234
+mov r1, [0x1234] // leer la direccion virtual local 0x1234
 ```
 
 ### Direccion host local (mapeada)
@@ -64,14 +64,14 @@ Referencia a memoria en una instancia VM especifica de una maquina remota:
 VMI<1>{0x2000:192.168.1.10:80@0x2000}
 ```
 
-| Campo            | Descripcion                                            |
+| Campo | Descripcion |
 | :--------------- | :----------------------------------------------------- |
-| `VMI`            | Indica instancia VM remota (VmInstance)                |
-| `<1>`            | ID de la instancia remota                              |
-| `0x2000`         | Direccion virtual en la instancia local (destino)      |
-| `192.168.1.10`   | IP de la maquina remota                                |
-| `:80`            | Puerto del VmManager remoto                            |
-| `@0x2000`        | Direccion virtual dentro de la instancia remota        |
+| `VMI` | Indica instancia VM remota (VmInstance) |
+| `<1>` | ID de la instancia remota |
+| `0x2000` | Direccion virtual en la instancia local (destino) |
+| `192.168.1.10` | IP de la maquina remota |
+| `:80` | Puerto del VmManager remoto |
+| `@0x2000` | Direccion virtual dentro de la instancia remota |
 
 ### Direccion remota del VmManager
 
@@ -81,9 +81,9 @@ Referencia a memoria en el manager (memoria publica) de una maquina remota:
 VMM{0x1000:192.168.1.10:80@0x1000}
 ```
 
-| Campo  | Descripcion                                                  |
+| Campo | Descripcion |
 | :----- | :----------------------------------------------------------- |
-| `VMM`  | Indica el manager de una maquina remota (memoria publica)    |
+| `VMM` | Indica el manager de una maquina remota (memoria publica) |
 
 El resto de campos tienen el mismo significado que en VMI.
 
@@ -114,9 +114,9 @@ mas eficiente.
 
 ```c
 // Entrar en modo distribuido (enviar codigo a una maquina remota)
-edmw 192.168.1.10, 9000    // conectar y comenzar modo distribuido
+edmw 192.168.1.10, 9000 // conectar y comenzar modo distribuido
 // instrucciones que se ejecutaran en el nodo remoto...
-edm                        // enviar y ejecutar en el nodo remoto
+edm // enviar y ejecutar en el nodo remoto
 ```
 
 ---
