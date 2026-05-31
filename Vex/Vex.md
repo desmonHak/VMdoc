@@ -19,6 +19,7 @@ multi-paradigma estaticamente tipado disenado con tres principios:
 | :------------------------------ | :----------------------------------------------------------- |
 | [[TiposDatos]] | Tipos primitivos, punteros, struct, enum, aliases, newtypes (@opaque/@align/explicit) |
 | [[Operadores]] | Aritmeticos, comparacion, logicos, bitwise, compound, cast |
+| [[Matematicas]] | Funciones integradas: sqrt/pow/trig/log/abs/min/max/clamp + bit ops + rotaciones |
 | [[ControlFlow]] | if/while/do-while/for/foreach, break/continue/goto, match |
 | [[Strings]] | Tipo string, interpolacion `${expr:fmt}`, triple-quoted, FFI |
 | [[OptionalResult]] | `Optional<T>`, `Result<V,E>`, `!!`, `nonnull`, `T !!name` |
