@@ -296,6 +296,88 @@ match c {
 }
 ```
 
+### Payloads complejos: mezcla de aridades y tipos heterogeneos
+
+Los enums no estan limitados a un solo tipo de payload por variante.  Cada
+variante puede declarar entre 0 y N campos, con tipos mezclados libremente:
+
+```java
+enum Shape {
+    Empty,                              // 0 payloads
+    Circle(i32),                        // 1 payload entero
+    Rectangle(i32, i32),                // 2 payloads enteros
+    Triangle(f64, f64, f64),            // 3 payloads f64
+    Labeled(string, i32)                // mixto: string + i32
+}
+```
+
+El layout en memoria es uniforme: 8 bytes para el tag + slots de 8 bytes
+para cada payload (max payload count entre todas las variantes).  Variantes
+con menos payloads dejan los slots sobrantes sin usar.  Pasarlos por valor
+entre funciones usa SRET: el caller aloca el buffer y el callee escribe el
+tag + payloads.
+
+### Match con returns tempranos y bindings tipados
+
+Cada arm del `match` puede tener un bloque `{ ... }` con statements
+arbitrarios, incluyendo `return` temprano para salir de la funcion
+enclosing:
+
+```java
+i32 score_of(Shape s) {
+    match s {
+        case Empty => return 0;
+        case Circle(r) => return r * 3;
+        case Rectangle(w, h) => return (w + h) * 2;
+        case Triangle(a, b, c) => {
+            f64 sum = a + b + c;
+            return (i32)sum;
+        }
+        case Labeled(name, weight) => {
+            // name es string, weight es i32
+            return weight * 2;
+        }
+    }
+    return -1; // inalcanzable si el match es exhaustivo
+}
+```
+
+Los bindings (`r`, `w`, `h`, `a`, `b`, `c`, `name`, `weight`) se tipan
+automaticamente segun el orden de declaracion de la variante.  El type
+checker valida que la aridad del binding coincide con la variante.
+
+### Combinacion con structs
+
+Los payloads de enum pueden ser cualquier tipo, incluyendo structs
+definidos por el usuario.  Combinado con `match`, permite construir
+representaciones intermedias tipo AST:
+
+```java
+struct Point {
+    i32 x;
+    i32 y;
+}
+
+enum Drawable {
+    Pixel(Point),
+    Line(Point, Point),
+    Circle(Point, i32)            // centro + radio
+}
+
+i32 area_or_length(Drawable d) {
+    match d {
+        case Pixel(p) => return 1;
+        case Line(a, b) => return (b.x - a.x) + (b.y - a.y);
+        case Circle(c, r) => return r * r * 3;
+    }
+    return 0;
+}
+```
+
+Ejemplo extenso: `examples_codes_vex/176_adt_complex_payloads.vex` combina
+5 variantes con aridades 0-3, payloads de tipos mezclados (i32, f64,
+string), retornos tempranos en cada arm, y multiples ADTs interactuando.
+
 ---
 
 ## ``Optional<T>``

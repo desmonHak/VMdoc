@@ -260,4 +260,54 @@ println("size = ${s.length()}"); // 1
 
 ---
 
+## Anidamiento profundo de generics
+
+Vex acepta cualquier nivel de anidamiento sin limites artificiales.  Cada
+combinacion (`Box<i32>`, `Box<i64>`, `Box<Box<i32>>`, ...) genera una clase
+monomorphizada con vtable y layout propios al momento de la compilacion.
+La sintaxis usa `>>` que el parser separa internamente como dos `>`
+consecutivos para evitar ambiguedad con shift right.
+
+```java
+class Box<T> {
+    public T value;
+    public Box(T v) { this.value = v; }
+    public T get() { return this.value; }
+}
+
+class Pair<A, B> {
+    public A first;
+    public B second;
+    public Pair(A a, B b) { this.first = a; this.second = b; }
+}
+
+i32 main() {
+    // 1 nivel: dos instanciaciones distintas coexisten.
+    Box<i32> b_i32 = new Box<i32>(10);
+    Box<i64> b_i64 = new Box<i64>(20);
+
+    // 2 niveles: Box anidada.
+    Box<Box<i32>> b_outer = new Box<Box<i32>>(new Box<i32>(5));
+    Box<i32> b_inner = b_outer.get();
+
+    // 3 niveles: Pair con uno de sus type-params siendo otro generic.
+    Pair<i32, Box<i64>> p = new Pair<i32, Box<i64>>(7, new Box<i64>(100));
+
+    // Tipos compuestos en getters.
+    Box<i64> inner_box = p.get_second();
+    return (i32)inner_box.get();
+}
+```
+
+Cada combinacion produce nombres mangled estables: `Box_i32`, `Box_i64`,
+`Box_Box_i32`, `Pair_i32_Box_i64`.  El compilador deduplica por nombre,
+asi que multiples menciones de `Box<i32>` en distintas funciones comparten
+la misma clase generada.
+
+Ejemplo extenso: `examples_codes_vex/175_generics_deep_nesting.vex` muestra
+`Triple<X, Y, Z>` con 3 type-params + `Box<Pair<i32, i64>>` + multiples
+niveles combinados.
+
+---
+
 Ver tambien: [[TiposDatos]], [[OOP]], [[SetInstruccionesVM/GENERIC_SPECIALIZE]]

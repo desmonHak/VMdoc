@@ -50,6 +50,7 @@ multi-paradigma estaticamente tipado disenado con tres principios:
 | [[Async]] | spawn, await, Future, IPC (msgsend/msgrecv), distribuido |
 | [[Sincronizacion]] | `synchronized (obj)`, monitores, wait/notify/notifyAll |
 | [[FFI]] | extern declarativo, ffi_open/sym/call, plugins nativos |
+| [[CallbacksNativos]] | `as_native_callback`, thunks x86-64, WndProc, qsort, audio |
 
 ### Sistema de modulos (Phase M)
 

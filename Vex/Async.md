@@ -305,5 +305,92 @@ Los primitivos de monitor disponibles dentro de `synchronized`:
 
 ---
 
+## Patrones de composicion: fan-out, fan-in y encadenamiento
+
+### Fan-out: lanzar N tareas en paralelo
+
+Multiples `@Async` invocados secuencialmente devuelven `Future<T>` que el
+scheduler ejecuta concurrentemente en procesos VM independientes.  El thread
+principal sigue ejecutando sin bloquearse hasta el primer `await`.
+
+```java
+@Async
+i64 compute_chunk(i64 a, i64 b) {
+    i64 sum = 0;
+    i64 i = a;
+    while (i < b) {
+        sum = sum + i;
+        i = i + 1;
+    }
+    return sum;
+}
+
+Future<i64> f0 = compute_chunk(0, 10);
+Future<i64> f1 = compute_chunk(10, 20);
+Future<i64> f2 = compute_chunk(20, 30);
+Future<i64> f3 = compute_chunk(30, 40);
+```
+
+### Fan-in: sincronizar resultados
+
+Tras lanzar los workers, `await` bloquea hasta que cada uno termine.  El
+orden de los `await` no condiciona el orden de ejecucion -- los workers
+corren independientes y `await` simplemente espera al que toca.
+
+```java
+i64 r0 = await f0;
+i64 r1 = await f1;
+i64 r2 = await f2;
+i64 r3 = await f3;
+i64 total = r0 + r1 + r2 + r3;
+```
+
+### Encadenamiento: tarea que depende del resultado
+
+Tras el fan-in, lanzar una nueva tarea que use el resultado agregado:
+
+```java
+@Async
+bool validate(i64 total) {
+    return total % 4 == 0;
+}
+
+Future<bool> f_ok = validate(total);
+bool ok = await f_ok;
+```
+
+### Paralelismo con tareas independientes
+
+Algunas tareas no dependen del resultado de las anteriores y pueden lanzarse
+junto al fan-out inicial para maximizar el paralelismo:
+
+```java
+@Async
+i32 format_decoration() {
+    i32 d = 1;
+    i32 k = 0;
+    while (k < 10) { d = d * 3; k = k + 1; }
+    return d;
+}
+
+// Lanzar JUNTO con los compute_chunk -- corre en paralelo.
+Future<i32> f_deco = format_decoration();
+// ... awaits de los chunks ...
+i32 deco = await f_deco; // espera aqui si todavia no termino
+```
+
+### Mezcla de tipos en `Future<T>`
+
+`Future<i32>`, `Future<i64>`, `Future<bool>`, `Future<f64>` y combinaciones
+con tipos definidos por el usuario coexisten en el mismo programa.  El
+compilador coerciona automaticamente `T <-> i64` al fulfill/await
+preservando los bits IEEE 754 para floats.
+
+Ejemplo extenso: `examples_codes_vex/174_async_chains_complex.vex` muestra
+6 procesos paralelos con fan-out + fan-in + encadenamiento + tipos
+mezclados (i64 + bool + i32).
+
+---
+
 Ver tambien: [[OOP]], [[SetInstruccionesVM/FUTURE_AWAIT]], [[SetInstruccionesVM/CORO]],
 [[SetInstruccionesVM/MONITOR]], [[Distribuido/IPC_Mailbox]]

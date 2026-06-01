@@ -277,5 +277,43 @@ Necesarios para pasar como primer argumento a plugins que usan `vm_read_bytes`.
 
 ---
 
-Ver tambien: [[TiposDatos]], [[SetInstruccionesVM/NativePluginAPI]],
+## Direccion inversa: callbacks Vex desde codigo nativo
+
+Los tres mecanismos anteriores cubren el caso *Vex llama a nativo*.  El caso
+*nativo llama a Vex* (callbacks, WndProc, signal handlers, qsort comparator)
+se implementa con el builtin `as_native_callback(fn)` que devuelve un puntero
+a un thunk x86-64 generado dinamicamente.  El thunk respeta la calling
+convention del OS (Win64 o System V) y delega al codigo JIT-compilado de la
+funcion Vex.
+
+```java
+extern "msvcrt.dll" {
+    fn qsort(u64 base, u64 nmemb, u64 size, u64 cmp) -> void;
+}
+
+i32 my_cmp(i64 a, i64 b) {
+    i32* pa = (i32*) a;
+    i32* pb = (i32*) b;
+    return *pa - *pb;
+}
+
+i32 main() {
+    i32[16] arr;
+    // ... llenar arr ...
+    i64 cb = as_native_callback(my_cmp);
+    qsort((u64)(&arr[0]), 16, 4, (u64)cb);
+    return 0;
+}
+```
+
+El overhead actual del bridge nativo->Vex es aproximadamente 11 nanosegundos
+por invocacion -- suficiente para WndProc Win32, audio en tiempo real,
+game loops y comparator de qsort.  Detalles completos del mecanismo,
+optimizaciones del thunk (TLS-direct via `gs:[]`), gestion de memoria HOST
+vs VM, limitaciones y ejemplos extensos en [[CallbacksNativos]].
+
+---
+
+Ver tambien: [[TiposDatos]], [[CallbacksNativos]],
+[[SetInstruccionesVM/NativePluginAPI]],
 [[SetInstruccionesVM/NativeCall (CallN)]], [[SetInstruccionesVM/GETPROC_GETVM_GETMGR]]
