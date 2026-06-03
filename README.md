@@ -37,8 +37,10 @@ Recomendamos descargarla para una correcta lectura.
 | Documento | Contenido |
 | :-------------------------------------------------------------------------------- | :----------------------------------------- |
 | [JIT C1 baseline](./JIT/JIT.md) | MachineIR, encoder x86-64 hand-rolled, selector, stackmaps, JitRegistry, auto-trigger, ABI vesta_rt |
+| [Profile-Guided Optimization](./JIT/Profiling.md) | Contadores runtime de branches/tipos/allocs, format `.vprof`, integracion con JIT (warm-start) y AOT (PGO en ejecutables) |
 | [Sistema de Cadenas](./runtime/SistemaStrings.md) | FLAT/ROPE/SLICE, Compact Strings, interning, hash, GC |
 | [Convencion de Encoding](./SetInstruccionesVM/ConvencionDeLlamadas/ConvencionEncoding.md) | Convention A vs B, guia para nuevas instrucciones |
+| [Plan AOT (Full / Embed / Bare)](./JIT/AOT.md) | Tres tiers de deployment a binarios nativos, mapping IR -> codigo nativo, extensibilidad via annotations |
 
 ----
 
