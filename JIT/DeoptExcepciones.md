@@ -85,12 +85,19 @@ catch).
 **memory-resident (spilled a un slot host)** a traves del edge anormal del
 throw.  Con la maquinaria de spill existente (`ra.spilled`/`slot_of`):
 - (a) Asegurar que el edge fantasma (tryenter-block -> handler-block) este en
-  el CFG de MachineIR que usa la liveness del regalloc.  HOY el edge fantasma
-  vive en `fn.blocks[].succs` del IR; verificar que la liveness del regalloc
-  vreg lo respeta (no hay instruccion de branch al handler -> puede que la
-  liveness NO lo vea -> los valores live-in al handler se considerarian
-  muertos -> liberados -> el catch leeria basura).  Si no lo ve, anadir el
-  edge a la CFG de liveness.
+  el CFG de MachineIR que usa la liveness del regalloc.  **CONFIRMADO 2026-06-25
+  que HOY NO lo esta**: `build_intervals` (`src/jit/interval.cpp:431-434`) hace
+  `live_out[b] = union(live_in[succ_a], live_in[succ_b])` -- el bloque MachineIR
+  solo tiene DOS sucesores (`succ_a`, `succ_b`), poblados desde el terminador
+  (BR -> succ_a; BR_COND -> succ_a+succ_b).  El edge al handler NO es un branch
+  terminador -> no cabe en succ_a/succ_b -> la liveness NO ve el handler como
+  sucesor -> los valores live-in al handler se consideran MUERTOS tras su
+  ultimo uso normal -> liberados -> el catch lee basura.
+  **Implica un cambio estructural**: extender `MBlock` con "sucesores de
+  excepcion" (lista, no solo succ_a/b) que la liveness union-e ademas de
+  succ_a/succ_b; poblarlos en el vreg lowering (el bloque con TRYENTER tiene
+  como exc-succ al/los handler-block(s)); y la liveness debe unir su live_in.
+  Esto MANTIENE vivos los valores live-in al handler a traves del try.
 - (b) Forzar spill (stack home) de todo vreg live-in a algun handler.  El def
   (p.ej. ALLOCA_VM antes del try) escribe al slot; el throw no toca el slot
   (memoria); el catch recarga del slot.  Es lo que hace LLVM con landingpad +
