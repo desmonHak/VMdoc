@@ -1,9 +1,46 @@
 # Excepciones en JIT/AOT: in-JIT catch (Opcion B) — diseno y estado
 
-> Estado: cross-function throw IMPLEMENTADO y validado (commit fd7457f).
-> same-function in-JIT catch DISENADO; pendiente el cambio de regalloc
-> (force-spill de los vregs live-in al handler).  Este doc es la fuente de
-> verdad para continuar de forma segura.
+> Estado: IMPLEMENTADO y validado (2026-06-25).  cross-function throw
+> (fd7457f) + same-function in-JIT catch (este sprint).  El catch de
+> excepciones de TIPO-USUARIO corre EN JIT; los catch que pueden capturar un
+> AV de OS (catch-all o FatalError) bailan a interp (ver "Limitacion AV").
+> Foundation: MBlock.extra_succs + force_spill + LEA_LABEL + vrt_resume_jit.
+
+## Resumen de lo implementado
+
+1. Foundation (commits separados): `MBlock.extra_succs` (sucesores abnormales)
+   + union en la liveness; `IntervalResult.force_spill` (vregs live-in a un
+   sucesor abnormal -> SPILL forzado, memory-resident).
+2. `MOp::LEA_LABEL` (lea reg,[rip+disp32] a label local via MFixup) -> el
+   TRYENTER carga la direccion nativa del bloque catch.
+3. `ProcessVM::ExceptionFrame` + `native_catch_addr/native_rsp/native_rbp`;
+   `ProcessVM::jit_exc_rsp/rbp` (handoff transitorio para no usar 5o arg).
+4. `vrt_tryenter_jit(proc,type,catch_addr)` + `vrt_resume_jit(catch,rsp,rbp,
+   proc)` (stub asm: restaura RBX=proc + RBP + RSP, jmp catch).  RBX critico:
+   el path del throw (funciones C) no restaura el RBX del JIT (no retornan).
+5. vreg: `LANDINGPAD` (lee proc->registers[0]), `TRYENTER` (handoff rsp/rbp +
+   LEA_LABEL catch + CALL tryenter_jit + extra_succs), `TRYLEAVE`, `THROW`.
+6. `do_throw`: si el frame matcheado es JIT (native_catch_addr!=0) ->
+   vrt_resume_jit; si no, ruta interp clasica.
+
+## Limitacion AV (access violation / fault de OS)
+
+El in-JIT catch BAILA (corre en interp) cuando el catch puede capturar un AV
+de OS: catch-all `catch()` o `catch(FatalError)` (marcado por el frontend con
+`TRYENTER.imm=1`).  Motivo: un AV dispara el path `av_recovery` que hace
+`longjmp` al scheduler; despues `throw_fatal`/`do_throw` corren sobre la MISMA
+region de stack del frame JIT (ya muerto), clobbeando sus slots ANTES de que
+vrt_resume_jit reentre -> el catch leeria basura.  El throw NORMAL
+(vrt_throw_user/vrt_unwrap_throw) NO tiene este problema (stack contiguo, los
+frames C estan por debajo del native_rsp).  Por eso:
+- `catch(UserType)`: in-JIT (no puede capturar un AV; solo throws de usuario).
+- `catch()` / `catch(FatalError)` / synchronized: bail -> interp (correcto).
+
+Cerrar esto (in-JIT catch tambien para AV) requeriria que el av_recovery NO
+clobbee los slots del frame JIT (p.ej. resume directo desde el VEH sin pasar
+por el scheduler, o un stack dedicado para el recovery).  Trabajo futuro.
+
+## (Historico) diseno original
 
 ## Problema
 
