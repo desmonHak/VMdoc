@@ -63,6 +63,12 @@ multi-paradigma estaticamente tipado disenado con tres principios:
 | [[Sandbox]] | Capability-based sandbox (10 caps + whitelists), `--vex-caps`, zero overhead |
 | [[PackageManager]] | `vm pkg` (Phase PM): vex.toml/json, vex.lock, firmas ed25519, anti-malware by design |
 
+### Compilacion nativa
+
+| Documento | Contenido |
+| :------------------------------ | :----------------------------------------------------------- |
+| [[CompilacionNativa]] | Ejecutables/objetos/`.a`/`.so`/`.dll` nativos, GC en AOT, usar y crear librerias, enlazado estatico sin dependencias |
+
 ---
 
 ## Pipeline de compilacion
