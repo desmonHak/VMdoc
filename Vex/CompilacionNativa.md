@@ -268,6 +268,59 @@ exporta cada funcion leyendo su tabla de simbolos, sin listas fijas.
 
 ---
 
+## 6. Concurrencia y asincronia en compilacion nativa
+
+El modelo de concurrencia de Vex es **cooperativo** (asincronia con tareas verdes,
+igual que en el interprete/JIT), **no** hilos 1:1 del sistema operativo.  `spawn`
+encola una tarea; el bloqueo (`await`) bombea la cola hasta que el resultado esta
+listo.  Todo el scheduler es codigo Vex que el compilador incluye en el binario
+(`stdlib/vex/vex_async.vex`), por lo que el ejecutable nativo es autonomo (no
+depende de la VM ni de ninguna DLL).
+
+### Lo que YA funciona en nativo (validado)
+
+- **`spawn { ... }`** — encola una tarea (sin/con capturas y argumentos).
+- **`Future<T>` + `await`** — creacion del future, `fulfill`, y `await` que bombea
+  la cola hasta resolverlo.
+- **`@Async`** — funciones asincronas con argumentos (sin limite de aridad, hasta
+  los 12 del lenguaje), devuelven un future implicito.
+- **Mailbox** — `msgsend(pid, valor)` / `msgrecv()` (paso de mensajes por valor).
+- **`pid()`** — identificador de la tarea en ejecucion.
+- **`synchronized (obj) { ... }`** — seccion critica (monitor con `lock cmpxchg`),
+  con limpieza en el `return`.
+
+Estas piezas estan **completas** y producen el mismo resultado que el interprete.
+Casos como `spawn` + `future` + `await`, `@Async` con args, y `synchronized` se
+compilan a `.exe`/`.elf` autonomos.
+
+### Lo que NO funciona todavia (limitaciones conocidas)
+
+- **Tareas que se bloquean MUTUAMENTE** (p.ej. un *ping-pong*: la tarea A espera
+  un mensaje de B y B espera uno de A).  El modelo actual corre cada tarea
+  *hasta el final* (run-to-completion); no sabe **suspender** una tarea a mitad
+  para reanudarla luego.  Estos programas **compilan**, pero dan un resultado
+  **incorrecto** (la tarea bloqueada lee 0 en vez de esperar).
+- **`wait` / `notify` / `notifyAll`** dentro de un `monitor` — necesitan el mismo
+  mecanismo de suspension que el punto anterior.
+
+### Lo que queda PENDIENTE (trabajo futuro)
+
+- **Fibras (context-switch cooperativo)** — es la pieza que falta para suspender y
+  reanudar tareas: guardar/restaurar `{rsp, rip, registros callee-saved}` y una
+  pila por fibra.  Desbloquea el *ping-pong* y `wait`/`notify`.  Se implementara
+  en Vex (con inline-asm `@Naked` + reserva de pila via `extern`), sin la VM.
+- **Pool de hilos reales (paralelismo)** — N workers del SO ejecutando las tareas
+  verdes en paralelo (modelo M:N).  Encima de las fibras.
+- **`rspawn` (procesos remotos / distribuido)** — requiere red (TCP); queda
+  **fuera del alcance** de un binario standalone.
+
+> En resumen: la **asincronia de una sola via** (lanzar tareas, esperar
+> resultados, mensajes, secciones criticas) funciona en nativo hoy.  La
+> **coordinacion con bloqueo mutuo** (ping-pong, wait/notify) y el **paralelismo
+> real** estan pendientes de las fibras y el pool de hilos.
+
+---
+
 ## Vease tambien
 
 - [[FFI]] - llamar a librerias del sistema y de terceros (`extern`).
