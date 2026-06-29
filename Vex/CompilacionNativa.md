@@ -321,6 +321,50 @@ compilan a `.exe`/`.elf` autonomos.
 
 ---
 
+## 7. Paridad ELF / Linux
+
+El mismo codigo Vex compila a PE (Windows) y a ELF (Linux) con `--format pe`
+o `--format elf`.  El estado de paridad es:
+
+### Lo que es identico en ambos formatos
+
+- **Codigo Vex generado** (aritmetica, structs, clases, strings, colecciones,
+  smart pointers, `strconv`, control de flujo, FFI dinamico): **libre de libc**.
+  Los strings usan SSO (datos inline) o el slab propio `vex_mem` (`__vex_malloc`),
+  nunca `malloc` de libc.  `panic`/`print` salen por syscalls.  Validado en ELF:
+  `strconv` y `ArrayList` devuelven el resultado correcto sin enlazar libc en la
+  parte generada.
+- **El stub `_start`**: en ELF termina el proceso con
+  `syscall exit_group(231)` (NO `exit(60)`), pasando `main()`->`exit-code`.
+  Se usa `exit_group` porque `exit(60)` solo termina el *hilo* llamante y en un
+  proceso single-thread el codigo de salida no se propaga de forma fiable
+  (p.ej. WSL2 lo reporta como 0).  En PE el `_start` sale por
+  `kernel32!ExitProcess`.
+
+### Lo que es especifico de cada plataforma
+
+- **Las librerias en C** del proyecto (`vesta_collections`, `vesta_math`,
+  `libvesta_gc`) usan libc (`malloc`/`free`/`memcpy`/`qsort`/`sqrt`...).  Esto es
+  **legitimo**: son librerias C y pueden depender de libc.  Pero por ello su `.a`
+  es **especifica del formato del objeto**: una `.a` COFF (construida en Windows)
+  solo sirve para binarios PE; para ELF hace falta la `.a` en formato ELF
+  (construida en Linux).  Es la misma realidad que cualquier libreria C: el
+  binario objeto es por-plataforma.
+- En consecuencia: **construir en Windows produce binarios PE completos**
+  (incluidas colecciones/math/gc estaticas); **construir en Linux produce
+  binarios ELF completos**.  Cross-compilar las librerias C de un formato a otro
+  requiere un toolchain cruzado (no es una limitacion del codegen, que ya emite
+  ELF correcto).
+
+### Nota para validar binarios ELF desde Windows
+
+Al ejecutar un binario ELF a traves del puente msys -> WSL, el `$?` del shell no
+es fiable (incluso un `gcc -static` de control devuelve 0).  El codigo de salida
+**real** se obtiene con `gdb -q -batch -ex run <bin>` (lo reporta como
+`exited with code 0NN`, en **octal**: `052` = 42).
+
+---
+
 ## Vease tambien
 
 - [[FFI]] - llamar a librerias del sistema y de terceros (`extern`).
