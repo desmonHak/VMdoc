@@ -218,13 +218,10 @@ mas un `void*` de contexto, que C maneja y libera manualmente.
 
 - El move al almacenar cubre los campos; almacenar un struct gestionado en un
   **slot de array** o tras un **deref de puntero** sigue rechazandose.
-- El paso de un struct gestionado **por valor** como argumento (move del
-  argumento) aun no esta cubierto; usa `borrow<T>` o un puntero para pasarlo sin
-  mover.
-- Almacenar un `shared<T>` en un campo de un contenedor se rechaza en
-  compilacion: el conteo de referencias no se ajustaria (ni al compartir ni al
-  destruir el contenedor), lo que liberaria el bloque mientras el campo aun lo
-  referencia.  Usa `unique<T>` cuando el ownership es unico.
+- Pasar un struct **por valor** con copy-hook `__clone__` hace una copia (se
+  invoca `__clone__` y el `~dtor` de la copia corre tras la llamada).  Para un
+  struct gestionado **sin** copy-hook (move-only), el paso por valor todavia es
+  un alias; usa `borrow<T>` o un puntero si necesitas pasarlo sin copiar.
 - La cabecera generada (`--emit-header`) describe los structs por puntero
   (compatible con el `.c` del transpilador); las firmas tipadas con structs
   nombrados estan en curso.
