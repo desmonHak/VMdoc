@@ -39,20 +39,24 @@ destructible y gana la liberacion automatica.
 | Contenedor del campo | Ubicacion del env | Liberacion |
 |:---|:---|:---|
 | Clase (`obj.f = lambda`) | heap del host, propiedad del objeto | el destructor del contenedor y la reasignacion del campo lo liberan |
-| Struct (`s.f = lambda`) | stack, en el scope del struct | implicita: muere con el frame, sin coste |
+| Struct local que no escapa (`s.f = lambda`) | stack, en el scope del struct | implicita: muere con el frame, sin coste |
+| Struct que se retorna por valor | heap del host, transferido por move | el consumidor (quien recibe el struct) lo libera al salir de su scope |
 
 **Clase.**  El campo guarda un puntero a un bloque heap que no cuelga aunque el
 objeto escape el scope donde se creo.  Al destruirse el objeto, su destructor
 libera el bloque; al reasignar el campo, se libera el bloque anterior antes de
 guardar el nuevo.
 
-**Struct.**  Un struct es value-type y vive en el scope actual, asi que el `env`
-puede quedarse en stack y morir con el.  Es correcto para el caso comun de un
-callback usado localmente.  Si un struct que guarda una lambda con captura
-**escapa** su scope (se retorna por valor, o se almacena en algo que le
-sobrevive), su copia apuntaria a un `env` de stack ya liberado; el compilador lo
-rechaza con un error que sugiere usar una clase, cuyo `env` vive en heap y lo
-libera el destructor.
+**Struct.**  Un struct es value-type y se mueve por valor (SRET).  Para el caso
+comun de un callback usado localmente, su `env` se queda en stack y muere con el
+scope, sin coste.  Cuando el struct **se retorna por valor**, el compilador
+detecta el escape y aloca su `env` en heap: el struct se mueve al llamante (sus
+bytes, incluido el puntero al `env`, se copian al buffer de retorno) y el
+ownership del `env` se transfiere — el productor no lo libera y el consumidor que
+recibe el struct lo libera al salir de su scope.  Un unico free, sin GC.
+Almacenar un struct con un closure capturador en un **campo** que le sobrevive
+todavia no esta soportado y se rechaza en compilacion (usa una clase para ese
+caso).
 
 **Capturas por referencia.**  Una captura por referencia (una variable mutada
 dentro de la lambda) que escapa a un campo de clase es un error de compilacion:
@@ -111,10 +115,12 @@ El comportamiento es identico en los tres backends: interprete, JIT y AOT nativo
 
 ## Limitaciones
 
-- Un campo lambda con captura en un **struct** que escapa su scope no esta
-  soportado (requeriria move semantics de value-types con captura); se rechaza en
-  compilacion.  Para ese caso usa una clase.
+- Un struct con un closure capturador en un campo se puede retornar por valor
+  (move-on-return), pero **almacenarlo en un campo** de otro contenedor que le
+  sobrevive todavia no esta soportado; se rechaza en compilacion.  Para ese caso
+  usa una clase.
 - Las capturas por referencia que escapan a un campo se rechazan; usa captura por
   valor.
-- Los holders que el compilador puede probar que no escapan siguen alocando el
-  `env` en heap; la promocion a stack de esos casos es una optimizacion futura.
+- En el caso de clase, el `env` se aloca en heap aunque el holder no escape; la
+  promocion a stack de los holders provablemente locales es una optimizacion
+  futura del analisis de escape.
