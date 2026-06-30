@@ -221,9 +221,8 @@ mas un `void*` de contexto, que C maneja y libera manualmente.
 - El paso de un struct gestionado **por valor** como argumento (move del
   argumento) aun no esta cubierto; usa `borrow<T>` o un puntero para pasarlo sin
   mover.
-- Un campo `unique<T>` lo libera el destructor del contenedor, pero reasignar el
-  mismo campo (`c.handle = otro`) todavia no libera el valor anterior (fuga el
-  recurso previo); los campos `shared<T>` aun no participan de la augmentacion.
+- Los campos `shared<T>` aun no participan de la augmentacion automatica del
+  destructor del contenedor.
 - La cabecera generada (`--emit-header`) describe los structs por puntero
   (compatible con el `.c` del transpilador); las firmas tipadas con structs
   nombrados estan en curso.
