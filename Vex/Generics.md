@@ -310,4 +310,157 @@ niveles combinados.
 
 ---
 
-Ver tambien: [[TiposDatos]], [[OOP]], [[SetInstruccionesVM/GENERIC_SPECIALIZE]]
+## Metodos genericos `R metodo<U>(...)`
+
+Un metodo puede declarar SUS PROPIOS parametros de tipo, independientes de los
+del struct/clase contenedor.  La llamada `obj.metodo<U>(args)` (con `U`
+explicito o inferido de los argumentos) genera en compile-time una version
+concreta del metodo.  El dispatch es SIEMPRE estatico (como C++/Rust): no
+existe un "metodo template virtual".
+
+```java
+struct Caja<T> {
+    T v;
+    // Metodo generico: U es independiente de T.
+    i64 mezcla<U>(U x) { return (i64) this.v + (i64) x; }
+    // Cast (U)expr funciona con el type-param del metodo.
+    U como<U>() { return (U) this.v; }
+}
+
+class Contador {
+    i64 n;
+    Contador(i64 i) { this.n = i; }
+    U sumar<U>(U extra) { return (U) this.n + extra; }
+}
+
+i32 main() {
+    Caja<i32> c = {.v = 30};
+    i64 m = c.mezcla<i64>(12);        // explicito  -> 42
+    Contador k = new Contador(35);
+    i64 s = k.sumar(7);                // inferido i64 -> 42
+    return (i32) m;
+}
+```
+
+Funciona en struct y clase, con type-arg explicito o inferido, varios
+type-params (`R m<A, B>(...)`) y en structs genericos (el `U` del metodo es
+independiente del `T` del contenedor).  Cero artefacto generico en runtime.
+
+---
+
+## Constraints / conceptos `<T: Concepto>` y `where`
+
+Un CONCEPTO es un predicado COMPTIME sobre un tipo (devuelve bool).  Se usa
+como CONSTRAINT (bound) de un type-param: al instanciar el generico, el
+compilador evalua el concepto; si no se satisface, error claro.  Las
+constraints son 100% compile-time: DESAPARECEN tras el type-check (cero
+codigo, cero coste runtime).
+
+### Aplicar bounds
+
+```java
+// Inline (1-2 bounds simples):
+T maximo<T: Comparable>(T a, T b) { if (a > b) { return a; } return b; }
+
+// Clausula where (varios params o legibilidad):
+T sumar<T>(T a, T b) where T: Numeric { return a + b; }
+
+// Multiples conceptos con '+':
+T elegir<T>(T a, T b) where T: Numeric + Comparable {
+    if (a > b) { return a; } return b;
+}
+```
+
+Los bounds se admiten en funciones libres, structs, clases, enums y metodos
+genericos.
+
+### Conceptos built-in
+
+`Numeric/Integer/Float`, `Signed/Unsigned`, `Bool/Char/String/Pointer`,
+`Comparable/Ordered/Eq`, `Sized/Copyable`, `Hashable/Stringable`,
+`Default/Callable/Destructible/Iterable/Shareable`, `Primitive/Class/Struct`.
+
+### Conceptos de usuario (tres formas)
+
+```java
+// 1. Predicado (sobre la introspeccion comptime):
+concept MiNumero<T> = is_numeric<T>();
+
+// 2. Composicion de conceptos:
+concept Ordenable<T> = Comparable<T>() && Sized<T>();
+
+// 3. Bloque (logica comptime arbitraria, estilo comptime{}):
+concept CabeEnReg<T> {
+    if (is_primitive<T>()) { return sizeof<T>() <= 8; }
+    return false;
+}
+
+// 4. Estructural (exige metodos con FIRMA completa):
+concept Dibujable { i64 area(); bool igual(i64 x); }
+```
+
+El concepto estructural verifica nombre + aridad + tipo de retorno + tipos de
+parametros: un tipo con `bool area()` NO satisface `Dibujable { i64 area(); }`.
+
+Predicados de introspeccion disponibles (ademas de `sizeof`, `field_count`,
+`has_method`, ...): `is_integer`, `is_signed`, `is_unsigned`, `is_float`,
+`is_numeric`, `is_bool`, `is_char`, `is_pointer`, `is_string`.
+
+---
+
+## Especializacion total + parcial
+
+Tras el template PRIMARIO, se pueden declarar especializaciones para casos
+concretos.  Al instanciar `Caja<X>`, se elige la MAS ESPECIFICA que matchee
+(exacta > patron > primario) y se clona ESA definicion.  Cada especializacion
+puede tener campos y metodos distintos.  Aplica a structs, clases y funciones.
+
+```java
+struct Caja<T>   { T v; i64 marca() { return 1; } }          // primario
+struct Caja<i64> { i64 v; i64 extra; i64 marca() { return 2; } } // TOTAL exacta
+struct Caja<T*>  { T* v; bool propio; i64 marca() { return 3; } } // PARCIAL (puntero)
+
+// Tambien clases y funciones:
+class Lista<T>   { ... }
+class Lista<i64> { ... }
+i64 id<T>(T x)   { return 10; }
+i64 id<i64>(i64 x) { return 20; }
+i64 id<T*>(T* x) { return 30; }
+
+// Patron generico anidado (T se liga al type-arg interno):
+struct Inner<T> { T v; }
+struct Bolsa<Inner<T>> { Inner<T> w; ... }
+```
+
+Regla de params frescos: un identificador DESNUDO en el patron es un tipo
+CONCRETO (total: `Caja<Punto>`); un identificador DENTRO de un patron compuesto
+(`T*`, `T[]`, `Inner<T>`) es un param FRESCO (parcial).  La PRIMERA decl con un
+nombre es el primario; las siguientes son especializaciones.
+
+---
+
+## Interaccion con typedef / using
+
+Los alias de tipo son transparentes como type-args: `typedef i64 Edad;` hace
+que `Caja<Edad>` se comporte exactamente como `Caja<i64>` (mismo metodo
+generico, mismo bound, misma especializacion elegida).
+
+## Uso en comptime
+
+Los tipos genericos y especializados son introspectables en comptime:
+`sizeof<Caja<i64>>()` refleja la especializacion (sus campos), y los conceptos
+(built-in y de usuario) se evaluan como predicados booleanos comptime
+(`comptime bool ok = Comparable<i64>();`).
+
+> **Limitacion:** los genericos son INTRA-modulo (la monomorphizacion ocurre
+> donde se usa el template).  Exportar un template generico via `.vexi` a otro
+> modulo no esta soportado todavia.
+
+---
+
+Ejemplos: `examples_codes_vex/222_metodos_genericos.vex` (#4),
+`223_conceptos_genericos.vex` + `227_concepts_avanzado.vex` (#6),
+`225_especializacion.vex` + `226_especializacion_avanzada.vex` (#7),
+`229_typedef_genericos.vex` (typedef).
+
+Ver tambien: [[TiposDatos]], [[OOP]], [[Metaprogramacion]], [[SetInstruccionesVM/GENERIC_SPECIALIZE]]
