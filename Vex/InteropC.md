@@ -105,6 +105,25 @@ Almacenar un struct gestionado en un destino que **no** asume su ownership (un
 slot de array, un `*ptr = ...`, o un campo de un contenedor no destructible) se
 rechaza en tiempo de compilacion, porque dejaria el recurso sin dueno (fuga).
 
+### Recursos `unique<T>` en un campo
+
+Un contenedor puede tener un campo `unique<T>`; al destruirse, libera el recurso
+del campo invocando su deleter (el de por defecto, `free`, o el personalizado
+dado a `unique_with`).
+
+```vex
+class Conexion {
+    unique<i64> handle;     // hace a Conexion destructible
+}
+
+void usar(i64 fd) {
+    Conexion c = new Conexion();
+    c.handle = unique_with(fd, cerrar);   // adopta el recurso
+}   // al salir: ~Conexion() -> cerrar(fd), un unico cierre deterministico
+```
+
+El slot del `unique<T>` vive en heap para sobrevivir junto al contenedor.
+
 ### Composicion y RAII recursivo
 
 Un contenedor (struct o clase) que tiene un campo de un tipo destructible se
@@ -202,8 +221,9 @@ mas un `void*` de contexto, que C maneja y libera manualmente.
 - El paso de un struct gestionado **por valor** como argumento (move del
   argumento) aun no esta cubierto; usa `borrow<T>` o un puntero para pasarlo sin
   mover.
-- Los campos `unique<T>`/`shared<T>` dentro de un contenedor todavia no participan
-  de la augmentacion automatica del destructor.
+- Un campo `unique<T>` lo libera el destructor del contenedor, pero reasignar el
+  mismo campo (`c.handle = otro`) todavia no libera el valor anterior (fuga el
+  recurso previo); los campos `shared<T>` aun no participan de la augmentacion.
 - La cabecera generada (`--emit-header`) describe los structs por puntero
   (compatible con el `.c` del transpilador); las firmas tipadas con structs
   nombrados estan en curso.
