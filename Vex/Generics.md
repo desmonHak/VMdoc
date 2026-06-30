@@ -452,9 +452,32 @@ Los tipos genericos y especializados son introspectables en comptime:
 (built-in y de usuario) se evaluan como predicados booleanos comptime
 (`comptime bool ok = Comparable<i64>();`).
 
-> **Limitacion:** los genericos son INTRA-modulo (la monomorphizacion ocurre
-> donde se usa el template).  Exportar un template generico via `.vexi` a otro
-> modulo no esta soportado todavia.
+## Genericos cross-module (via imports)
+
+Las plantillas genericas y los conceptos atraviesan el sistema de modulos.  Un
+modulo exporta `public struct Caja<T>` / `public i64 fn<T>(...)` /
+`public concept C<T> = ...` y otro las instancia importandolas:
+
+```java
+// lib.vex
+public struct Caja<T> { T v; U id<U>(U x) { return x; } }
+public concept Num<T> = is_numeric<T>();
+public i64 doblar<T: Num>(T x) { return (i64)x + (i64)x; }
+
+// main.vex
+import "lib" only Caja, doblar;       // o:  import "lib";  -> lib.Caja<i64>
+i32 main() {
+    Caja<i64> c = {.v = 5};
+    return (i32)(c.id<i64>(10) + doblar<i64>(11));  // 10 + 22
+}
+```
+
+Funciona en forma `only Caja` (nombre directo) y namespace `import "lib"`
+(`lib.Caja<i64>`), con metodos genericos, bounds/conceptos y especializacion.
+Internamente la plantilla viaja como TEXTO FUENTE en el `.vexi`; el importador
+la re-parsea y monomorphiza en su propio modulo (las instancias identicas se
+deduplican al enlazar).  El cache invalida correctamente: cambiar el cuerpo de
+una plantilla recompila los modulos que la instancian.
 
 ---
 
