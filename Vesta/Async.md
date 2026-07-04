@@ -386,7 +386,7 @@ con tipos definidos por el usuario coexisten en el mismo programa.  El
 compilador coerciona automaticamente `T <-> i64` al fulfill/await
 preservando los bits IEEE 754 para floats.
 
-Ejemplo extenso: `examples_codes_vex/174_async_chains_complex.vx` muestra
+Ejemplo extenso: `examples_codes_vx/174_async_chains_complex.vx` muestra
 6 procesos paralelos con fan-out + fan-in + encadenamiento + tipos
 mezclados (i64 + bool + i32).
 

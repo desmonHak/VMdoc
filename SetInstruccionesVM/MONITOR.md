@@ -400,7 +400,7 @@ recorre los tres escenarios principales:
 Los monitores funcionan identicos sobre objetos `shared` (alocados en
 `SharedHeap`) y locales (en `gc_heap` per-process):
 
-```vex
+```vx
 class Counter {
     public i64 value;
     public Counter() { this.value = 0; }

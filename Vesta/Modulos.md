@@ -42,12 +42,12 @@ i32 main() {
 Compilación:
 
 ```bash
-vm --vex main.vx -o programa
+vm --vx main.vx -o programa
 ```
 
 El compilador detecta los `import` automáticamente, resuelve las
 dependencias en orden topológico, cachea la interfaz binaria de cada
-una (archivos `.vexi`) y produce un único `programa.velb` con todo el
+una (archivos `.vxi`) y produce un único `programa.velb` con todo el
 código necesario.
 
 ## Sintaxis de `import`
@@ -76,9 +76,9 @@ Notas:
 Para `import "a/b/c";` el resolvedor busca en este orden:
 
 1. **Directorio del importador**: `<importer_dir>/a/b/c.vx` (módulo single-file) o `<importer_dir>/a/b/c/mod.vx` (paquete-directorio).
-2. **Search paths**: cada entrada de la variable de entorno `VEX_PATH` (separador `:` en POSIX, `;` en Windows) y cualquier `--vex-path /dir` adicional.
-3. **Paquetes locales**: `./vex_modules/a/b/c.vx` (reservado para el futuro gestor de paquetes).
-4. **Standard library**: `$VEX_HOME/stdlib/a/b/c.vx` (solo si el path empieza con `std/`).
+2. **Search paths**: cada entrada de la variable de entorno `VX_PATH` (separador `:` en POSIX, `;` en Windows) y cualquier `--vx-path /dir` adicional.
+3. **Paquetes locales**: `./vx_modules/a/b/c.vx` (reservado para el futuro gestor de paquetes).
+4. **Standard library**: `$VX_HOME/stdlib/a/b/c.vx` (solo si el path empieza con `std/`).
 
 El primer match gana. Si nada coincide, se reporta un error claro con la
 lista de paths probados.
@@ -179,7 +179,7 @@ public import "base"; // TODOS los símbolos públicos de base son re-exportados
 ```
 
 El compilador itera los símbolos públicos de `base`, los inyecta en
-`mid` y los marca como re-exportados. El `.vexi` de `mid` los expone
+`mid` y los marca como re-exportados. El `.vxi` de `mid` los expone
 como propios.
 
 **Cuándo usar plain vs only**:
@@ -196,13 +196,13 @@ módulos cuyo source no haya cambiado. Activa por defecto.
 
 Por cada módulo (excepto el root):
 
-- **`<source>.vexi`** — interfaz binaria del módulo (tipos y firmas públicas).
-- **`<source>.vexir`** — IR SSA serializado para reutilizar al hacer el merge.
+- **`<source>.vxi`** — interfaz binaria del módulo (tipos y firmas públicas).
+- **`<source>.vxir`** — IR SSA serializado para reutilizar al hacer el merge.
 - **`<source>.vel`** — bytecode standalone del módulo (formato distribuible).
 
 Adicionalmente:
 
-- **`.vex_cache/projects/<root_hash>.vpc`** — el `.velb` final completo. Si todos los módulos del proyecto coinciden por source_hash, el `.velb` se copia directamente (omite compile y link, hit instantáneo).
+- **`.vx_cache/projects/<root_hash>.vpc`** — el `.velb` final completo. Si todos los módulos del proyecto coinciden por source_hash, el `.velb` se copia directamente (omite compile y link, hit instantáneo).
 
 ### Invalidación
 
@@ -220,12 +220,12 @@ por byte.
 
 | Variable | Efecto |
 |:---|:---|
-| `VEX_NO_CACHE=1` | Desactiva toda la caché (compile y link siempre frescos). |
-| `VEX_NO_PROJECT_CACHE=1` | Desactiva solo el `.vpc` (project cache); sigue cacheando `.vexi`/`.vexir`. |
-| `VEX_CACHE_DIR=/path` | Redirige la caché de `.vexi`/`.vexir`/`.vel` al directorio dado (por defecto: junto al source). Habilita compartir caché entre proyectos para librerías comunes. |
-| `VEX_VERBOSE_CACHE=1` | Imprime `[vex-cache] hit/miss` por módulo. |
-| `VEX_VERBOSE_PROJECT_CACHE=1` | Imprime información del project cache. |
-| `VEX_VERBOSE_COMPILE=1` | Imprime el plan topológico y el progreso de compilación de cada módulo. |
+| `VX_NO_CACHE=1` | Desactiva toda la caché (compile y link siempre frescos). |
+| `VX_NO_PROJECT_CACHE=1` | Desactiva solo el `.vpc` (project cache); sigue cacheando `.vxi`/`.vxir`. |
+| `VX_CACHE_DIR=/path` | Redirige la caché de `.vxi`/`.vxir`/`.vel` al directorio dado (por defecto: junto al source). Habilita compartir caché entre proyectos para librerías comunes. |
+| `VX_VERBOSE_CACHE=1` | Imprime `[vx-cache] hit/miss` por módulo. |
+| `VX_VERBOSE_PROJECT_CACHE=1` | Imprime información del project cache. |
+| `VX_VERBOSE_COMPILE=1` | Imprime el plan topológico y el progreso de compilación de cada módulo. |
 
 ## Compilación paralela
 
@@ -235,16 +235,16 @@ topológico (sin dependencias entre sí) se compilan concurrentemente;
 los de niveles distintos respetan el orden mediante un barrier por
 nivel.
 
-Override vía `VEX_PARALLEL_COMPILE=N`:
+Override vía `VX_PARALLEL_COMPILE=N`:
 
 ```bash
-VEX_PARALLEL_COMPILE=1 vm --vex main.vx -o prog # secuencial forzado
-VEX_PARALLEL_COMPILE=4 vm --vex main.vx -o prog # exactamente 4 threads
+VX_PARALLEL_COMPILE=1 vm --vx main.vx -o prog # secuencial forzado
+VX_PARALLEL_COMPILE=4 vm --vx main.vx -o prog # exactamente 4 threads
 # Sin la variable: auto (hardware_concurrency limitado a 8)
 ```
 
 Cuándo usar secuencial: para diagnóstico, o cuando se necesita output
-determinista de `VEX_VERBOSE_COMPILE`. En modo paralelo el orden de
+determinista de `VX_VERBOSE_COMPILE`. En modo paralelo el orden de
 las líneas `[Lx]` puede variar, pero un mutex interno garantiza que
 cada línea sea atómica (no se entremezclan a nivel byte).
 
@@ -252,17 +252,17 @@ Cuándo subir el conteo: builds grandes con más de 10 módulos en un
 mismo nivel topológico. Por encima de 8 threads aparecen retornos
 decrecientes por contención.
 
-## Formato `.vexi` (interfaz binaria)
+## Formato `.vxi` (interfaz binaria)
 
-El `.vexi` es un blob binario que describe la API pública de un módulo.
+El `.vxi` es un blob binario que describe la API pública de un módulo.
 Es lo único que un consumidor necesita conocer de la dependencia — el
-source `.vx` puede mantenerse privado, distribuyendo solo `.vexi` y
+source `.vx` puede mantenerse privado, distribuyendo solo `.vxi` y
 `.velb` (librería precompilada).
 
 ### Layout
 
 ```text
-[+0 ] u32 magic = 'VEXI'
+[+0 ] u32 magic = 'VXI'
 [+4 ] u16 format_version
 [+6 ] u16 reservado
 [+8 ] u64 abi_hash (FNV-1a sobre símbolos y firmas públicas)
@@ -289,7 +289,7 @@ source `.vx` puede mantenerse privado, distribuyendo solo `.vexi` y
 | `TYPEDEF_NEW` | nombre, underlying, is_opaque, align_override, from_conversions[], to_conversions[] |
 | `GLOBAL_VAR` | nombre, type, flags (is_const, is_public), has_init_value, init_value (i64) |
 
-Los símbolos privados se filtran al emitir (no aparecen en el `.vexi`).
+Los símbolos privados se filtran al emitir (no aparecen en el `.vxi`).
 
 ### Firma digital
 
@@ -374,7 +374,7 @@ Permite reducir el `.velb` final eliminando dependencias cuyos símbolos
 importados no se referencien. Desactivado por defecto.
 
 ```bash
-VEX_TREE_SHAKE=1 vm --vex main.vx -o prog
+VX_TREE_SHAKE=1 vm --vx main.vx -o prog
 ```
 
 Reglas:
@@ -394,13 +394,13 @@ Beneficio típico: en una librería con 3 funciones y ninguna usada, el
 error: modulo 'mypkg/utils' no encontrado. Paths probados:
     - main.vx/../mypkg/utils.vx
     - main.vx/../mypkg/utils/mod.vx
-    - VEX_HOME/stdlib/mypkg/utils.vx
+    - VX_HOME/stdlib/mypkg/utils.vx
 ```
 
 Causas posibles:
 
 - Typo en el path. Usa `/` como separador y sin extensión.
-- El fichero existe pero está en otro directorio. Añadirlo vía `VEX_PATH=/dir1:/dir2` o `--vex-path /dir`.
+- El fichero existe pero está en otro directorio. Añadirlo vía `VX_PATH=/dir1:/dir2` o `--vx-path /dir`.
 - Para stdlib, prefijar con `std/`.
 
 ### "el modulo 'X' no exporta 'Y'"
@@ -425,7 +425,7 @@ profundidad.
 ### "el dep 'Y' cambio su abi_hash"
 
 ```text
-[vex-cache] miss (transitivo): dep 'lib' cambio (abi_hash old=0x... new=0x...)
+[vx-cache] miss (transitivo): dep 'lib' cambio (abi_hash old=0x... new=0x...)
 ```
 
 Tras cambiar `lib.vx` modificando su interfaz pública, los
@@ -441,7 +441,7 @@ emitir el `.velb` final. No puede consumir directamente un `.velb` ya
 compilado para incluirlo en otro `.velb`. Consecuencia práctica:
 
 - Para distribuir una librería precompilada sin source, el consumidor
- necesita el `.vx` original. El `.vexi` por sí solo no basta porque
+ necesita el `.vx` original. El `.vxi` por sí solo no basta porque
  carece de los cuerpos IR necesarios para el merge.
 - **Alternativa**: usar `loadmodule("lib.velb")` en runtime (ver
  [[CargaDinamica]]). El módulo se carga dinámicamente en el proceso

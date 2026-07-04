@@ -304,7 +304,7 @@ Cada combinacion produce nombres mangled estables: `Box_i32`, `Box_i64`,
 asi que multiples menciones de `Box<i32>` en distintas funciones comparten
 la misma clase generada.
 
-Ejemplo extenso: `examples_codes_vex/175_generics_deep_nesting.vx` muestra
+Ejemplo extenso: `examples_codes_vx/175_generics_deep_nesting.vx` muestra
 `Triple<X, Y, Z>` con 3 type-params + `Box<Pair<i32, i64>>` + multiples
 niveles combinados.
 
@@ -474,14 +474,14 @@ i32 main() {
 
 Funciona en forma `only Caja` (nombre directo) y namespace `import "lib"`
 (`lib.Caja<i64>`), con metodos genericos, bounds/conceptos y especializacion.
-Internamente la plantilla viaja como TEXTO FUENTE en el `.vexi`; el importador
+Internamente la plantilla viaja como TEXTO FUENTE en el `.vxi`; el importador
 la re-parsea y monomorphiza en su propio modulo (las instancias identicas se
 deduplican al enlazar).  El cache invalida correctamente: cambiar el cuerpo de
 una plantilla recompila los modulos que la instancian.
 
 ---
 
-Ejemplos: `examples_codes_vex/222_metodos_genericos.vx` (#4),
+Ejemplos: `examples_codes_vx/222_metodos_genericos.vx` (#4),
 `223_conceptos_genericos.vx` + `227_concepts_avanzado.vx` (#6),
 `225_especializacion.vx` + `226_especializacion_avanzada.vx` (#7),
 `229_typedef_genericos.vx` (typedef).

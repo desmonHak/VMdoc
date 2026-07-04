@@ -173,14 +173,14 @@ El flujo tipico de PGO en AOT:
 
 ```bash
 # 1. Build instrumentado
-vex --aot programa.vx -o programa_inst.exe --profile-gen
+vesta --aot programa.vx -o programa_inst.exe --profile-gen
 
 # 2. Ejecutar con workload representativo
 ./programa_inst.exe --workload typical
 # -> genera programa.vprof
 
 # 3. Build optimizado con PGO
-vex --aot programa.vx -o programa.exe --profile-use=programa.vprof
+vesta --aot programa.vx -o programa.exe --profile-use=programa.vprof
 ```
 
 ## Aprendizaje empirico observado

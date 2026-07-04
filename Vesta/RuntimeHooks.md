@@ -8,15 +8,15 @@ hooks y (2) el control de excepciones (`@NoExcept` / `@NoExceptions`).
 
 ## 1. Convencion de override de hooks
 
-Un servicio de runtime se expone como un simbolo `__vex_<servicio>` con un ABI
+Un servicio de runtime se expone como un simbolo `__vx_<servicio>` con un ABI
 documentado.  Para reemplazar la implementacion por defecto del lenguaje basta
 **definir una funcion Vesta con ese nombre**: el lowering detecta el override y
 emite la llamada a tu version en lugar de la del runtime.  Es el mismo
 mecanismo que ya usan la I/O nativa, `@AllocatorOverride` y `@PanicHandler`.
 
-```vex
+```vx
 // Override del sink de stdout: el lenguaje usara esta en vez del default libc.
-void __vex_write(char* buf, u64 len) {
+void __vx_write(char* buf, u64 len) {
     // tu impl: a un UART/MMIO en un kernel, a un buffer propio, etc.
 }
 ```
@@ -25,7 +25,7 @@ Reglas:
 
 - Si **no** defines el hook, se usa el default del *tier*:
   - **JIT / Full**: la entry in-process del runtime (`vrt_*`).
-  - **AOT bare / embed**: el simbolo `__vex_*` de la bare-lib (redefinible al
+  - **AOT bare / embed**: el simbolo `__vx_*` de la bare-lib (redefinible al
     enlazar; en freestanding lo DEBE proveer el usuario).
 - El codegen **nunca** codifica `vrt_*` a mano: emite la op, y el lowering ya
   decidio si va a tu override o al default.  Esto unifica JIT y AOT.
@@ -34,16 +34,16 @@ Reglas:
 
 | Hook | ABI | Default | Notas |
 | :--- | :--- | :--- | :--- |
-| `__vex_write(buf, len)` | `(char*, u64)` | libc `fwrite` | sink de stdout |
-| `__vex_panic(msg, len)` | `(char*, u64)` | mensaje + abort | fallo fatal |
-| `__vex_panic_null()` | `()` | mensaje + abort | unwrap sobre null (AOT) |
-| `__vex_terminate()` | `()` | abort | excepcion no capturada en `@NoExcept` |
-| `__vex_alloc(size)` / `__vex_free(ptr)` | `(u64)->ptr` / `(ptr)` | libc malloc/free | via `@AllocatorOverride` |
-| `__vex_print_*` (int/hex/bool/...) | varios | bare-lib | formato runtime de `${...}` |
+| `__vx_write(buf, len)` | `(char*, u64)` | libc `fwrite` | sink de stdout |
+| `__vx_panic(msg, len)` | `(char*, u64)` | mensaje + abort | fallo fatal |
+| `__vx_panic_null()` | `()` | mensaje + abort | unwrap sobre null (AOT) |
+| `__vx_terminate()` | `()` | abort | excepcion no capturada en `@NoExcept` |
+| `__vx_alloc(size)` / `__vx_free(ptr)` | `(u64)->ptr` / `(ptr)` | libc malloc/free | via `@AllocatorOverride` |
+| `__vx_print_*` (int/hex/bool/...) | varios | bare-lib | formato runtime de `${...}` |
 
 Las partes COMPTIME (secuencias ANSI, constantes, format-specs sobre valores
 comptime) las resuelve el compilador a bytes en `.rodata` y se emiten via
-`__vex_write` -- no pasan por un hook de formato.
+`__vx_write` -- no pasan por un hook de formato.
 
 ## 2. Control de excepciones
 
@@ -54,7 +54,7 @@ frames `tryenter`, sin landing pads) -> codigo mas pequeno y rapido.
 
 ### `@NoExcept` (por funcion)
 
-```vex
+```vx
 @NoExcept
 i32 hot(i32 x) {
     // throw / try / catch aqui -> error de compilacion
@@ -67,11 +67,11 @@ La funcion promete no propagar excepciones.  El compilador:
 - **Rechaza** `throw`, `try` y `catch` dentro de su cuerpo (error claro).
 - Omite el bookkeeping de excepciones en su codegen.
 - Si en runtime escapara una excepcion (p.ej. un `unwrap` null), termina el
-  proceso via `__vex_terminate` (no es capturable).
+  proceso via `__vx_terminate` (no es capturable).
 
 ### `@NoExceptions` (por modulo)
 
-```vex
+```vx
 @NoExceptions   // a nivel de fichero: TODO el modulo queda sin excepciones
 
 i32 main() {
@@ -108,8 +108,8 @@ En esos casos no se emite ni chequeo ni llamada -> cero codigo.  Ver el pase
 | Aspecto | Bare / Embed (pre-AOT.7) | Full / JIT |
 | :--- | :--- | :--- |
 | Excepciones | OFF (recomendado; usar `@NoExceptions`) | ON |
-| Hooks | `__vex_*` (bare-lib / freestanding) | `vrt_*` in-process |
-| `unwrap` null | `__vex_panic_null` (abort) | throw catchable |
+| Hooks | `__vx_*` (bare-lib / freestanding) | `vrt_*` in-process |
+| `unwrap` null | `__vx_panic_null` (abort) | throw catchable |
 
 El tier se elige con `--target bare|embed|full`; el control fino por modulo/
 funcion es via `@NoExceptions` / `@NoExcept`, sin flags de compilacion.

@@ -80,7 +80,7 @@ para signed (`i64`) y unsigned (`u64`).
 entradas negativas devuelve `NaN`.  Para `0.0` devuelve `0.0`.  Para
 infinito positivo devuelve infinito.
 
-```vex
+```vx
 f64 r = sqrt(25.0);   // r = 5.0
 f64 d = sqrt(2.0);    // d = 1.4142135...
 ```
@@ -93,7 +93,7 @@ f64 d = sqrt(2.0);    // d = 1.4142135...
 convencion IEEE.  Exponentes fraccionarios o negativos son validos:
 `pow(8.0, 1.0/3.0)` devuelve la raiz cubica.
 
-```vex
+```vx
 f64 r1 = pow(2.0, 10.0);    // 1024.0
 f64 r2 = pow(9.0, 0.5);     // 3.0  (raiz cuadrada)
 f64 r3 = pow(2.0, -1.0);    // 0.5  (inverso)
@@ -107,7 +107,7 @@ f64 r3 = pow(2.0, -1.0);    // 0.5  (inverso)
 signo del IEEE 754.  Mas rapido que un `if (x < 0) return -x`
 tradicional porque no rompe la prediccion de saltos.
 
-```vex
+```vx
 f64 a = fabs(-3.14);   // 3.14
 f64 b = fabs(7.5);     // 7.5
 f64 c = fabs(-0.0);    // 0.0
@@ -129,7 +129,7 @@ en **radianes** (no grados).
 `3.14159265358979 / 180.0`.  El periodo se gestiona internamente; no
 hay que normalizar el argumento.
 
-```vex
+```vx
 f64 s = sin(0.0);                   // 0.0
 f64 c = cos(3.14159);               // ~-1.0
 f64 t = tan(0.7854);                // ~1.0 (pi/4 -> 45 grados)
@@ -146,7 +146,7 @@ puede comprobar con un `if`).
 
 **Que hace**: logaritmo en base 2 y base 10 respectivamente.
 
-```vex
+```vx
 f64 a = log(2.71828);     // ~1.0
 f64 b = log2(1024.0);     // 10.0
 f64 c = log10(100.0);     // 2.0
@@ -163,7 +163,7 @@ f64 c = log10(100.0);     // 2.0
 | `round(x)` | Al entero mas cercano, con desempate al par (banker's rounding) |
 | `trunc(x)` | Hacia cero (descarta la parte fraccionaria) |
 
-```vex
+```vx
 f64 a = floor(3.7);    // 3.0
 f64 b = ceil(3.2);     // 4.0
 f64 c = round(2.5);    // 2.0  (banker's: redondea al par)
@@ -185,7 +185,7 @@ anos).  Una sola instruccion maquina en menos de 5 ciclos.
 **Que hace**: devuelve el menor o mayor de dos numeros, respetando
 las reglas IEEE 754 para `NaN` (si uno es NaN, devuelve el otro).
 
-```vex
+```vx
 f64 lo = fmin(3.5, 7.2);   // 3.5
 f64 hi = fmax(3.5, 7.2);   // 7.2
 ```
@@ -194,7 +194,7 @@ f64 hi = fmax(3.5, 7.2);   // 7.2
 
 **Que hace**: como las anteriores pero para `i64` con signo.
 
-```vex
+```vx
 i64 lo = imin(-5, 10);    // -5
 i64 hi = imax(-5, 10);    // 10
 ```
@@ -204,7 +204,7 @@ i64 hi = imax(-5, 10);    // 10
 **Que hace**: version unsigned.  Util cuando trabajas con cantidades
 que nunca son negativas (tamanos, contadores, hashes, mascaras).
 
-```vex
+```vx
 u64 lo = iminu(0xFFFF, 0x1234);   // 0x1234
 u64 hi = imaxu(100, 50);          // 100
 ```
@@ -215,7 +215,7 @@ u64 hi = imaxu(100, 50);          // 100
 en cualquier otro caso, devuelve `x` sin cambios.  Util para limitar
 un valor a un rango valido (volumen, color, indice).
 
-```vex
+```vx
 i64 vol = clamp(150, 0, 100);   // 100  (recortado)
 i64 cnt = clamp(-3, 0, 10);     // 0    (recortado)
 i64 ok  = clamp(42, 0, 100);    // 42   (dentro de rango)
@@ -233,7 +233,7 @@ i64 ok  = clamp(42, 0, 100);    // 42   (dentro de rango)
 (`xor`/`sub`/`sar`) en lugar de un `if (x < 0) return -x`.  El
 comportamiento para `INT_MIN` es indefinido (no representable).
 
-```vex
+```vx
 i64 a = abs(-42);   // 42
 i64 b = abs(7);     // 7
 i64 c = abs(0);     // 0
@@ -256,7 +256,7 @@ procesadores modernos, por lo que su coste es de 1 a 3 ciclos.
 **Uso tipico**: contar elementos en un bitset, calcular paridad,
 medir cardinalidad de un conjunto representado por bits.
 
-```vex
+```vx
 u64 n1 = popcount(0xFF);              // 8   (8 bits a 1)
 u64 n2 = popcount(0xF0F0F0F0F0F0F0F0); // 32
 u64 n3 = popcount(0);                 // 0
@@ -270,7 +270,7 @@ bit a 1.  "Count Leading Zeros".
 **Uso tipico**: encontrar la posicion del bit mas significativo,
 calcular `log2(x)` rapido.
 
-```vex
+```vx
 u64 a = clz(1);              // 63  (todo ceros excepto el bit 0)
 u64 b = clz(0x8000000000000000); // 0   (el bit 63 esta a 1)
 u64 c = clz(256);            // 55  (bit 8 a 1, 55 ceros antes)
@@ -287,7 +287,7 @@ bit a 1.  "Count Trailing Zeros".
 **Uso tipico**: encontrar la posicion del bit menos significativo,
 calcular si un numero es multiplo de potencia de 2.
 
-```vex
+```vx
 u64 a = ctz(1);              // 0   (bit 0 esta a 1)
 u64 b = ctz(256);            // 8   (bit 8 a 1, 8 ceros antes)
 u64 c = ctz(0x80);           // 7
@@ -303,7 +303,7 @@ bit mas significativo (mismo concepto que `63 - clz(x)`).
 **Uso tipico**: calcular el numero de bits necesarios para
 representar un valor.
 
-```vex
+```vx
 u64 a = ilog2(1);    // 0
 u64 b = ilog2(8);    // 3   (2^3 = 8)
 u64 c = ilog2(1023); // 9   (2^9 = 512 <= 1023 < 1024 = 2^10)
@@ -320,7 +320,7 @@ byte 0 pasa a la posicion 7, el 1 al 6, etc.
 **Uso tipico**: convertir entre little-endian y big-endian para
 protocolos de red, formatos binarios, hashes.
 
-```vex
+```vx
 u64 le = 0x0102030405060708;
 u64 be = bswap(le);        // 0x0807060504030201
 ```
@@ -344,7 +344,7 @@ cifrados (ChaCha, Salsa20), generadores pseudoaleatorios (PCG,
 xorshift).  La rotacion es la operacion fundamental porque mezcla
 bits sin perder informacion.
 
-```vex
+```vx
 u64 x = 0x1;
 u64 a = rotl(x, 1);    // 0x2     (bit 0 -> bit 1)
 u64 b = rotl(x, 63);   // 0x8000000000000000  (vuelve al bit 63)
@@ -372,7 +372,7 @@ Cuando todos los argumentos son **constantes literales**, la funcion
 se evalua durante la compilacion y se reemplaza por el resultado
 directo.  No queda ninguna llamada en el codigo final.
 
-```vex
+```vx
 f64 a = sqrt(25.0);          // se compila como  f64 a = 5.0;
 f64 b = fmin(3.0, 7.0);      // se compila como  f64 b = 3.0;
 u64 c = popcount(0xFF);      // se compila como  u64 c = 8;
@@ -383,7 +383,7 @@ i64 f = clamp(150, 0, 100);  // se compila como  i64 f = 100;
 
 Esto se propaga a traves de cadenas:
 
-```vex
+```vx
 f64 r = sqrt(sqrt(256.0)) + fmin(3.0, 7.0);
 // se compila como:  f64 r = 7.0;
 ```
@@ -437,7 +437,7 @@ que `i64`/`f64`, Vesta lo convierte automaticamente al tipo esperado
 por la funcion.  La conversion se aplica antes de la llamada, asi
 que no hay coste en runtime mas alla de la promocion misma.
 
-```vex
+```vx
 i32 small = 7;
 i64 r = imax(small, 10);   // small se promueve a i64 antes
 ```
@@ -448,7 +448,7 @@ i64 r = imax(small, 10);   // small se promueve a i64 antes
 
 ### Calcular la distancia entre dos puntos
 
-```vex
+```vx
 f64 dist(f64 x1, f64 y1, f64 x2, f64 y2) {
     f64 dx = x2 - x1;
     f64 dy = y2 - y1;
@@ -463,7 +463,7 @@ i32 main() {
 
 ### Normalizar un valor a un rango
 
-```vex
+```vx
 // Mapea x de [a, b] a [c, d].
 f64 normalize(f64 x, f64 a, f64 b, f64 c, f64 d) {
     f64 t = (x - a) / (b - a);
@@ -480,7 +480,7 @@ i32 main() {
 
 ### Contar bits y rotar (hash simple)
 
-```vex
+```vx
 u64 mini_hash(u64 x) {
     u64 h = x;
     h = h * 0xff51afd7ed558ccd;
@@ -498,7 +498,7 @@ i32 main() {
 
 ### Aproximacion del seno con polinomio (sin libreria)
 
-```vex
+```vx
 // Aproximacion suficiente para muchos juegos / shaders.
 // Asume x en el rango [-pi, pi].
 f64 fast_sin(f64 x) {
@@ -512,7 +512,7 @@ f64 fast_sin(f64 x) {
 
 ### Logaritmo entero y potencia mas cercana de dos
 
-```vex
+```vx
 u64 next_power_of_two(u64 x) {
     if (x <= 1) return 1;
     return rotl(1, ilog2(x - 1) + 1);
@@ -528,7 +528,7 @@ i32 main() {
 
 ### Bitswap para convertir entre orden de bytes
 
-```vex
+```vx
 // Lectura de un entero big-endian desde memoria.
 u64 read_be64(u64 little_endian_value) {
     return bswap(little_endian_value);

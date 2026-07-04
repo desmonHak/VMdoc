@@ -29,19 +29,19 @@ Un programa con `main` se compila a un ejecutable que el sistema operativo
 arranca directamente:
 
 ```bash
-vm --vex programa.vx -m aot -o programa
+vm --vx programa.vx -m aot -o programa
 ```
 
 El valor que devuelve `main` es el codigo de salida del proceso:
 
-```vex
+```vx
 i64 main() {
     return 42;     // el proceso termina con codigo 42
 }
 ```
 
 ```bash
-vm --vex programa.vx -m aot -o programa.exe   # Windows (PE)
+vm --vx programa.vx -m aot -o programa.exe   # Windows (PE)
 ./programa.exe                                  # codigo de salida = 42
 ```
 
@@ -83,7 +83,7 @@ recolector *mark-and-sweep* generacional:
 
 Se declara la variable con el tipo `gc<Clase>` y se construye con `new`:
 
-```vex
+```vx
 class Nodo {
     i64 valor;
     Nodo(i64 v) { this.valor = v; }
@@ -105,7 +105,7 @@ programa usa `gc<T>`, **la libreria del recolector se incluye y se enlaza de
 forma automatica**:
 
 ```bash
-vm --vex programa.vx -m aot -o programa.exe
+vm --vx programa.vx -m aot -o programa.exe
 ```
 
 El binario resultante lleva el recolector dentro (no es una dependencia
@@ -125,10 +125,10 @@ enlazarlo despues:
 
 ```bash
 # Linux (ELF .o)
-vm --vex modulo.vx -m aot --emit obj --format elf -o modulo.o
+vm --vx modulo.vx -m aot --emit obj --format elf -o modulo.o
 
 # Windows (COFF .obj)
-vm --vex modulo.vx -m aot --emit obj --format pe -o modulo.obj
+vm --vx modulo.vx -m aot --emit obj --format pe -o modulo.obj
 ```
 
 El simbolo `main` (si existe) y las funciones quedan disponibles para el
@@ -150,8 +150,8 @@ tambien lo entienden `ar`, `nm` y los enlazadores del sistema.
 Tambien puedes crear cada objeto desde Vesta y archivarlos juntos:
 
 ```bash
-vm --vex suma.vx      -m aot --emit obj --format pe -o suma.obj
-vm --vex resta.vx     -m aot --emit obj --format pe -o resta.obj
+vm --vx suma.vx      -m aot --emit obj --format pe -o suma.obj
+vm --vx resta.vx     -m aot --emit obj --format pe -o resta.obj
 vm --ar libmate.a suma.obj resta.obj
 ```
 
@@ -161,10 +161,10 @@ Una libreria compartida se carga en tiempo de ejecucion y exporta sus funciones:
 
 ```bash
 # Linux (.so)
-vm --vex libmate.vx -m aot --emit shared --format elf -o libmate.so
+vm --vx libmate.vx -m aot --emit shared --format elf -o libmate.so
 
 # Windows (.dll)
-vm --vex libmate.vx -m aot --emit shared --format pe -o mate.dll
+vm --vx libmate.vx -m aot --emit shared --format pe -o mate.dll
 ```
 
 Todas las funciones del modulo quedan exportadas y se pueden resolver por nombre
@@ -180,7 +180,7 @@ Windows).
 Para llamar a una funcion que vive en otra libreria, se declara con `extern`,
 indicando de que libreria proviene:
 
-```vex
+```vx
 extern "mate" { fn suma(i64 a, i64 b) -> i64; }   // de una .a / .o
 i64 main() {
     return suma(40, 2);    // 42
@@ -189,7 +189,7 @@ i64 main() {
 
 Para una libreria compartida se usa el nombre del archivo:
 
-```vex
+```vx
 extern "mate.dll" { fn suma(i64 a, i64 b) -> i64; }   // de una .dll
 ```
 
@@ -201,7 +201,7 @@ objetos (`.o`/`.obj`), librerias estaticas (`.a`) y librerias compartidas
 
 ```bash
 # 1. compilar el programa a objeto
-vm --vex programa.vx -m aot --emit obj --format pe -o programa.obj
+vm --vx programa.vx -m aot --emit obj --format pe -o programa.obj
 
 # 2a. enlazar con una libreria ESTATICA (se incluye en el binario)
 vm --link programa.obj libmate.a -o programa.exe --format pe
@@ -274,7 +274,7 @@ El modelo de concurrencia de Vesta es **cooperativo** (asincronia con tareas ver
 igual que en el interprete/JIT), **no** hilos 1:1 del sistema operativo.  `spawn`
 encola una tarea; el bloqueo (`await`) bombea la cola hasta que el resultado esta
 listo.  Todo el scheduler es codigo Vesta que el compilador incluye en el binario
-(`stdlib/vex/vex_async.vx`), por lo que el ejecutable nativo es autonomo (no
+(`stdlib/vx/vx_async.vx`), por lo que el ejecutable nativo es autonomo (no
 depende de la VM ni de ninguna DLL).
 
 ### Lo que YA funciona en nativo (validado)
@@ -330,7 +330,7 @@ o `--format elf`.  El estado de paridad es:
 
 - **Codigo Vesta generado** (aritmetica, structs, clases, strings, colecciones,
   smart pointers, `strconv`, control de flujo, FFI dinamico): **libre de libc**.
-  Los strings usan SSO (datos inline) o el slab propio `vex_mem` (`__vex_malloc`),
+  Los strings usan SSO (datos inline) o el slab propio `vx_mem` (`__vx_malloc`),
   nunca `malloc` de libc.  `panic`/`print` salen por syscalls.  Validado en ELF:
   `strconv` y `ArrayList` devuelven el resultado correcto sin enlazar libc en la
   parte generada.

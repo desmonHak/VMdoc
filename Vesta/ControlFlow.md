@@ -19,7 +19,7 @@ Vesta soporta el set completo de control de flujo estilo C/Java + extensiones mo
 
 ## 1. Condicionales: if / else / else if
 
-```vex
+```vx
 if (n > 0) {
     println("positivo");
 } else if (n < 0) {
@@ -42,7 +42,7 @@ variables se modifican en ambas ramas.
 
 ### while
 
-```vex
+```vx
 i32 i = 0;
 while (i < 10) {
     println("i = ${i}");
@@ -55,7 +55,7 @@ se ejecuta.
 
 ### do-while
 
-```vex
+```vx
 i32 i = 0;
 do {
     println("i = ${i}");
@@ -68,7 +68,7 @@ optimizer detecta este patrón y aplica fusion `cmpjmp` (1 instr VM vs 2).
 
 ### for (C-style)
 
-```vex
+```vx
 for (i32 i = 0; i < 10; i = i + 1) {
     println("i = ${i}");
 }
@@ -79,7 +79,7 @@ declarada en el init solo vive dentro del for.
 
 ### foreach (Java-style)
 
-```vex
+```vx
 for (i32 x : array) {
     println("x = ${x}");
 }
@@ -87,7 +87,7 @@ for (i32 x : array) {
 
 Itera sobre arrays nativos `T[N]` o `T[]`. Sintaxis equivalente Python-style:
 
-```vex
+```vx
 for (x in array) {
     println("x = ${x}");
 }
@@ -99,7 +99,7 @@ Ambas formas son intercambiables; los parentesis son obligatorios.
 
 ## 3. break / continue
 
-```vex
+```vx
 i32 i = 0;
 while (i < 100) {
     if (i == 42) break; // sale del while
@@ -125,7 +125,7 @@ de loops anidados.
 
 ## 4. goto y labels
 
-```vex
+```vx
 i32 main() {
     i32 i = 0;
     outer:
@@ -158,7 +158,7 @@ i32 main() {
 
 ## 5. Operador ternario
 
-```vex
+```vx
 i32 abs = (n < 0) ? -n : n;
 string label = (active) ? "ON" : "OFF";
 ```
@@ -175,7 +175,7 @@ Sintaxis para destructuring de ADTs (`enum`) con bindings y exhaustividad obliga
 
 ### Declaración de enum
 
-```vex
+```vx
 enum Color {
     Red, // variante sin payload
     Green(i32), // variante con payload i32
@@ -185,7 +185,7 @@ enum Color {
 
 ### Construcción
 
-```vex
+```vx
 Color c1 = Color.Red;
 Color c2 = Color.Green(42);
 Color c3 = Color.Blue(10, 20);
@@ -193,7 +193,7 @@ Color c3 = Color.Blue(10, 20);
 
 ### Pattern matching
 
-```vex
+```vx
 i32 describe(Color c) {
     match c {
         case Red => return 0;
@@ -219,7 +219,7 @@ Ver [[TiposDatos]] sección "Enumeraciones" para más detalles del modelo de mem
 
 ## 7. Operadores cortocircuito: && y ||
 
-```vex
+```vx
 if (p != null && p.valid()) {
     p.use();
 }

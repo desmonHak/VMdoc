@@ -340,7 +340,7 @@ mov r_result, r0 // capturar resultado
 
 ### Builtin Vesta equivalente
 
-```vex
+```vx
 @Around("Servicio.calcular")
 public i64 alrededor(i64 x) {
     i64 resultado = proceed(); // <-- baja a: proceed; mov {dst}, r0

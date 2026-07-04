@@ -228,7 +228,7 @@ Ver [[../PhaseZ/SharedMemory.md]] para el modelo completo y
 
 ## Ejemplo: counter atomico cross-process
 
-```vex
+```vx
 i32 main() {
     i64 counter_ptr = shared_malloc(8); // 8 bytes raw host memory
     atomic_store_i64(counter_ptr, 0); // inicializar a 0

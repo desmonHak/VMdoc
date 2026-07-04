@@ -10,7 +10,7 @@ Vesta tiene tres maneras de manejar texto:
 
 ## Indice
 
-- [Strings en Vesta](#strings-en-vex)
+- [Strings en Vesta](#strings-en-vx)
  - [Indice](#indice)
  - [1. El tipo `string`](#1-el-tipo-string)
  - [2. Literales: estándar, raw, triple-quoted](#2-literales-estándar-raw-triple-quoted)
@@ -58,7 +58,7 @@ StringObject (40 bytes header + data[]):
 
 ### Literal estándar `"..."`
 
-```vex
+```vx
 string greeting = "Hola Mundo";
 string with_escapes = "Linea1\nLinea2\tTabulado";
 string interp = "User: ${name}";
@@ -69,7 +69,7 @@ interpolación `${expr}`.
 
 ### Literal raw `r"..."`
 
-```vex
+```vx
 string regex = r"\d{3}-\d{4}"; // sin procesar \d como escape
 string path = r"C:\Users\name"; // sin escapar backslash
 ```
@@ -78,7 +78,7 @@ NO procesa escapes ni interpolación. Útil para regex, rutas Windows.
 
 ### Triple-quoted `"""..."""`
 
-```vex
+```vx
 string multilinea = """Linea 1
 Linea 2
 con saltos literales""";
@@ -99,7 +99,7 @@ Modo raw triple-quoted: `r"""..."""` (sin interpolación, sin escapes).
 
 ## 3. Interpolación `${expr}`
 
-```vex
+```vx
 i32 count = 42;
 string name = "World";
 println("Hello ${name}, count is ${count}!");
@@ -141,7 +141,7 @@ materializar el fragment.
 Sintaxis estilo Python/Rust dentro de `${...}` para evitar 40 builtins discretos
 (añadido ):
 
-```vex
+```vx
 i32 n = 255;
 println("${n}"); // "255"
 println("${n:hex}"); // "0x00000000000000FF"
@@ -185,7 +185,7 @@ Múltiples specs se separan con `:`: `${n:hex:>20=}` = hex + right-align + width
 
 ## 5. Operadores `+`, `==`, `!=`
 
-```vex
+```vx
 string s = "hola";
 string t = " mundo";
 string u = s + t; // "hola mundo" - bytecode strcat (ROPE O(1))
@@ -208,7 +208,7 @@ string r = "prefix " + dynamic_name; // literal se promociona a StringObject
 
 Sintaxis natural `s.method()` (azúcar para builtins libres):
 
-```vex
+```vx
 string s = "Hello World";
 
 i32 len = s.length(); // 11 - code-point count
@@ -243,7 +243,7 @@ Internamente, los métodos despachan a builtins libres (`str_length(s)`,
 
 Constantes de encoding registradas globalmente:
 
-```vex
+```vx
 ENC_ASCII = 0
 ENC_ANSI = 1
 ENC_UTF8 = 2
@@ -253,7 +253,7 @@ ENC_UTF32 = 4
 
 Uso:
 
-```vex
+```vx
 string utf16 = str_convert(s, ENC_UTF16);
 u8* w_ptr = str_cstr(utf16); // wchar_t* listo para Win32 *W APIs
 ```
@@ -265,7 +265,7 @@ u8* w_ptr = str_cstr(utf16); // wchar_t* listo para Win32 *W APIs
 Para llamar APIs nativas C que esperan `const char*`, usar `str_cstr()` que devuelve
 un `host_ptr` al buffer NUL-terminated:
 
-```vex
+```vx
 extern "kernel32.dll" {
     fn GetFileAttributesA(u8* path) -> u32;
 }
@@ -277,7 +277,7 @@ u32 attrs = GetFileAttributesA(str_cstr(path));
 **Alias `cstring`** (A.18 fase B): es equivalente a `char*`, útil para legibilidad
 en signatures FFI.
 
-```vex
+```vx
 typedef cstring = char*; // alias declarado en el preludio (no hace falta hacer typedef)
 extern fn fopen(cstring path, cstring mode) -> i64;
 ```
@@ -290,7 +290,7 @@ El runtime de strings (`stdlib/native/string` + bytecode 0x46-0x54) soporta los
 5 encodings listados arriba. El default al crear strings (literales sin sufijo,
 `str_make` sin encoding explícito) es **UTF-8**.
 
-```vex
+```vx
 string utf8_s = "Hola µndo"; // UTF-8 default
 string utf16 = str_convert(utf8_s, ENC_UTF16);
 // utf16.bytes() != utf8_s.bytes() (UTF-16 usa 2-4 bytes/char vs 1-4 UTF-8)

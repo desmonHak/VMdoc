@@ -17,7 +17,7 @@ Este manual cubre:
 | Problema en npm/pip/cargo | Solucion en VestaVM |
 | :--- | :--- |
 | Scripts `postinstall` ejecutan codigo arbitrario al instalar | Paquetes son solo codigo Vesta + datos. Cero ejecucion en install. |
-| `^1.2` floating sin lock fuerte | `vex.lock` obligatorio con `sha256` por dep. Sin sha256, falla cerrado. |
+| `^1.2` floating sin lock fuerte | `vx.lock` obligatorio con `sha256` por dep. Sin sha256, falla cerrado. |
 | Typosquatting (`raqquests` vs `requests`) | Trust pins por glob: `[trust] "@vesta/*" = "kpub1:..."`. |
 | Cualquier paquete puede leer `/etc/passwd` | Capabilities declaradas por paquete + grant explicito. Default deny-all. |
 | Maintainer takeover silente | Author fingerprint check: cambio entre versiones produce error. |
@@ -26,18 +26,18 @@ Este manual cubre:
 
 ## Conceptos clave
 
-### Manifest: `vex.toml` o `vex.json`
+### Manifest: `vx.toml` o `vx.json`
 
 Cada proyecto y cada paquete tiene un manifest. Formato dual:
 
-- `vex.toml`: canonico humano (recomendado).
-- `vex.json`: equivalente machine-friendly para tooling.
+- `vx.toml`: canonico humano (recomendado).
+- `vx.json`: equivalente machine-friendly para tooling.
 
 El parser detecta el formato por extension. Si ambos coexisten en el
 mismo proyecto, error explicito. Conversion entre ambos con
 `vm pkg convert toml` o `vm pkg convert json`.
 
-### Lockfile: `vex.lock`
+### Lockfile: `vx.lock`
 
 Auto-generado por `vm pkg`. **Debe commitearse a git**. Contiene los
 hashes `sha256` EXACTOS de cada dep resuelta y el commit/rev al
@@ -48,33 +48,33 @@ que no matchee estos hashes falla.
 
 ```text
 proyecto/
-  vex.toml                          # manifest
-  vex.lock                          # lockfile (commit-able)
+  vx.toml                          # manifest
+  vx.lock                          # lockfile (commit-able)
   .gitignore                        # auto-generado por vm pkg init
-  vex_modules/                      # deps locales (estilo node_modules)
+  vx_modules/                      # deps locales (estilo node_modules)
   src/                              # tu codigo
 
-$VEX_HOME/                          # global per-usuario
+$VX_HOME/                          # global per-usuario
   cache/<sha256>/                   # cache de tarballs descargados
   packages/<name>/<version>/        # deps instaladas con install = "global"
   keys/                             # claves publicas y privadas
   trust.toml                        # pins de autores confiables
 ```
 
-**Resolucion de `$VEX_HOME`** (en orden):
+**Resolucion de `$VX_HOME`** (en orden):
 
-1. Variable de entorno `VEX_HOME` (override explicito).
+1. Variable de entorno `VX_HOME` (override explicito).
 2. Per-usuario: `%APPDATA%\Vesta\` en Windows, `~/.vesta/` en POSIX.
 3. System-wide cuando la VM se instala como administrador.
 
-### `vex_modules/` es read-only
+### `vx_modules/` es read-only
 
-`vex_modules/` recibe el contenido descargado y verificado. Cualquier
+`vx_modules/` recibe el contenido descargado y verificado. Cualquier
 modificacion local rompe el sha256 del lockfile y `vm pkg verify`
 falla. **No hay forma de meter codigo "extra" post-install** --
 diferencia critica con `node_modules` donde es comun parchear in-place.
 
-Para hacer fork local de una dep: declarar en `vex.toml` con
+Para hacer fork local de una dep: declarar en `vx.toml` con
 `path = "../mi-fork"` (sin sha256/firma, asume confianza dev).
 
 ## Crear un paquete propio
@@ -94,7 +94,7 @@ Te pregunta:
 - **License**: SPDX identifier (MIT, Apache-2.0, GPL-3.0, etc.).
 - **Autor**: tu nombre o handle.
 
-Resultado: `vex.toml` + `.gitignore` apropiado.
+Resultado: `vx.toml` + `.gitignore` apropiado.
 
 Para inicializar en JSON en vez de TOML:
 
@@ -106,8 +106,8 @@ vm pkg init --json
 
 ```text
 mi-paquete/
-  vex.toml                # manifest
-  vex.lock                # lockfile (solo si tu paquete consume otras deps)
+  vx.toml                # manifest
+  vx.lock                # lockfile (solo si tu paquete consume otras deps)
   README.md               # documentacion
   LICENSE                 # texto de la license
   src/
@@ -126,7 +126,7 @@ visible.
 
 ### Declarar la API publica
 
-```vex
+```vx
 // src/lib.vx
 import "src/internal/helpers";       // privado por defecto
 
@@ -169,7 +169,7 @@ aceptar la lib.
 
 ```bash
 vm pkg verify                       # check estructura, hashes locales
-vm --vex src/lib.vx -o /tmp/test   # confirma que compila standalone
+vm --vx src/lib.vx -o /tmp/test   # confirma que compila standalone
 ```
 
 ## Firmar el paquete
@@ -317,19 +317,19 @@ Anade --trust-unsafe para confirmar.
 ### Instalar segun el lockfile
 
 ```bash
-vm pkg install                      # descarga TODO segun vex.lock
+vm pkg install                      # descarga TODO segun vx.lock
                                     # verifica sha256 y firmas
                                     # falla si algun hash no matchea
 ```
 
-Esto descarga cada dep al `vex_modules/` del proyecto, validando que
+Esto descarga cada dep al `vx_modules/` del proyecto, validando que
 el contenido recibido (incluido el commit exacto si es git) produce
-el sha256 declarado en `vex.lock`. Si alguna no matchea, aborta sin
+el sha256 declarado en `vx.lock`. Si alguna no matchea, aborta sin
 copiar nada -- detecta tampering y cambios silenciosos.
 
 ### Usar el paquete en tu codigo
 
-```vex
+```vx
 // src/main.vx
 import "@autor/mi-paquete";
 
@@ -347,11 +347,11 @@ Ver `Modulos.md` para sintaxis completa de `import`, `only`, alias.
 ```bash
 git clone <repo del proyecto>
 cd <repo>
-vm pkg install              # descarga TODO segun vex.lock
+vm pkg install              # descarga TODO segun vx.lock
                             # mismo bit-perfect que el del autor
 ```
 
-El `vex.lock` commit-eado en su repo garantiza que descargas exactamente
+El `vx.lock` commit-eado en su repo garantiza que descargas exactamente
 lo mismo que ellos tenian.
 
 ## Verificacion e integridad
@@ -374,8 +374,8 @@ Verificando integridad de paquetes
   fail: 0
 ```
 
-Recalcula el `sha256` del contenido de cada dep en `vex_modules/` y lo
-compara con el declarado en `vex.lock`. Detecta tampering local,
+Recalcula el `sha256` del contenido de cada dep en `vx_modules/` y lo
+compara con el declarado en `vx.lock`. Detecta tampering local,
 cache corrupto o discrepancias post-merge en git.
 
 ### Auditoria de seguridad
@@ -439,7 +439,7 @@ declared = ["fs:read=/tmp", "net=api.foo.com:443"]
 # path local (sin sha256/firma, asume confianza dev):
 "@me/local" = { path = "../local-lib" }
 
-# install global vs local (default = local en vex_modules/):
+# install global vs local (default = local en vx_modules/):
 "@vesta/stdlib" = { version = "1.0", sha256 = "...", install = "global" }
 
 # unsafe escape-hatch consumer-side:
@@ -451,7 +451,7 @@ declared = ["fs:read=/tmp", "net=api.foo.com:443"]
 "exact/foo" = "kpub1:..."            # match exacto
 
 [scripts]
-build = "vm --vex src/main.vx -o build/app"
+build = "vm --vx src/main.vx -o build/app"
 test  = "vm --run tests/run_all.velb"
 fmt   = "vm fmt src/"
 
@@ -486,7 +486,7 @@ fmt   = "vm fmt src/"
 }
 ```
 
-### Lockfile `vex.lock`
+### Lockfile `vx.lock`
 
 Auto-generado. No editar a mano:
 
@@ -545,13 +545,13 @@ mkdir mi-app && cd mi-app
 vm pkg init
 vm pkg add github.com/autor/lib@v1.0.0
 vm pkg install
-vm --vex src/main.vx -o build/app
+vm --vx src/main.vx -o build/app
 ```
 
 ### Lib local en desarrollo
 
 ```toml
-# en mi-app/vex.toml
+# en mi-app/vx.toml
 [dependencies]
 "@me/utils" = { path = "../utils-lib" }
 ```
@@ -594,7 +594,7 @@ vm pkg install                      # exactamente lo que el autor tenia
 Toda dep no-local DEBE tener `sha256` en el lockfile. Si falta,
 `vm pkg install` falla con error claro. Cualquier mismatch entre
 contenido descargado y `sha256` declarado aborta el install
-ANTES de copiar nada a `vex_modules/`.
+ANTES de copiar nada a `vx_modules/`.
 
 ### Capabilities + grant explicito
 
@@ -652,7 +652,7 @@ El usuario confirma con `y` antes de aplicar.
 
 ### Cache global por hash
 
-El cache global (`$VEX_HOME/cache/<sha256>/`) es content-addressed:
+El cache global (`$VX_HOME/cache/<sha256>/`) es content-addressed:
 la clave es el hash. Cualquier corrupcion del cache se detecta al
 re-verificar el hash en el siguiente `vm pkg install`.
 
@@ -660,13 +660,13 @@ re-verificar el hash en el siguiente `vm pkg install`.
 
 | Comando | Descripcion |
 | :--- | :--- |
-| `vm pkg init [--json]` | Crea `vex.toml` o `vex.json` + `.gitignore` |
+| `vm pkg init [--json]` | Crea `vx.toml` o `vx.json` + `.gitignore` |
 | `vm pkg add <spec> [--dev]` | Agrega dep + actualiza lock + audit |
 | `vm pkg remove <name>` | Quita dep + actualiza lock |
 | `vm pkg install` | Descarga + verifica todo segun lock |
 | `vm pkg update [name]` | Re-resuelve deps segun reglas semver |
 | `vm pkg list [--tree]` | Lista deps directas o arbol completo |
-| `vm pkg verify` | Check `sha256` + firmas vs `vex.lock` |
+| `vm pkg verify` | Check `sha256` + firmas vs `vx.lock` |
 | `vm pkg audit` | Auditoria de seguridad transitiva |
 | `vm pkg convert <toml\|json>` | Convierte formato del manifest |
 | `vm pkg keygen [--out PATH]` | Genera par Ed25519 + fingerprint |

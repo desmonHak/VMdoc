@@ -197,15 +197,15 @@ provee implementaciones cuando el subset Bare no cubre algo necesario.
 
 ### 1. Custom allocator hooks (`@AllocatorOverride`)
 
-```vex
+```vx
 @AllocatorOverride
-fn __vex_malloc(u64 size) -> u8* {
+fn __vx_malloc(u64 size) -> u8* {
     // Tu impl: bump allocator, slab, freelist...
     return kmalloc(size);  // FFI al kernel
 }
 
 @AllocatorOverride
-fn __vex_free(u8* ptr) -> void { kfree(ptr); }
+fn __vx_free(u8* ptr) -> void { kfree(ptr); }
 ```
 
 El frontend reescribe TODOS los `RAW_ALLOC` del programa al simbolo
@@ -214,9 +214,9 @@ user-provided.  Permite uso en kernels (kmalloc/kfree), embedded
 
 ### 2. Custom panic handler (`@PanicHandler`)
 
-```vex
+```vx
 @PanicHandler
-fn __vex_panic(u8* msg, u64 len) -> never {
+fn __vx_panic(u8* msg, u64 len) -> never {
     uart_write(msg, len);
     cpu_halt();
 }
@@ -227,7 +227,7 @@ probablemente quieres halt + BSOD-style.
 
 ### 3. Custom GC (`@CustomGC`)
 
-```vex
+```vx
 @CustomGC
 namespace mi_gc {
     public fn alloc_object(u64 size, ClassInfo* cls) -> Object*;
@@ -243,7 +243,7 @@ especifico (real-time = sin pause; embedded = sin malloc).
 
 ### 4. Custom string impl (`@StringImpl`)
 
-```vex
+```vx
 @StringImpl
 namespace utf8_strings {
     public type StringObject = struct { u8* data; u64 len; u64 cap; };
@@ -258,7 +258,7 @@ GC-managed.
 
 ### 5. Custom sync primitives (`@SyncImpl`)
 
-```vex
+```vx
 @SyncImpl
 namespace spinlock_sync {
     public fn enter(Object* obj) -> void {
@@ -273,7 +273,7 @@ disable IRQ.
 
 ### 6. Custom unwinding (`@UnwindImpl`)
 
-```vex
+```vx
 @UnwindImpl
 namespace setjmp_unwind {
     public fn try_enter(JmpBuf* buf) -> i32 { return setjmp(buf); }
@@ -293,7 +293,7 @@ Vesta Embed se distribuye tambien como `libvesta_embed.lib`/`.a`
 linkable como cualquier lib externa.  Si el usuario quiere parte
 del GC managed en Bare, hace:
 
-```vex
+```vx
 extern "libvesta_embed" { fn vrt_gc_alloc(...) }
 ```
 
@@ -304,7 +304,7 @@ piezas del runtime que necesita.
 ## Manifest del proyecto en Vesta Bare
 
 ```toml
-# vex.toml para programa Bare (e.g. kernel)
+# vx.toml para programa Bare (e.g. kernel)
 [package]
 name    = "my_kernel"
 version = "0.1"
@@ -348,14 +348,14 @@ Flujo PGO en AOT:
 
 ```bash
 # 1. Build instrumentado (incluye hooks runtime de profile)
-vex --aot main.vx -o main_inst.exe --profile-gen
+vesta --aot main.vx -o main_inst.exe --profile-gen
 
 # 2. Ejecutar con workload representativo
 ./main_inst.exe --workload typical
 # -> genera main.vprof
 
 # 3. Build optimizado con PGO
-vex --aot main.vx -o main.exe --profile-use=main.vprof
+vesta --aot main.vx -o main.exe --profile-use=main.vprof
 ```
 
 Optimizaciones AOT que **solo** son posibles con perfil:

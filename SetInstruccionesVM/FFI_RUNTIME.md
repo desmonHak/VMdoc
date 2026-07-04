@@ -120,7 +120,7 @@ byte2 = (r_fn << 4) | r_hint
 
 ### Uso desde Vesta
 
-```vex
+```vx
 i64 hijo_here = spawn here { ... }; // emite spawnon r_fn, -1
 i64 hijo_pinned = spawn on(2) { ... }; // emite spawnon r_fn, 2
 ```
@@ -174,7 +174,7 @@ cada slot cuyo `target_value` cae en el rango original del code section.
 
 ### Uso desde Vesta
 
-```vex
+```vx
 i64 ret = loadmodule("plugins/extra.velb"); // builtin que emite loadmod
 ```
 
@@ -206,7 +206,7 @@ byte2 = (r_msg_addr << 4) | r_msg_len
 
 ### Uso desde Vesta
 
-```vex
+```vx
 panic("Indice fuera de rango: ${idx}");
 
 try {
@@ -377,7 +377,7 @@ dlsym r4, r3, r_name_addr, r_name_len // r4 = puntero a funcion
 ```
 
 En Vesta:
-```vex
+```vx
 i64 sym_Sleep = ffi_sym(handle, "Sleep");
 ```
 
@@ -429,7 +429,7 @@ ffi_call(sym_Sleep, 500);
 
 ## Ejemplo completo: FFI dinamico desde Vesta
 
-```vex
+```vx
 // Abrir kernel32.dll en runtime:
 i64 k32 = ffi_open("kernel32.dll");
 

@@ -12,7 +12,7 @@ Sharing es propiedad del **sitio de allocacion**, NO del tipo. La stdlib y el
 codigo del usuario se escriben **sin annotations** especificas; el usuario
 decide en el call site si una instancia es local o compartida.
 
-```vex
+```vx
 ArrayList<i64> local = new ArrayList<i64>(); // gc_heap local (default)
 shared ArrayList<i64> visible = new ArrayList<i64>(); // SharedHeap directo
 spawn { visible.push(42); }; // OK cross-process
@@ -51,7 +51,7 @@ Cuando declaras una variable con `shared`, el constructor `new T()` despacha al
 `newobjs` (opcode 0xA6) en lugar del `newobj` normal. El objeto se aloca
 directamente en el `SharedHeap` y se registra en `SharedHandleTable`.
 
-```vex
+```vx
 class Counter {
     public i64 value;
     public Counter() { this.value = 0; }
@@ -93,7 +93,7 @@ sola instr (test bit 31).
 
 Para promocion **in-place** (mover un objeto local al SharedHeap o viceversa):
 
-```vex
+```vx
 ArrayList<i64> xs = new ArrayList<i64>(); // local
 xs.push(1); xs.push(2);
 
@@ -116,7 +116,7 @@ para apuntar al nuevo objeto. Idempotente si ya esta shared (no-op).
 
 Para casos donde no es practico envolver primitivos en clases:
 
-```vex
+```vx
 i64 ptr = shared_malloc(64); // raw host memory shared, sync manual
 atomic_store_i64(ptr, 42);
 i64 v = atomic_load_i64(ptr);
@@ -312,12 +312,12 @@ Total: 8 opcodes en la tabla extendida.
 | `tests/gc/test_shared_handle_table.cpp` | 23 checks: register/lookup/unregister, lock-free correctness |
 | `tests/gc/test_monitor_cas.cpp` | 23 checks: monitor_try_acquire/release lock-free CAS |
 | `tests/gc/test_wait_table.cpp` | 22 checks: per-bucket spinlock + multi-bucket |
-| `examples_codes_vex/166_z_shared_memory.vx` | 5 escenarios integradores (synchronized + atomics + introspect) |
-| `examples_codes_vex/167_z_gc_sweep.vx` | GC sweep colecta huerfanos, preserva rooted |
-| `examples_codes_vex/benchmark/bench_shared_alloc.vx` | Throughput SharedHeap vs gc_heap local (1M+1M iter) |
-| `examples_codes_vex/benchmark/bench_shared_contention.vx` | Monitor cross-scheduler (4 workers x 100K) |
-| `examples_codes_vex/benchmark/bench_shared_gc.vx` | GC sweep latency |
-| `examples_codes_vex/benchmark/bench_shared_stw_impact.vx` | STW pause impact en multi-thread |
+| `examples_codes_vx/166_z_shared_memory.vx` | 5 escenarios integradores (synchronized + atomics + introspect) |
+| `examples_codes_vx/167_z_gc_sweep.vx` | GC sweep colecta huerfanos, preserva rooted |
+| `examples_codes_vx/benchmark/bench_shared_alloc.vx` | Throughput SharedHeap vs gc_heap local (1M+1M iter) |
+| `examples_codes_vx/benchmark/bench_shared_contention.vx` | Monitor cross-scheduler (4 workers x 100K) |
+| `examples_codes_vx/benchmark/bench_shared_gc.vx` | GC sweep latency |
+| `examples_codes_vx/benchmark/bench_shared_stw_impact.vx` | STW pause impact en multi-thread |
 
 
 

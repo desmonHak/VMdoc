@@ -30,7 +30,7 @@ inmediatamente cuando el contador cae a cero.
 
 ## `unique<T>` -- ownership exclusivo
 
-```vex
+```vx
 unique<i32> p = unique_box(42);   // construye + posee
 i32 v = *ptr_of(p);                // 42
 // al salir de scope: el recurso se libera automaticamente
@@ -39,7 +39,7 @@ i32 v = *ptr_of(p);                // 42
 `unique<T>` es **move-only**: copiarlo es un error de compilacion; hay que
 transferir el ownership explicitamente con `move`.
 
-```vex
+```vx
 unique<i32> a = unique_box(42);
 unique<i32> b = move(a);   // ownership transferido; `a` queda invalidado
 i32 v = *ptr_of(b);        // 42
@@ -49,7 +49,7 @@ i32 v = *ptr_of(b);        // 42
 Retornar un `unique<T>` por valor es un *move* (transfiere el ownership al
 llamante, sin coste):
 
-```vex
+```vx
 unique<i64> abrir(string ruta) {
     return unique_with(fopen(...), cerrar);   // el llamante recibe el ownership
 }
@@ -57,7 +57,7 @@ unique<i64> abrir(string ruta) {
 
 ## `shared<T>` -- ownership compartido (refcount)
 
-```vex
+```vx
 shared<i32> a = shared_box(78);   // conteo = 1
 shared<i32> b = a;                // COPIA: conteo = 2 (a y b)
 i64 n = use_count(a);             // 2
@@ -71,7 +71,7 @@ intra-hilo (para compartir entre hilos, usar futures/mailbox).
 
 ## Construccion y deleters
 
-```vex
+```vx
 unique<i32>  u = unique_box(42);         // deleter por defecto: free
 shared<i64>  s = shared_box(100);
 
@@ -80,7 +80,7 @@ shared<i64>  s = shared_box(100);
 unique<i64>  g = unique_with(VirtualAlloc(0, 4096, 0x3000, 0x04), liberar_vmem);
 ```
 
-```vex
+```vx
 extern "kernel32.dll" { fn VirtualFree(u64 a, u64 s, u32 t) -> u32; }
 void liberar_vmem(i64 p) { VirtualFree(p, 0, 0x8000); }   // wrapper de 1 arg
 ```
@@ -90,7 +90,7 @@ cerrar un fichero, liberar una pagina, cerrar un socket o un handle del SO.
 
 ## Acceso e inspeccion
 
-```vex
+```vx
 i32* raw = ptr_of(p);    // T*: el puntero crudo, sin consumir ni mover
 i32 v = *ptr_of(p);
 i64 n = use_count(s);    // conteo de referencias actual de un shared<T>

@@ -70,7 +70,7 @@ es Erlang/Java-style con dos ejes ORTOGONALES:
 | `shared` | UBICACION del objeto | ~100 ns una vez |
 | `synchronized` | ATOMICIDAD critical section | ~5 ns por acquire (1 CAS) |
 
-```vex
+```vx
 shared Counter c = new Counter(); // aloca en SharedHeap (cross-process)
 spawn { synchronized(c) { c.value += 1; } };
 spawn { synchronized(c) { c.value += 1; } };

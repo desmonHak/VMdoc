@@ -55,12 +55,12 @@ Compilación del plugin (preventiva contra solapamiento de VA):
 ```bash
 # Compilar el plugin con base address distinta de 0 para evitar solape
 # con el caller cuando se cargue.
-vm --vex plugin.vx -o plugin --vex-base 0x10000000
+vm --vx plugin.vx -o plugin --vx-base 0x10000000
 ```
 
 Tras `loadmodule`, el loader aplica **rebase transparente** si la VA
 del plugin solapa con executables ya cargados. El usuario no necesita
-coordinar VAs manualmente; el flag `--vex-base` es solo una sugerencia
+coordinar VAs manualmente; el flag `--vx-base` es solo una sugerencia
 y el loader la respeta si no hay conflicto, reasignando
 automáticamente en caso contrario.
 
@@ -172,7 +172,7 @@ Los módulos cargados dinámicamente HEREDAN las capabilities del
 caller con AND-mask (sin posibilidad de escalation):
 
 ```bash
-vm --run main.velb --vex-caps "fs:read=/tmp,loadmod"
+vm --run main.velb --vx-caps "fs:read=/tmp,loadmod"
 # El main.velb tiene fs:read=/tmp + loadmod.
 # Si carga "plugin.velb" mediante loadmodule, el plugin hereda esas
 # mismas caps (AND con las suyas propias = idénticas).
@@ -194,7 +194,7 @@ Adicionalmente, si el caller tiene `loadmod` con whitelist de paths,
 los paths fuera del whitelist son rechazados:
 
 ```bash
-vm --run main.velb --vex-caps "loadmod=/var/plugins"
+vm --run main.velb --vx-caps "loadmod=/var/plugins"
 # Solo puede cargar plugins de /var/plugins/*.velb
 ```
 
@@ -289,14 +289,14 @@ Esto permite cargar plugins compilados sin coordinar VAs manualmente.
 ### Plugins de código confiable
 
 Por defecto, un plugin hereda CAPS = ALL del caller. Si cargas un
-plugin no confiable, restringir siempre vía `--vex-caps`:
+plugin no confiable, restringir siempre vía `--vx-caps`:
 
 ```bash
 # NO recomendado con plugins no confiables:
 vm --run main.velb # el plugin hereda ALL caps
 
 # Recomendado:
-vm --run main.velb --vex-caps "loadmod=/var/safe_plugins/,fs:read=/tmp"
+vm --run main.velb --vx-caps "loadmod=/var/safe_plugins/,fs:read=/tmp"
 # El main solo puede cargar plugins de /var/safe_plugins/, y solo leer
 # de /tmp. Cualquier plugin cargado hereda esas mismas restricciones.
 ```
@@ -340,5 +340,5 @@ Tests integradores en `tests/bugs/m_dyn_test/`:
 - `main.vx` — ciclo completo: load + use + unload + reload + use.
 
 ```bash
-bash tests/vex/test_vex_e2e.sh | grep "M.dyn"
+bash tests/vx/test_vx_e2e.sh | grep "M.dyn"
 ```

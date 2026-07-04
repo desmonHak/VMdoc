@@ -12,7 +12,7 @@ reborrow con suspend, lifetime elision).
 
 ## Indice
 
-- [Borrow checker en Vesta (estilo Rust)](#borrow-checker-en-vex-estilo-rust)
+- [Borrow checker en Vesta (estilo Rust)](#borrow-checker-en-vx-estilo-rust)
  - [Indice](#indice)
  - [1. Por qué un borrow checker](#1-por-qué-un-borrow-checker)
  - [2. `borrow<T>` shared y `borrow_mut<T>` exclusive](#2-borrowt-shared-y-borrow_mutt-exclusive)
@@ -53,7 +53,7 @@ En runtime, los borrows son punteros normales sin checks.
 
 ## 2. `borrow<T>` shared y `borrow_mut<T>` exclusive
 
-```vex
+```vx
 i32 main() {
     unique<i32> data = unique_box(42);
 
@@ -85,7 +85,7 @@ i32 main() {
 | `read_borrow(b)` | `T` | Lee el valor apuntado |
 | `write_borrow(m, v)` | `void` | Escribe vía mut borrow |
 
-```vex
+```vx
 unique<i32> data = unique_box(0);
 borrow_mut<i32> m = lend_mut(data);
 write_borrow(m, 42);
@@ -109,7 +109,7 @@ i32 v = read_borrow(m); // = 42
 Si hay un `borrow_mut` activo sobre un owner, NO se permite NINGÚN otro borrow
 del mismo owner.
 
-```vex
+```vx
 unique<i32> p = unique_box(42);
 borrow_mut<i32> m = lend_mut(p);
 borrow<i32> r = lend(p); // ERROR R1: m sigue activo
@@ -120,7 +120,7 @@ borrow<i32> r = lend(p); // ERROR R1: m sigue activo
 N `borrow<T>` (shared) pueden coexistir al mismo owner. Pero NINGÚN `borrow_mut`
 puede activarse mientras haya shared activos.
 
-```vex
+```vx
 unique<i32> p = unique_box(42);
 borrow<i32> r1 = lend(p);
 borrow<i32> r2 = lend(p); // OK R2: dos shared OK
@@ -132,7 +132,7 @@ borrow_mut<i32> m = lend_mut(p); // ERROR R2: shared activos
 El owner NO puede ser movido (`move(p)`) ni mutado directamente mientras tenga
 borrows activos.
 
-```vex
+```vx
 unique<i32> p = unique_box(42);
 borrow<i32> r = lend(p);
 unique<i32> q = move(p); // ERROR R3: p tiene borrow activo
@@ -143,7 +143,7 @@ unique<i32> q = move(p); // ERROR R3: p tiene borrow activo
 Borrows NO pueden escapar via `return` salvo si el owner es Param/Global/Field
 (lifetime cubre la función completa).
 
-```vex
+```vx
 borrow<i32> bad() {
     unique<i32> local = unique_box(42);
     return lend(local); // ERROR R4: local muere al ret
@@ -161,7 +161,7 @@ borrow<i32> ok(unique<i32> param) {
 Los borrows se "liberan" en compile-time tras su **ÚLTIMO USO** real, no al exit
 del scope.
 
-```vex
+```vx
 unique<i32> p = unique_box(42);
 borrow<i32> r = lend(p);
 i32 v = read_borrow(r); // último uso de `r`
@@ -195,7 +195,7 @@ Enum `OwnerKind` en `BorrowRecord`: `Local`, `Param`, `Global`, `Field`.
 - Si Local -> error con sugerencia: "cambia a `unique<T>`/`shared<T>` o devuelve
  read_borrow".
 
-```vex
+```vx
 borrow<i32> ok_param(unique<i32> p) {
     return lend(p); // OK: owner Param
 }
@@ -220,14 +220,14 @@ owner** siguiendo la cadena. `root_owner_of(borrower)` camina recursivamente
 
 ### Reborrow desde shared (caso simple)
 
-```vex
+```vx
 borrow<i32> r = lend(p);
 borrow<i32> r2 = lend(r); // shared reborrow: shared_count++
 ```
 
 ### Reborrow desde mutable (con suspend semantics)
 
-```vex
+```vx
 borrow_mut<i32> m = lend_mut(p); // m mut activo
 borrow_mut<i32> m2 = lend_mut(m); // reborrow mut desde m
 // suspende `m` (push a stack)
@@ -261,7 +261,7 @@ dropear cada reborrow.
 Cuando una función `fn(borrow<T>) -> borrow<R>` devuelve un borrow, el output
 hereda el `borrow_owner_source` del input.
 
-```vex
+```vx
 borrow<i32> first_view(borrow<i32> data) {
     return data; // F4: output hereda owner de input
 }
@@ -281,7 +281,7 @@ Implementación: `Expr::borrow_owner_source` (string) se propaga a través de
 `lend`, `read_borrow` y llamadas a funciones de aridad 1-input-borrow. Permite
 factories de borrows encadenadas:
 
-```vex
+```vx
 borrow<i32> third_view(borrow<i32> b) { return b; }
 borrow<i32> second_view(borrow<i32> b) { return third_view(b); }
 borrow<i32> first_view(borrow<i32> b) { return second_view(b); }

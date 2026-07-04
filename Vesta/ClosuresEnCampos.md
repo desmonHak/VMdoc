@@ -66,7 +66,7 @@ contenedor.  Esto es coherente con el borrow checker.
 
 ## Ciclo de vida
 
-```vex
+```vx
 o.f = (x) => x + base;   // env = {base} en heap; el tipo de 'o' pasa a destructible
 // ... uso de o ...
 // al destruirse 'o' (fin de scope o transferencia de ownership):
@@ -78,7 +78,7 @@ o.f = (x) => x + base;   // env = {base} en heap; el tipo de 'o' pasa a destruct
 `&obj.metodo` (cuando `obj` es una variable de tipo clase o struct y `metodo` es
 un metodo) es una lambda que **captura el receptor**:
 
-```vex
+```vx
 &c.inc   ===   (args) => c.inc(args)
 ```
 

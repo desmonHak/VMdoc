@@ -10,7 +10,7 @@ de los patrones reconocidos. El mismo mecanismo funciona en el **interprete**
 (emulado escalar por lane, como oraculo de correccion), en el **JIT** (SIMD
 nativo) y en el **AOT** (binarios nativos con SIMD real).
 
-```vex
+```vx
 // Esto:
 for (i64 i = 0; i < n; i = i + 1) { c[i] = a[i] + b[i]; }
 
@@ -36,14 +36,14 @@ for (i64 i = 0; i < n; i = i + 1) { c[i] = a[i] + b[i]; }
 
 Todos funcionan en su forma `for` **y** `while`:
 
-```vex
+```vx
 i64 i = 0;
 while (i < n) { c[i] = a[i] * 2.0; i = i + 1; }   // tambien se vectoriza
 ```
 
 ### Variantes del scalar broadcast
 
-```vex
+```vx
 c[i] = a[i] * k;     // escalar a la derecha (cualquier op)
 c[i] = k + a[i];     // escalar a la izquierda (solo conmutativo: + *)
 c[i] += k;           // compound assignment
@@ -83,7 +83,7 @@ La vectorizacion **solo** se aplica sobre memoria HOST: punteros obtenidos de
 `&local`) **no** se vectorizan (viven en el espacio de direcciones de la VM y
 el SIMD nativo opera sobre direcciones host).
 
-```vex
+```vx
 // SI se vectoriza (host)
 f64* a = (f64*) malloc(n * 8);
 f64* b = (f64*) malloc(n * 8);
@@ -108,7 +108,7 @@ SIMD **a traves del bucle** (sin round-trip a memoria por iteracion) **solo si
 el acumulador es una variable local del bucle**. Si compartes el acumulador con
 algo externo (lo vuelve address-taken), pierde la residencia en registro.
 
-```vex
+```vx
 // OPTIMO: acc local -> el acumulador vectorial vive en un XMM/YMM
 f64 sumar(f64* a, i64 n) {
     f64 acc = 0.0;
@@ -131,7 +131,7 @@ compila a nativo y se vectoriza; el mismo bucle en `main` mezclado con
 `malloc`/`free` puede ejecutarse por el interprete. Encapsula el nucleo
 numerico en una funcion:
 
-```vex
+```vx
 void escalar_vec(f64* c, f64* a, f64 k, i64 n) {
     for (i64 i = 0; i < n; i = i + 1) { c[i] = a[i] * k; }
 }
@@ -200,13 +200,13 @@ cola es despreciable. No hace falta alinear `N` a multiplos de nada.
 ### Difusion del escalar fuera del bucle (hoist)
 
 En el scalar broadcast el valor escalar se difunde a todos los lanes **una sola
-vez** antes del bucle (no en cada iteracion). El cuerpo del bucle es VEX puro,
+vez** antes del bucle (no en cada iteracion). El cuerpo del bucle es VX puro,
 sin penalizacion de transicion AVX/SSE. No tienes que hacer nada: es
 automatico.
 
 ### Multiplicacion entera estrecha es muy rentable
 
-```vex
+```vx
 // i16 multiply: 16 multiplicaciones por iteracion en AVX2 (PMULLW)
 i16* c; i16* a; i16* b;
 for (i64 i = 0; i < n; i = i + 1) { c[i] = a[i] * b[i]; }

@@ -8,7 +8,7 @@ exception-safe automatico.
 
 ## Indice
 
-- [Sincronizacion en Vesta](#sincronizacion-en-vex)
+- [Sincronizacion en Vesta](#sincronizacion-en-vx)
  - [Indice](#indice)
  - [1. Modelo de procesos en VestaVM](#1-modelo-de-procesos-en-vestavm)
  - [2. `synchronized (obj) { ... }`](#2-synchronized-obj---)
@@ -41,7 +41,7 @@ Ver [[Async]] para spawn/await/IPC. Este doc cubre `synchronized` y monitores.
 Adquiere el monitor de un objeto GC durante el body. Garantiza exclusión mutua
 entre procesos que entren al mismo monitor:
 
-```vex
+```vx
 class Counter {
     public i32 value = 0;
 }
@@ -76,7 +76,7 @@ i32 main() {
 
 Un proceso puede adquirir el monitor del MISMO objeto múltiples veces (recursivo):
 
-```vex
+```vx
 class Counter {
     public i32 value = 0;
  
@@ -105,7 +105,7 @@ se despierta el siguiente proceso esperando).
 
 Para coordinación productor-consumidor sin busy-loop:
 
-```vex
+```vx
 class Queue {
     public i32[100] data;
     public i32 head = 0;
@@ -144,7 +144,7 @@ check).
 
 **Patron clásico** (always loop on wait):
 
-```vex
+```vx
 synchronized (obj) {
     while (!condition()) {
         wait(obj); // protege contra spurious wakeups
@@ -160,7 +160,7 @@ synchronized (obj) {
 `synchronized` garantiza que `monexit` se ejecuta en TODAS las salidas, incluso
 exceptions y returns:
 
-```vex
+```vx
 i32 risky() {
     Counter c = ...;
     synchronized (c) {
@@ -218,7 +218,7 @@ struct alignas(8) ObjectHeader { // 24 bytes
 
 ## 7. Patron productor-consumidor
 
-```vex
+```vx
 class Channel {
     public i32 buf = 0;
     public bool full = false;

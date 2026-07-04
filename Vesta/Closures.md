@@ -22,7 +22,7 @@ function values.
 
 ## 1. Sintaxis de lambdas
 
-```vex
+```vx
 // Expression-bodied: 1 sola expresion
 (i32 x, i32 y) => x + y
 
@@ -48,7 +48,7 @@ fn(i32, i32) -> i32 sum = (a, b) => a + b;
 
 ## 2. Tipo `fn(...)->R`
 
-```vex
+```vx
 fn(i32, i32) -> i32 op; // funcion que toma 2 i32, devuelve i32
 fn() -> void noop; // funcion sin params ni retorno
 fn(string) -> bool predicate; // funcion que toma string, devuelve bool
@@ -71,7 +71,7 @@ se representa como un slot de **16 bytes** en stack:
 
 ## 3. Captura léxica (by-value)
 
-```vex
+```vx
 i32 main() {
     i32 y = 25;
     fn(i32) -> i32 add_y = (i32 x) => x + y; // captura `y` por valor
@@ -83,7 +83,7 @@ El compilador detecta los identificadores libres en el body de la lambda y los
 captura en un environment block. La captura es por valor: el snapshot de `y` se
 toma en el momento de crear la lambda.
 
-```vex
+```vx
 i32 y = 10;
 fn() -> i32 get = => y;
 y = 999; // mutar y DESPUES de crear la lambda
@@ -101,7 +101,7 @@ El cuerpo de la lambda se compila como función separada.
 Cuando la lambda **modifica** una variable capturada (asignación al identifier),
 el compilador automáticamente la captura por referencia:
 
-```vex
+```vx
 i32 main() {
     i32 sum = 0; // se promociona a address-taken
     fn(i32) -> void add = (i32 x) => { sum = sum + x; };
@@ -133,7 +133,7 @@ fuera de ella.
 Funciones declaradas a nivel de módulo se promocionan automáticamente a function
 values cuando se pasan como argumento a un parametro `fn(...)`:
 
-```vex
+```vx
 i32 add2(i32 a, i32 b) { return a + b; }
 i32 mul2(i32 a, i32 b) { return a * b; }
 
@@ -163,7 +163,7 @@ El callee (helper sintético de lambda o `CALLCLOSURE`) ignora env_addr cuando e
 
 ## 6. HOF: pasar funciones como argumentos
 
-```vex
+```vx
 i32 each(i32[] arr, fn(i32) -> void f) {
     for (i32 x : arr) { f(x); }
     return arr.length;
@@ -192,7 +192,7 @@ R14, args en R1..R12, return en R0).
 
 Una función que **retorna** una closure (factory):
 
-```vex
+```vx
 fn(i32) -> i32 make_adder(i32 n) {
     return (i32 x) => x + n; // captura `n`
 }

@@ -455,7 +455,7 @@ reservada para code cache).
 ## 11. Cobertura del Selector
 
 Estado actual: **~52% de metodos reales** JIT-compilados (medido sobre los
-143 ejemplos de `examples_codes_vex/`).
+143 ejemplos de `examples_codes_vx/`).
 
 ### Programas class-heavy donde TODOS los metodos JIT-compilan
 

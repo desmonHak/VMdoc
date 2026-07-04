@@ -142,7 +142,7 @@ i32 main() {
 }
 ```
 
-Ver `examples_codes_vex/173_wndproc_win32.vx` para el ejemplo completo con
+Ver `examples_codes_vx/173_wndproc_win32.vx` para el ejemplo completo con
 ventana hidden, message pump, PostMessageW + GetMessageW + DispatchMessageW.
 
 ### Memoria HOST vs VM en interop con APIs nativas

@@ -60,8 +60,8 @@ multi-paradigma estaticamente tipado disenado con tres principios:
 | [[Modulos]] | `import`, public/private, paquete-dir, reexport, cache, paralelismo M8 |
 | [[CompilacionCondicional]] | `@Target(...)` con OS/arch/CPU/semver/mode + AND/OR/NOT/parens + sobre imports |
 | [[CargaDinamica]] | `loadmodule`/`unloadmodule`, hot-reload, transitividad caps |
-| [[Sandbox]] | Capability-based sandbox (10 caps + whitelists), `--vex-caps`, zero overhead |
-| [[PackageManager]] | `vm pkg` (Phase PM): vex.toml/json, vex.lock, firmas ed25519, anti-malware by design |
+| [[Sandbox]] | Capability-based sandbox (10 caps + whitelists), `--vx-caps`, zero overhead |
+| [[PackageManager]] | `vm pkg` (Phase PM): vx.toml/json, vx.lock, firmas ed25519, anti-malware by design |
 
 ### Compilacion nativa
 
@@ -98,7 +98,7 @@ multi-paradigma estaticamente tipado disenado con tres principios:
     v VM (intérprete threaded computed-goto, ~340 MIPS promedio)
 ```
 
-El flag `--vex-emit-ir` guarda el SSA IR en `<modulo>.ir` antes de emitir `.velb`.
+El flag `--vx-emit-ir` guarda el SSA IR en `<modulo>.ir` antes de emitir `.velb`.
 El flag `--diagram-all` ademas genera diagramas Mermaid (`.ast.mmd`, `.ir.pre.mmd`,
 `.ir.post.mmd`, `.vel.mmd`) utiles para depurar el pipeline.
 
@@ -117,7 +117,7 @@ i32 main(string[] args) {
 Compilar y ejecutar:
 
 ```bash
-./vm --vex hola.vx -o hola
+./vm --vx hola.vx -o hola
 ./vm --run hola.velb
 ```
 

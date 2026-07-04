@@ -7,7 +7,7 @@ asignación, unarios, postfix y conversiones.
 
 ## Indice
 
-- [Operadores en Vesta](#operadores-en-vex)
+- [Operadores en Vesta](#operadores-en-vx)
  - [Indice](#indice)
  - [1. Operadores aritméticos](#1-operadores-aritméticos)
  - [2. Operadores de comparación](#2-operadores-de-comparación)
@@ -35,7 +35,7 @@ asignación, unarios, postfix y conversiones.
 | `/` | División | int (trunca), float |
 | `%` | Módulo (resto) | int |
 
-```vex
+```vx
 i32 a = 10 + 3; // 13
 i32 b = 10 - 3; // 7
 i32 c = 10 * 3; // 30
@@ -67,7 +67,7 @@ desbordan wraparound en complemento a dos.
 
 Resultado: siempre `bool`. Operandos: deben ser del mismo tipo (o promovibles).
 
-```vex
+```vx
 if (age >= 18) { ... }
 bool eq = (a == b);
 bool ne = (s != "default"); // comparación string (byte-a-byte)
@@ -91,7 +91,7 @@ comparan punteros (identidad).
 
 Operandos: `bool`. Resultado: `bool`.
 
-```vex
+```vx
 if (p != null && p.is_valid()) { ... } // p.is_valid() NO se evalúa si p==null
 if (cached || compute_expensive()) { ... } // compute() NO se evalúa si cached==true
 bool flag = !done;
@@ -110,7 +110,7 @@ Ver [[ControlFlow]] sección 7 para detalles del cortocircuito.
 | `^` | XOR bit a bit | int |
 | `~` | NOT bit a bit | int (unario) |
 
-```vex
+```vx
 u32 mask = 0xFF00FF00;
 u32 r = value & mask; // AND
 u32 r = value | 0x80000000; // OR
@@ -130,7 +130,7 @@ cortocircuito). Funcionan sobre TODOS los bits del entero.
 | `<<` | Desplazamiento izquierda | int |
 | `>>` | Desplazamiento derecha (aritmético si signed, lógico si unsigned) | int |
 
-```vex
+```vx
 u32 r = value << 2; // multiplica por 4
 i32 r = value >> 4; // divide por 16, preserva signo (sar)
 u32 r = value >> 4; // divide por 16, rellena con 0 (shr)
@@ -157,7 +157,7 @@ izquierdo. Cantidad de desplazamiento toma los bits bajos (mod 64).
 | `<<=` | `x = x << v` |
 | `>>=` | `x = x >> v` |
 
-```vex
+```vx
 i32 i = 0;
 i += 5; // i = 5
 i *= 2; // i = 10
@@ -186,7 +186,7 @@ funcionan sobre los 4 tipos de lvalue: identifier simple, `obj.field` (struct/cl
 | `++` | Incremento | prefix/postfix |
 | `--` | Decremento | prefix/postfix |
 
-```vex
+```vx
 i32 x = -5;
 i32 y = +x; // y = -5
 bool b = !cond;
@@ -212,7 +212,7 @@ acepta (ambiguous order of evaluation).
 | `p + n` | Aritmética de punteros (escalado por sizeof) |
 | `p - q` | Diferencia de punteros (elementos entre ambos) |
 
-```vex
+```vx
 i32 v = 42;
 i32* p = &v; // p apunta a v
 *p = 100; // v = 100
@@ -236,7 +236,7 @@ Ver [[TiposDatos]] sección "Punteros" para los tipos `T*` (host pointer),
 
 Sugar para `unwrap(a)` cuando `a` es `Optional<T>` o referencia nullable:
 
-```vex
+```vx
 Optional<i32> opt = Some(42);
 i32 v = !!opt; // = 42; falla con FATAL si opt == None
 
@@ -252,7 +252,7 @@ i32 v = !!maybe; // unwrap nullable; lanza FATAL si null
 
 ## 10. Cast C-style: `(T)expr`
 
-```vex
+```vx
 i64 big = 0x123456789ABCDEF0;
 i32 small = (i32) big; // trunca a low 32 bits = 0x9ABCDEF0
 
@@ -282,7 +282,7 @@ VirtualPtr<u8> bp = (VirtualPtr<u8>) some_ptr; // PTR<->PTR bitcast
 asignaciones reducen ancho de entero (narrowing), trunca float a int, o pierde
 precisión `int grande -> f32`. Usar cast explícito `(T)` para silenciar.
 
-```vex
+```vx
 i64 big = ...;
 i32 small = big; // WARNING: narrowing implícito
 i32 small = (i32) big; // OK: cast explícito silencia warning
@@ -311,7 +311,7 @@ De mayor a menor precedencia (mismo estilo que C):
 | 13 | `?:` (ternario) | derecha |
 | 14 | `=` `+=` `-=` `*=` etc. | derecha |
 
-```vex
+```vx
 // 3 + 4 * 5 = 23 (no 35) porque * tiene mayor precedencia
 // (3 + 4) * 5 = 35 explícito con parens
 // a & b == c parses as a & (b == c) porque == > &

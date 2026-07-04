@@ -44,7 +44,7 @@ semantics para que el recurso tenga siempre un unico dueno.
 
 ### Destructor y RAII al salir del scope
 
-```vex
+```vx
 struct Recurso {
     i64* p;
     ~Recurso() { free(this.p); }
@@ -70,7 +70,7 @@ recibe la responsabilidad de liberar (su propia copia ejecutara el destructor al
 salir de su scope).  El resultado es un unico `free`, sin coste de copia
 profunda ni de refcount.
 
-```vex
+```vx
 Recurso crear(i64 v) {
     Recurso r;
     r.p = (i64*) malloc(8);
@@ -85,7 +85,7 @@ Asignar un struct gestionado a un campo de un contenedor que tambien es
 destructible **mueve** el recurso al campo: copia los bytes del struct al campo
 y suprime el destructor del origen.  Solo el destructor del contenedor libera.
 
-```vex
+```vx
 class Caja {
     Recurso r;     // el campo struct hace a Caja destructible
 }
@@ -111,7 +111,7 @@ Un contenedor puede tener un campo `unique<T>`; al destruirse, libera el recurso
 del campo invocando su deleter (el de por defecto, `free`, o el personalizado
 dado a `unique_with`).
 
-```vex
+```vx
 class Conexion {
     unique<i64> handle;     // hace a Conexion destructible
 }
@@ -131,7 +131,7 @@ vuelve destructible automaticamente: gana un destructor implicito que invoca el
 destructor de cada campo gestionado, en orden de declaracion.  Esto encadena la
 liberacion sin escribir codigo manual, a cualquier profundidad.
 
-```vex
+```vx
 struct Inner { i64* p;  ~Inner() { free(this.p); } }
 struct Mid   { Inner inner;  i64 tag; }     // gana ~Mid() implicito -> ~Inner()
 struct Outer { Mid mid; }                   // gana ~Outer() implicito -> ~Mid() -> ~Inner()
@@ -187,7 +187,7 @@ El frontend puede emitir una cabecera C tipada con `--emit-header`, junto al
 modo de transpilacion a C:
 
 ```sh
-vex --port c --emit-header mi_lib.vx -o mi_lib
+vesta --port c --emit-header mi_lib.vx -o mi_lib
 # genera  mi_lib.c  (codigo)  +  mi_lib.h  (tipos y prototipos)
 ```
 
@@ -199,7 +199,7 @@ Un programa C la incluye y enlaza el `.c`:
 #include "mi_lib.h"
 
 int main(void) {
-    return (int) mi_funcion_vex(20, 22);   // 42
+    return (int) mi_funcion_vx(20, 22);   // 42
 }
 ```
 

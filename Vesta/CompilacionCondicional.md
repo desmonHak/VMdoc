@@ -100,7 +100,7 @@ i32 needs_modern_compiler() { return 1; }
 ### Modo de ejecución (variable de entorno)
 
 Tag con prefijo `mode:` controlable mediante la variable
-`VEX_TARGET_MODE` al compilar:
+`VX_TARGET_MODE` al compilar:
 
 | Valor (env) | Tag emitido | Uso |
 |:---|:---|:---|
@@ -110,7 +110,7 @@ Tag con prefijo `mode:` controlable mediante la variable
 | `jit-required` | `mode:jit-required` | Código que solo funciona con JIT (por ejemplo, asm inline). |
 
 ```bash
-VEX_TARGET_MODE=jit vm --vex prog.vx -o prog
+VX_TARGET_MODE=jit vm --vx prog.vx -o prog
 ```
 
 ## Ejemplos
@@ -272,7 +272,7 @@ manualmente (no implementado todavía).
 
 ## Detalles internos
 
-El parser del spec vive en `src/vex/parser.cpp`:
+El parser del spec vive en `src/vx/parser.cpp`:
 
 - `target_matches_(spec)` evalúa el spec contra `build_tags_()`.
 - `build_tags_()` enumera todos los tags del binario actual.

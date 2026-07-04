@@ -38,7 +38,7 @@ Un `@Macro` es una funcion comptime que devuelve un `string` con codigo Vesta
 valido. El compilador re-parsea esa string en el call site y la inyecta como
 si el usuario la hubiera escrito a mano.
 
-```vex
+```vx
 @Macro
 comptime string double_it(i64 n) {
     return to_str(n * 2);
@@ -64,7 +64,7 @@ implicitamente comptime porque el body se interpreta integramente.
 Marca tu macro con `@Pure` cuando el resultado dependa SOLO de los args
 (no de globales mutables ni FFI no-determinista):
 
-```vex
+```vx
 @Pure @Macro
 comptime string lookup_table(i64 idx) {
     i64 vals[8] = {10, 20, 30, 40, 50, 60, 70, 80};
@@ -83,7 +83,7 @@ El tipo especial `expr` (solo valido como parametro de `@Macro`) captura
 el texto **raw** del call site -- sin parsearlo como expresion Vesta. Permite
 crear DSLs embebidos:
 
-```vex
+```vx
 @Macro
 comptime string walk(expr code) {
     // `code` recibe la cadena verbatim del call site, p.ej.
@@ -108,7 +108,7 @@ i32 main() {
 **Ejemplo real**: macro `walk` que parsea `base -> off1 -> off2 -> ...` y
 emite pointer chase anidado:
 
-```vex
+```vx
 @Macro
 comptime string walk(expr code) {
     i64 n = strlen(code);
@@ -185,7 +185,7 @@ El AST evaluator de macros soporta operadores nativos y builtins cortos.
 
 **Ejemplo refactorizado** (antes vs ahora):
 
-```vex
+```vx
 // Verbose (legacy):
 return comptime_concat(
 "( *(u64*)((u64)",
@@ -207,7 +207,7 @@ evaluator del macro como en codigo runtime. Mismo bytecode emitido.
 Builtins **zero-overhead** que se resuelven en compile-time a un solo
 literal en el `.velb`:
 
-```vex
+```vx
 // Tamaño y alineamiento.
 u64 sz_i64 = sizeof<i64>(); // 8
 u64 sz_punto = sizeof<Punto>(); // suma de fields
@@ -252,7 +252,7 @@ runtime dispatch.
 
 ### Bloque `comptime if` y `comptime for`
 
-```vex
+```vx
 // Dead-branch elimination en compile-time.
 comptime if (sizeof<u64>() == 8) {
     // bytecode emitido solo para esta rama
@@ -266,7 +266,7 @@ comptime for (i in 0..N) {
 
 ### Iteracion sobre fields/methods
 
-```vex
+```vx
 @Macro
 comptime string dump_fields() {
     for_each_field<Punto>((string name) => {
@@ -281,7 +281,7 @@ veces en compile-time, una por cada field/method. Sin loop runtime.
 
 ### `field_get<T>` y `field_set<T>` directos
 
-```vex
+```vx
 i32 val = field_get<Punto>(p, "x"); // baja a LOAD directo al offset
 field_set<Punto>(p, "y", 100); // baja a STORE directo al offset
 ```
@@ -308,7 +308,7 @@ en compile-time.
 
 ### Arrays
 
-```vex
+```vx
 @Macro
 comptime string fib_at(i64 idx) {
     i64 fibs[16] = {0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233, 377, 610};
@@ -321,7 +321,7 @@ i64 f10 = fib_at(10); // se reemplaza por el literal 55
 
 ### Structs anidados
 
-```vex
+```vx
 struct Punto { i64 x; i64 y; }
 
 @Macro
@@ -337,7 +337,7 @@ comptime string mid_point() {
 
 Como no hay `HashMap` comptime, se modela con dos arrays sincronizados:
 
-```vex
+```vx
 @Macro
 comptime string lookup(i64 key) {
     i64 keys[5] = {1, 2, 5, 10, 42};
@@ -358,7 +358,7 @@ compilacion sigue siendo instantanea.
 
 ### Generacion de codigo iterativo
 
-```vex
+```vx
 @Macro
 comptime string sum_squares(i64 n) {
     string result = "0";
@@ -377,7 +377,7 @@ i64 s = sum_squares(4);
 
 ### Tabla 2D (matriz como array 1D)
 
-```vex
+```vx
 @Macro
 comptime string trace_3x3() {
     i64 mat[9] = {1, 2, 3, 4, 5, 6, 7, 8, 9};
@@ -387,7 +387,7 @@ comptime string trace_3x3() {
 
 ### Switch-via-ternario generado
 
-```vex
+```vx
 @Macro
 comptime string switch_gen() {
     i64 cases[3] = {1, 2, 3};
@@ -415,7 +415,7 @@ desde un `@Macro`. El AST evaluator hace `LoadLibraryA + GetProcAddress`
 durante la compilacion e invoca la funcion en el proceso del compilador.
 El resultado se "fosiliza" como literal en el `.velb`:
 
-```vex
+```vx
 extern "kernel32.dll" {
     fn GetCurrentProcessId() -> u32;
     fn GetTickCount() -> u32;
@@ -462,7 +462,7 @@ i32 main() {
 `static_assert(cond, "msg")` verifica una condicion en compile-time. Si
 la cond es falsa, el compilador emite error y NO genera el `.velb`:
 
-```vex
+```vx
 static_assert(sizeof<u64>() == 8, "u64 debe ser 8 bytes");
 static_assert(sizeof<u32>() == 4, "u32 debe ser 4 bytes");
 
@@ -481,7 +481,7 @@ compilador lo detecta automaticamente cuando ve un nombre registrado.
 
 Funciones disponibles:
 
-```vex
+```vx
 @Macro
 comptime string demo_virtual_lib() {
     // Queries de tipos via virtual lib (sin extern explicito).
@@ -494,7 +494,7 @@ comptime string demo_virtual_lib() {
 
 Si quisieras ser explicito, podrias declarar:
 
-```vex
+```vx
 extern "vesta_comptime" {
     fn comptime_type_sizeof(string name) -> u64;
     fn comptime_type_alignof(string name) -> u64;
@@ -512,7 +512,7 @@ Pero no es necesario: el resolver de FFI implicit los encuentra solos
 
 ### Tabla constante generada en compile-time
 
-```vex
+```vx
 @Pure @Macro
 comptime string fact(i64 n) {
     i64 r = 1;
@@ -529,7 +529,7 @@ repetidas con los mismos args.
 
 ### Template parametrizado
 
-```vex
+```vx
 @Macro
 comptime string make_getter(string field_name) {
     return "i64 get_" + field_name + "() { return this." + field_name + "; }";
@@ -545,7 +545,7 @@ Ver seccion 2 -- `walk(root -> 0x100 -> 0)` emite el chain de derefs.
 
 ### Build fingerprint compile-time
 
-```vex
+```vx
 extern "kernel32.dll" { fn GetTickCount() -> u32; }
 
 @Macro
@@ -559,7 +559,7 @@ const u64 BUILD_TIME = compile_timestamp();
 
 ### Operaciones de string como builders
 
-```vex
+```vx
 @Macro
 comptime string banner(string text) {
     string border = repeat("=", strlen(text) + 4);
@@ -631,11 +631,11 @@ soportado en la VM eval -- cae al AST evaluator.
 - [FFI.md](./FFI.md) -- FFI runtime tradicional.
 - [ReflexionAOP.md](./ReflexionAOP.md) -- reflexion runtime (`forName`,
  `getClass`, AOP advice).
-- [examples_codes_vex/159_macro_expr_capture.vx](../../../examples_codes_vex/159_macro_expr_capture.vx)
+- [examples_codes_vx/159_macro_expr_capture.vx](../../../examples_codes_vx/159_macro_expr_capture.vx)
  -- demo de `expr` capture.
-- [examples_codes_vex/160_macro_walk_pchase.vx](../../../examples_codes_vex/160_macro_walk_pchase.vx)
+- [examples_codes_vx/160_macro_walk_pchase.vx](../../../examples_codes_vx/160_macro_walk_pchase.vx)
  -- macro `walk` real con DSL.
-- [examples_codes_vex/161_macro_ffi_compile_time.vx](../../../examples_codes_vex/161_macro_ffi_compile_time.vx)
+- [examples_codes_vx/161_macro_ffi_compile_time.vx](../../../examples_codes_vx/161_macro_ffi_compile_time.vx)
  -- FFI a kernel32 + virtual lib.
-- [examples_codes_vex/162_macro_comptime_data.vx](../../../examples_codes_vex/162_macro_comptime_data.vx)
+- [examples_codes_vx/162_macro_comptime_data.vx](../../../examples_codes_vx/162_macro_comptime_data.vx)
  -- arrays, structs, dict via arrays paralelos.

@@ -26,7 +26,7 @@ ABI SRET, y sin overhead de GC.
 `Optional<T>` representa "puede haber valor de tipo T, o puede no haberlo". Es
 una alternativa segura a punteros nullable cuando no necesitas indirection.
 
-```vex
+```vx
 Optional<i32> find_index(string[] arr, string target) {
     for (i32 i = 0; i < arr.length; i = i + 1) {
         if (arr[i] == target) return Some(i);
@@ -53,7 +53,7 @@ fijo (16 bytes) independiente del tipo de T.
 `Result<V, E>` representa "operación que puede devolver un valor V o un error E".
 Es la manera estándar de modelar errores sin excepciones implícitas.
 
-```vex
+```vx
 Result<i32, i64> divide(i32 a, i32 b) {
     if (b == 0) return Err(1); // E = código de error
     return Ok(a / b);
@@ -85,7 +85,7 @@ Constructores. Cero alocaciones en heap: escriben el slot stack del caller via S
 | `Ok(v)` | `Result<V, E>` | Result éxito con valor V |
 | `Err(e)` | `Result<V, E>` | Result error con valor E |
 
-```vex
+```vx
 Optional<i32> a = Some(42);
 Optional<i32> b = None();
 Result<i32, string> c = Ok(100);
@@ -114,7 +114,7 @@ declarado de la variable destino, signature de la función que retorna, etc.).
 | `value(r)` | `V` | extrae valor; FATAL si Err |
 | `error(r)` | `E` | extrae error; FATAL si Ok |
 
-```vex
+```vx
 Optional<i32> opt = ...;
 if (isPresent(opt)) {
     i32 v = unwrap(opt);
@@ -138,7 +138,7 @@ if (isOk(r)) {
 Cuando asignas un valor directo a una variable de tipo `Optional<T>`, el compilador
 inserta `Some(...)` automáticamente:
 
-```vex
+```vx
 Optional<i32> a = 50; // = Some(50)
 Optional<i32> b = null; // = None() (null literal -> None)
 
@@ -157,7 +157,7 @@ hay que usar el constructor explícito si el tipo del parámetro es `Optional<T>
 El compilador rechaza en compile-time las `ExprStmt` cuyo `CallExpr` retorna un
 `Result<V, E>` y el valor de retorno se descarta:
 
-```vex
+```vx
 Result<i32, i64> divide(i32 a, i32 b) { ... }
 
 i32 main() {
@@ -182,7 +182,7 @@ caso de error explícitamente. Evita silently ignored errors.
 
 Sintaxis postfix azúcar para `unwrap()`:
 
-```vex
+```vx
 Optional<i32> opt = Some(42);
 i32 v = !!opt; // = unwrap(opt) = 42
 
@@ -203,7 +203,7 @@ Funciona sobre:
 
 Marca una referencia como NO nullable. El compilador rechaza asignar `null` literal:
 
-```vex
+```vx
 nonnull MyClass obj = new MyClass(); // OK
 nonnull MyClass bad = null; // ERROR de compilación
 ```
@@ -215,7 +215,7 @@ restringe al compile time; no hay coste runtime.
 
 Sintaxis para combinar `nonnull` + auto-unwrap del init:
 
-```vex
+```vx
 // Var-decl: inyecta unwrap automático si maybe es nullable
 i32 !!v = maybe_value(); // si maybe_value() retorna null/None, FATAL al entry
 
@@ -249,7 +249,7 @@ Vesta tiene DOS modelos para "valor que puede no existir":
  ni indirection.
 - **`T?`** para referencias a clases cuando es semánticamente "puede no apuntar a nada".
 
-```vex
+```vx
 Optional<i32> idx = find(arr, x); // valor primitivo, mejor Optional
 Person? owner = item.owner; // referencia opcional, mejor nullable
 ```
@@ -289,7 +289,7 @@ Total: 24 bytes en stack. Tanto V como E se promueven a i64.
 
 Funciones que retornan `Optional<T>` o `Result<V, E>` se transforman internamente:
 
-```vex
+```vx
 // Tu código:
 Optional<i32> find(...) { return Some(42); }
 

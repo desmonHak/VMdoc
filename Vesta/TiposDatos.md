@@ -374,7 +374,7 @@ i32 area_or_length(Drawable d) {
 }
 ```
 
-Ejemplo extenso: `examples_codes_vex/176_adt_complex_payloads.vx` combina
+Ejemplo extenso: `examples_codes_vx/176_adt_complex_payloads.vx` combina
 5 variantes con aridades 0-3, payloads de tipos mezclados (i32, f64,
 string), retornos tempranos en cada arm, y multiples ADTs interactuando.
 

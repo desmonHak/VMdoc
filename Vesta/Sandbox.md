@@ -18,10 +18,10 @@ Documentos relacionados:
 vm --run programa.velb
 
 # Sandbox total: nada funciona excepto computación pura e IPC local.
-vm --run programa.velb --vex-caps "none"
+vm --run programa.velb --vx-caps "none"
 
 # Sandbox fino: solo lo necesario.
-vm --run programa.velb --vex-caps "fs:read=/tmp,net=localhost:8080,ffi:call=kernel32.dll"
+vm --run programa.velb --vx-caps "fs:read=/tmp,net=localhost:8080,ffi:call=kernel32.dll"
 ```
 
 ## Modelo de capabilities
@@ -47,10 +47,10 @@ whitelists. El runtime las consulta antes de cada operación peligrosa:
 
 | Modo | Bits | Whitelists | Comportamiento |
 |:---|:---|:---|:---|
-| Sin `--vex-caps` | `ALL` (0xFFFFFFFF) | vacías | **Sin sandbox**: cero overhead, todo permitido. |
-| `--vex-caps ""` | `ALL` | vacías | Idéntico a sin flag. |
-| `--vex-caps "all"` | `ALL` | vacías | Idéntico, explícito. |
-| `--vex-caps "none"` | `NONE` (0) | vacías | Sandbox total: bytecode puro e IPC mailbox. |
+| Sin `--vx-caps` | `ALL` (0xFFFFFFFF) | vacías | **Sin sandbox**: cero overhead, todo permitido. |
+| `--vx-caps ""` | `ALL` | vacías | Idéntico a sin flag. |
+| `--vx-caps "all"` | `ALL` | vacías | Idéntico, explícito. |
+| `--vx-caps "none"` | `NONE` (0) | vacías | Sandbox total: bytecode puro e IPC mailbox. |
 
 ## Sintaxis del string de caps
 
@@ -66,14 +66,14 @@ mem_range ::= HEX '-' HEX
 ### Caps simples
 
 ```bash
---vex-caps "fs:read,net"
+--vx-caps "fs:read,net"
 # Concede solo FS_READ y NET; el resto queda denegado.
 ```
 
 ### Caps con whitelists
 
 ```bash
---vex-caps "fs:read=/tmp,net=localhost:8080,ffi:call=kernel32.dll;user32.dll"
+--vx-caps "fs:read=/tmp,net=localhost:8080,ffi:call=kernel32.dll;user32.dll"
 # Concede:
 # FS_READ con whitelist de paths = ["/tmp"]
 # NET con whitelist de hosts = ["localhost:8080"]
@@ -84,7 +84,7 @@ mem_range ::= HEX '-' HEX
 ### Rangos de memoria
 
 ```bash
---vex-caps "mem:host=0x10000000-0x20000000"
+--vx-caps "mem:host=0x10000000-0x20000000"
 # Cap MEM_HOST denegada (no concedida como bool), pero el rango
 # [0x10000000, 0x20000000) queda whitelisted. Solo los accesos a
 # host_ptrs en ese rango son permitidos.
@@ -93,7 +93,7 @@ mem_range ::= HEX '-' HEX
 ### Combinación
 
 ```bash
---vex-caps "fs:read=/safe/data,fs:write=/tmp,net,ffi:call=kernel32.dll,loadmod=/var/plugins"
+--vx-caps "fs:read=/safe/data,fs:write=/tmp,net,ffi:call=kernel32.dll,loadmod=/var/plugins"
 ```
 
 `fs:read` solo de `/safe/data`; `fs:write` solo a `/tmp`; `net` sin
@@ -108,7 +108,7 @@ Compartida entre `fs:read`, `fs:write` y `loadmod`. Match por PREFIJO
 con normalización de separadores:
 
 ```text
---vex-caps "fs:read=/tmp"
+--vx-caps "fs:read=/tmp"
 # Accesos permitidos:
 # /tmp/foo.txt -> OK (coincide con el prefijo /tmp)
 # /tmp/subdir/x.txt -> OK
@@ -120,7 +120,7 @@ con normalización de separadores:
 inesperadas:
 
 ```text
---vex-caps "fs:read=/tmp/"
+--vx-caps "fs:read=/tmp/"
 # Ahora /tmpfoo.txt NO coincide (no empieza con /tmp/).
 ```
 
@@ -132,7 +132,7 @@ uniforme entre Windows y POSIX.
 Match exacto contra `host` o `host:port`:
 
 ```text
---vex-caps "net=localhost,api.example.com:8080"
+--vx-caps "net=localhost,api.example.com:8080"
 # Permitidos:
 # localhost -> OK
 # localhost:1234 -> OK (host coincide, puerto libre)
@@ -148,7 +148,7 @@ Cuando la entry tiene `:port`, se exige match exacto también del puerto.
 Match exacto contra el nombre de DLL/SO (case-insensitive en Windows):
 
 ```text
---vex-caps "ffi:call=kernel32.dll;user32.dll"
+--vx-caps "ffi:call=kernel32.dll;user32.dll"
 # CALLN a kernel32.dll:XXX o user32.dll:YYY -> OK.
 # CALLN a custom.dll:ZZZ -> denegado.
 ```
@@ -160,7 +160,7 @@ todos los rangos; si ninguno contiene la dirección, el acceso se
 deniega.
 
 ```text
---vex-caps "mem:host=0x10000000-0x20000000,0x80000000-0x90000000"
+--vx-caps "mem:host=0x10000000-0x20000000,0x80000000-0x90000000"
 # Solo los accesos en esos dos rangos pasan.
 ```
 
@@ -208,7 +208,7 @@ cargado HEREDA las caps del caller con AND-mask:
 
 ```bash
 # El main tiene fs:read=/tmp + loadmod (sin classreg).
-vm --run main.velb --vex-caps "fs:read=/tmp,loadmod"
+vm --run main.velb --vx-caps "fs:read=/tmp,loadmod"
 ```
 
 ```java
@@ -230,7 +230,7 @@ monotónico decreciente.
 ## Aplicación automática al módulo principal
 
 ```bash
-vm --run main.velb --vex-caps "..."
+vm --run main.velb --vx-caps "..."
 # main.velb recibe esas caps inmediatamente tras load_executable.
 # Cualquier dependencia cargada vía loadmodule las hereda con AND-mask.
 ```
@@ -243,7 +243,7 @@ Output cuando hay caps explícitas:
 
 ## Cero overhead en el modo por defecto
 
-Si NO se pasa `--vex-caps`, el módulo principal tiene
+Si NO se pasa `--vx-caps`, el módulo principal tiene
 `caps.bits = 0xFFFFFFFF` (ALL) y `whitelists` vacías. El predicado
 `Caps::unrestricted()` devuelve `true`.
 
@@ -323,7 +323,7 @@ amenaza distinto.
 ```bash
 # El usuario carga scripts en su IDE. Confiamos en el código pero
 # queremos auditoría de caps y lifecycle controlado.
-vm --run ide.velb --vex-caps "fs:read=/home/usuario/scripts,fs:write=/tmp,loadmod=/home/usuario/scripts"
+vm --run ide.velb --vx-caps "fs:read=/home/usuario/scripts,fs:write=/tmp,loadmod=/home/usuario/scripts"
 ```
 
 ### Plugin marketplace (más paranoico)
@@ -331,7 +331,7 @@ vm --run ide.velb --vex-caps "fs:read=/home/usuario/scripts,fs:write=/tmp,loadmo
 ```bash
 # Plugin descargado de un marketplace. No confiamos en el código.
 # Solo permitimos computación e IPC con el host.
-vm --run app.velb --vex-caps "fs:read=/safe/configs,loadmod=/var/lib/plugins"
+vm --run app.velb --vx-caps "fs:read=/safe/configs,loadmod=/var/lib/plugins"
 # El plugin no puede:
 # - Llamar a FFI (ffi:call denegada)
 # - Abrir sockets (net denegada)
@@ -353,7 +353,7 @@ recursos a nivel OS.
 Tests integradores en `tests/bugs/m_sandbox_test/`:
 
 ```bash
-bash tests/vex/test_vex_e2e.sh | grep "sandbox"
+bash tests/vx/test_vx_e2e.sh | grep "sandbox"
 ```
 
 ## API C++ interna

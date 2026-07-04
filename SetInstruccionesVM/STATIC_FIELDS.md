@@ -79,7 +79,7 @@ getstatic r2, r1, 0 // r2 = Animal.contador (leido del static_data[0])
 
 En Vesta:
 
-```vex
+```vx
 u64 n = Animal.contador; // baja a: findclass + getstatic offset
 ```
 
@@ -127,7 +127,7 @@ setstatic r2, r1, 0 // Animal.contador = r2
 
 En Vesta:
 
-```vex
+```vx
 Animal.contador += 1; // baja a: findclass + getstatic + add + setstatic
 ```
 
@@ -171,7 +171,7 @@ helper `__new_<Class>`.
 El frontend Vesta emite codigo en `__module_init` para inicializar los campos estaticos
 que tienen valor por defecto:
 
-```vex
+```vx
 class Contador {
     public static i64 total = 0; // valor por defecto: 0
 }
@@ -194,7 +194,7 @@ Para valores por defecto distintos de cero, el cuerpo de `__module_init` emite l
 
 ## Ejemplo completo: contador estatico
 
-```vex
+```vx
 class Logger {
     public static i64 mensajes = 0;
 
