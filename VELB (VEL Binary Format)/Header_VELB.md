@@ -236,9 +236,9 @@ loader las trata como ausentes.
 
 ```bash
 # Sin debug (default): el .velb no incluye seccion debug.
-vm --vex programa.vex -o programa
+vm --vex programa.vx -o programa
 
 # Con debug: añade seccion DVBG con tabla bytecode_offset -> (file, line).
 # Usado por el debugger TCP para breakpoints por file:line.
-vm --vex programa.vex -o programa --vex-debug
+vm --vex programa.vx -o programa --vex-debug
 ```

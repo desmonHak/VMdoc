@@ -1,6 +1,6 @@
-# FFI - Interoperabilidad con codigo nativo en Vex
+# FFI - Interoperabilidad con codigo nativo en Vesta
 
-Vex ofrece tres mecanismos para llamar a funciones escritas en C/C++ u otras DLLs del
+Vesta ofrece tres mecanismos para llamar a funciones escritas en C/C++ u otras DLLs del
 sistema, desde las mas simples hasta las mas flexibles:
 
 | Mecanismo | Cuando usarlo |
@@ -48,7 +48,7 @@ declarados en la firma.
 
 ### Tipos admitidos en firmas FFI
 
-| Tipo Vex | Tipo C equivalente | Tamaño |
+| Tipo Vesta | Tipo C equivalente | Tamaño |
 | :---------------- | :-------------------- | :----- |
 | `i8`..`i64` | `int8_t`..`int64_t` | 1..8B |
 | `u8`..`u64` | `uint8_t`..`uint64_t` | 1..8B |
@@ -80,7 +80,7 @@ VESTA_PLUGIN_EXPORT void vesta_init(const VestaPluginAPI *api) {
     g_api = api; // guardar el puntero (valido toda la vida del proceso)
 }
 
-// Funcion exportada al bytecode Vex:
+// Funcion exportada al bytecode Vesta:
 VESTA_PLUGIN_EXPORT int64_t mi_funcion(void *proc, int64_t vm_addr, int64_t len) {
     // Leer bytes de la memoria VM:
     uint8_t buf[256];
@@ -90,7 +90,7 @@ VESTA_PLUGIN_EXPORT int64_t mi_funcion(void *proc, int64_t vm_addr, int64_t len)
 }
 ```
 
-### Cargar el plugin desde Vex
+### Cargar el plugin desde Vesta
 
 ```java
 // Import estatico via ruta relativa al ejecutable:
@@ -168,7 +168,7 @@ La implementacion interna es identica a la del `CALLN` estatico
 
 ## Patrones de uso habituales
 
-### Pasar un string Vex a una API nativa
+### Pasar un string Vesta a una API nativa
 
 ```java
 extern "kernel32.dll" {
@@ -223,7 +223,7 @@ free(buf);
 ### getproc + vm_read_bytes desde un plugin
 
 ```java
-// En el lado Vex, pasar el puntero al proceso actual:
+// En el lado Vesta, pasar el puntero al proceso actual:
 extern import "mi_plugin";
 extern "mi_plugin" { fn leer_datos(proc: void*, vm_addr: i64, len: i64) -> i64; }
 
@@ -277,14 +277,14 @@ Necesarios para pasar como primer argumento a plugins que usan `vm_read_bytes`.
 
 ---
 
-## Direccion inversa: callbacks Vex desde codigo nativo
+## Direccion inversa: callbacks Vesta desde codigo nativo
 
-Los tres mecanismos anteriores cubren el caso *Vex llama a nativo*.  El caso
-*nativo llama a Vex* (callbacks, WndProc, signal handlers, qsort comparator)
+Los tres mecanismos anteriores cubren el caso *Vesta llama a nativo*.  El caso
+*nativo llama a Vesta* (callbacks, WndProc, signal handlers, qsort comparator)
 se implementa con el builtin `as_native_callback(fn)` que devuelve un puntero
 a un thunk x86-64 generado dinamicamente.  El thunk respeta la calling
 convention del OS (Win64 o System V) y delega al codigo JIT-compilado de la
-funcion Vex.
+funcion Vesta.
 
 ```java
 extern "msvcrt.dll" {
@@ -306,7 +306,7 @@ i32 main() {
 }
 ```
 
-El overhead actual del bridge nativo->Vex es aproximadamente 11 nanosegundos
+El overhead actual del bridge nativo->Vesta es aproximadamente 11 nanosegundos
 por invocacion -- suficiente para WndProc Win32, audio en tiempo real,
 game loops y comparator de qsort.  Detalles completos del mecanismo,
 optimizaciones del thunk (TLS-direct via `gs:[]`), gestion de memoria HOST

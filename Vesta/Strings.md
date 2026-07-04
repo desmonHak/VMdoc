@@ -1,6 +1,6 @@
-# Strings en Vex
+# Strings en Vesta
 
-Vex tiene tres maneras de manejar texto:
+Vesta tiene tres maneras de manejar texto:
 
 1. **`string`** — tipo dedicado, GC-managed (`StringObject` runtime).
 2. **`char*` / `char[]`** — punteros raw estilo C, para FFI con APIs nativas.
@@ -10,7 +10,7 @@ Vex tiene tres maneras de manejar texto:
 
 ## Indice
 
-- [Strings en Vex](#strings-en-vex)
+- [Strings en Vesta](#strings-en-vex)
  - [Indice](#indice)
  - [1. El tipo `string`](#1-el-tipo-string)
  - [2. Literales: estándar, raw, triple-quoted](#2-literales-estándar-raw-triple-quoted)

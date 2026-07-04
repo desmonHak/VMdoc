@@ -1,6 +1,6 @@
 # Sandbox basado en capabilities
 
-Vex tiene un modelo de seguridad **capability-based** completamente
+Vesta tiene un modelo de seguridad **capability-based** completamente
 configurable que permite restringir qué operaciones puede ejecutar
 cada módulo. Cero overhead en el modo por defecto; protege contra
 plugins no confiables sin afectar al rendimiento del código confiable.
@@ -212,7 +212,7 @@ vm --run main.velb --vex-caps "fs:read=/tmp,loadmod"
 ```
 
 ```java
-// main.vex
+// main.vx
 i32 main() {
     loadmodule("plugin.velb");
     // El plugin recién cargado tiene caps = ALL AND (fs:read=/tmp + loadmod)

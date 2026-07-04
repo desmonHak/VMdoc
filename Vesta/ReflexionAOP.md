@@ -1,6 +1,6 @@
-# Reflexion y AOP en Vex
+# Reflexion y AOP en Vesta
 
-Vex expone el `ClassRegistry` del runtime como un API de reflexion de primera clase.
+Vesta expone el `ClassRegistry` del runtime como un API de reflexion de primera clase.
 Las clases registradas durante `__module_init` son accesibles en tiempo de ejecucion
 sin ninguna generacion de codigo adicional.
 
@@ -313,7 +313,7 @@ resultado final: 42
 
 ### Lowering de aspectos en `__module_init`
 
-El compiler Vex genera en `__module_init` la instalacion de cada aspecto:
+El compiler Vesta genera en `__module_init` la instalacion de cada aspecto:
 
 ```c
 // Para @Before("BD.query"):

@@ -1,6 +1,6 @@
-# Hooks de runtime y control de excepciones (Vex)
+# Hooks de runtime y control de excepciones (Vesta)
 
-Vex sigue el modelo "sin runtime obligatorio": **cada servicio de runtime es
+Vesta sigue el modelo "sin runtime obligatorio": **cada servicio de runtime es
 un hook que el programador puede reemplazar**, y el codegen prefiere SIEMPRE
 codigo inline al runtime (el `CALL` al runtime es el ultimo recurso y solo en
 el camino frio).  Este documento describe (1) la convencion de override de los
@@ -10,7 +10,7 @@ hooks y (2) el control de excepciones (`@NoExcept` / `@NoExceptions`).
 
 Un servicio de runtime se expone como un simbolo `__vex_<servicio>` con un ABI
 documentado.  Para reemplazar la implementacion por defecto del lenguaje basta
-**definir una funcion Vex con ese nombre**: el lowering detecta el override y
+**definir una funcion Vesta con ese nombre**: el lowering detecta el override y
 emite la llamada a tu version en lugar de la del runtime.  Es el mismo
 mecanismo que ya usan la I/O nativa, `@AllocatorOverride` y `@PanicHandler`.
 

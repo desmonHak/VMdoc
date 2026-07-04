@@ -312,16 +312,16 @@ Total: 8 opcodes en la tabla extendida.
 | `tests/gc/test_shared_handle_table.cpp` | 23 checks: register/lookup/unregister, lock-free correctness |
 | `tests/gc/test_monitor_cas.cpp` | 23 checks: monitor_try_acquire/release lock-free CAS |
 | `tests/gc/test_wait_table.cpp` | 22 checks: per-bucket spinlock + multi-bucket |
-| `examples_codes_vex/166_z_shared_memory.vex` | 5 escenarios integradores (synchronized + atomics + introspect) |
-| `examples_codes_vex/167_z_gc_sweep.vex` | GC sweep colecta huerfanos, preserva rooted |
-| `examples_codes_vex/benchmark/bench_shared_alloc.vex` | Throughput SharedHeap vs gc_heap local (1M+1M iter) |
-| `examples_codes_vex/benchmark/bench_shared_contention.vex` | Monitor cross-scheduler (4 workers x 100K) |
-| `examples_codes_vex/benchmark/bench_shared_gc.vex` | GC sweep latency |
-| `examples_codes_vex/benchmark/bench_shared_stw_impact.vex` | STW pause impact en multi-thread |
+| `examples_codes_vex/166_z_shared_memory.vx` | 5 escenarios integradores (synchronized + atomics + introspect) |
+| `examples_codes_vex/167_z_gc_sweep.vx` | GC sweep colecta huerfanos, preserva rooted |
+| `examples_codes_vex/benchmark/bench_shared_alloc.vx` | Throughput SharedHeap vs gc_heap local (1M+1M iter) |
+| `examples_codes_vex/benchmark/bench_shared_contention.vx` | Monitor cross-scheduler (4 workers x 100K) |
+| `examples_codes_vex/benchmark/bench_shared_gc.vx` | GC sweep latency |
+| `examples_codes_vex/benchmark/bench_shared_stw_impact.vx` | STW pause impact en multi-thread |
 
 
 
-- **Vex e2e**: 237 pasos OK / 0 fallidos.
+- **Vesta e2e**: 237 pasos OK / 0 fallidos.
 - **Tests Z unitarios**: 8141 PASS (SharedHeap 8073 + monitor CAS 23 + WaitTable 22 + SharedHandleTable 23).
 - **t13 cross-process**: cerrado, R0=42.
 - **`synchronized(shared) --schedulers 4`**: 400000 exacto en 3/3 runs (data loss eliminada).

@@ -1,6 +1,6 @@
-# Generics en Vex
+# Generics en Vesta
 
-Vex soporta clases genericas con monomorphizacion en compile-time. Cada instanciacion
+Vesta soporta clases genericas con monomorphizacion en compile-time. Cada instanciacion
 `Cls<T>` con un tipo concreto genera una clase independiente con su propio layout,
 vtable y nombre mangled (`Cls_T`). No hay boxing, no hay overhead de vtable para el
 tipo parametrico.
@@ -160,7 +160,7 @@ progresivamente en fases posteriores.
 
 ## Como funciona la monomorphizacion
 
-El frontend Vex realiza la monomorphizacion en tres pasos:
+El frontend Vesta realiza la monomorphizacion en tres pasos:
 
 ### Paso 1: Detectar templates
 
@@ -215,7 +215,7 @@ specialize r_dst, r_class, r_types, count
 - `count`: numero de argumentos de tipo (0..15)
 - `r_dst`: `ClassInfo*` de la instanciacion (cacheada en el Loader para reutilizar)
 
-Este mecanismo NO esta disponible desde la sintaxis Vex actual (Phase A). Su uso directo
+Este mecanismo NO esta disponible desde la sintaxis Vesta actual (Phase A). Su uso directo
 requiere assembly `.vel` o bytecode manual.
 
 ---
@@ -262,7 +262,7 @@ println("size = ${s.length()}"); // 1
 
 ## Anidamiento profundo de generics
 
-Vex acepta cualquier nivel de anidamiento sin limites artificiales.  Cada
+Vesta acepta cualquier nivel de anidamiento sin limites artificiales.  Cada
 combinacion (`Box<i32>`, `Box<i64>`, `Box<Box<i32>>`, ...) genera una clase
 monomorphizada con vtable y layout propios al momento de la compilacion.
 La sintaxis usa `>>` que el parser separa internamente como dos `>`
@@ -304,7 +304,7 @@ Cada combinacion produce nombres mangled estables: `Box_i32`, `Box_i64`,
 asi que multiples menciones de `Box<i32>` en distintas funciones comparten
 la misma clase generada.
 
-Ejemplo extenso: `examples_codes_vex/175_generics_deep_nesting.vex` muestra
+Ejemplo extenso: `examples_codes_vex/175_generics_deep_nesting.vx` muestra
 `Triple<X, Y, Z>` con 3 type-params + `Box<Pair<i32, i64>>` + multiples
 niveles combinados.
 
@@ -459,12 +459,12 @@ modulo exporta `public struct Caja<T>` / `public i64 fn<T>(...)` /
 `public concept C<T> = ...` y otro las instancia importandolas:
 
 ```java
-// lib.vex
+// lib.vx
 public struct Caja<T> { T v; U id<U>(U x) { return x; } }
 public concept Num<T> = is_numeric<T>();
 public i64 doblar<T: Num>(T x) { return (i64)x + (i64)x; }
 
-// main.vex
+// main.vx
 import "lib" only Caja, doblar;       // o:  import "lib";  -> lib.Caja<i64>
 i32 main() {
     Caja<i64> c = {.v = 5};
@@ -481,9 +481,9 @@ una plantilla recompila los modulos que la instancian.
 
 ---
 
-Ejemplos: `examples_codes_vex/222_metodos_genericos.vex` (#4),
-`223_conceptos_genericos.vex` + `227_concepts_avanzado.vex` (#6),
-`225_especializacion.vex` + `226_especializacion_avanzada.vex` (#7),
-`229_typedef_genericos.vex` (typedef).
+Ejemplos: `examples_codes_vex/222_metodos_genericos.vx` (#4),
+`223_conceptos_genericos.vx` + `227_concepts_avanzado.vx` (#6),
+`225_especializacion.vx` + `226_especializacion_avanzada.vx` (#7),
+`229_typedef_genericos.vx` (typedef).
 
 Ver tambien: [[TiposDatos]], [[OOP]], [[Metaprogramacion]], [[SetInstruccionesVM/GENERIC_SPECIALIZE]]

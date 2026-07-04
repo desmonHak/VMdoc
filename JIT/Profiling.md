@@ -173,19 +173,19 @@ El flujo tipico de PGO en AOT:
 
 ```bash
 # 1. Build instrumentado
-vex --aot programa.vex -o programa_inst.exe --profile-gen
+vex --aot programa.vx -o programa_inst.exe --profile-gen
 
 # 2. Ejecutar con workload representativo
 ./programa_inst.exe --workload typical
 # -> genera programa.vprof
 
 # 3. Build optimizado con PGO
-vex --aot programa.vex -o programa.exe --profile-use=programa.vprof
+vex --aot programa.vx -o programa.exe --profile-use=programa.vprof
 ```
 
 ## Aprendizaje empirico observado
 
-Durante la validacion del sistema se observo que el frontend Vex hace
+Durante la validacion del sistema se observo que el frontend Vesta hace
 **devirtualizacion estatica agresiva** en compile-time.  Cuando el
 frontend puede inferir el tipo concreto del receptor (por ejemplo:
 `Shape c = new Circle(...)` usado directamente, sin reasignacion),

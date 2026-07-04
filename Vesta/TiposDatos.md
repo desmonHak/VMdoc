@@ -1,6 +1,6 @@
-# Sistema de tipos de Vex
+# Sistema de tipos de Vesta
 
-Vex es estaticamente tipado con inferencia local. El compilador conoce el tipo de cada
+Vesta es estaticamente tipado con inferencia local. El compilador conoce el tipo de cada
 expresion en tiempo de compilacion. No hay tipos dinamicos ni boxing implicito.
 
 ---
@@ -121,7 +121,7 @@ char* wptr = utf16.wstr(); // listo para Win32 *W API
 
 ## Tipos de puntero
 
-Vex tiene dos tipos de puntero con semantica bien diferenciada:
+Vesta tiene dos tipos de puntero con semantica bien diferenciada:
 
 | Tipo | Apunta a | Acceso en bytecode | Uso tipico |
 | :-------------- | :------------- | :----------------- | :---------------------- |
@@ -374,7 +374,7 @@ i32 area_or_length(Drawable d) {
 }
 ```
 
-Ejemplo extenso: `examples_codes_vex/176_adt_complex_payloads.vex` combina
+Ejemplo extenso: `examples_codes_vex/176_adt_complex_payloads.vx` combina
 5 variantes con aridades 0-3, payloads de tipos mezclados (i32, f64,
 string), retornos tempranos en cada arm, y multiples ADTs interactuando.
 
@@ -608,15 +608,15 @@ Reglas:
 
 ### Privacidad por modulo (`public` vs por defecto)
 
-Cada `typedef ... new` recuerda en que fichero `.vex` se declaro. Las
+Cada `typedef ... new` recuerda en que fichero `.vx` se declaro. Las
 conversiones declaradas son **privadas al fichero** por defecto; el
 modificador `public` las hace accesibles desde otros ficheros que
 importen el tipo:
 
 ```c
-// session.vex
+// session.vx
 typedef u64 session_handle new @opaque {
-    public explicit from u64; // cualquier .vex puede construir
+    public explicit from u64; // cualquier .vx puede construir
     explicit to u64; // solo este fichero extrae bits
 };
 ```
@@ -662,26 +662,26 @@ Util en macros `@Macro` para generar codigo distinto segun el tipo:
 ### Patron recomendado: handles de sistema
 
 ```c
-// fs.vex
+// fs.vx
 typedef u64 fd new @opaque {
     public explicit from u64; // el FFI puede convertir el handle OS
-    explicit to u64; // solo fs.vex serializa internamente
+    explicit to u64; // solo fs.vx serializa internamente
 };
 
-// Esto compila en fs.vex pero NO en otro fichero:
+// Esto compila en fs.vx pero NO en otro fichero:
 fd open_file(string path) {
     u64 raw = native_open(str_cstr(path)); // FFI
     return (fd) raw; // OK aqui (mismo fichero)
 }
 
-// fs.vex tambien puede serializar a u64 para logging interno:
+// fs.vx tambien puede serializar a u64 para logging interno:
 void log_fd(fd f) {
     println("fd raw=${(u64) f}"); // OK (sin public, mismo file)
 }
 ```
 
 ```c
-// main.vex (otro fichero)
+// main.vx (otro fichero)
 fd f = open_file("/tmp/test"); // OK: open_file devuelve fd
 // u64 raw = (u64) f; // ERROR: 'to u64' no es public
 

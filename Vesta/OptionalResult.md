@@ -1,4 +1,4 @@
-# Optional y Result en Vex
+# Optional y Result en Vesta
 
 `Optional<T>` y `Result<V, E>` son **builtins del compilador** (NO templates):
 PrimitiveKinds dedicados con layout fijo en stack del caller (cero heap),
@@ -232,7 +232,7 @@ mensaje claro en lugar de propagar el null hacia adentro del código.
 
 ## 9. Optional vs nullable (`T?`)
 
-Vex tiene DOS modelos para "valor que puede no existir":
+Vesta tiene DOS modelos para "valor que puede no existir":
 
 | Característica | `Optional<T>` | `T?` (nullable) |
 | :------------- | :-------------------------- | :----------------------- |

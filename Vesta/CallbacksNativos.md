@@ -1,6 +1,6 @@
 ## Callbacks nativos: del lenguaje a las APIs del sistema
 
-VestaVM permite que cualquier funcion Vex se pase como puntero a funcion C nativa
+VestaVM permite que cualquier funcion Vesta se pase como puntero a funcion C nativa
 con calling convention compatible con Win64 (RCX/RDX/R8/R9) o System V AMD64
 (RDI/RSI/RDX/RCX/R8/R9).  El mecanismo se llama **callback nativo** y se materializa
 con el builtin `as_native_callback(fn)`.
@@ -25,7 +25,7 @@ un **thunk** generado dinamicamente.  El thunk:
 2. Cumple la calling convention C nativa segun el OS (Win64 o SysV AMD64).
 3. Convierte los argumentos nativos (`RCX/RDX/R8/R9` o `RDI/RSI/RDX/RCX/R8/R9`)
    al modelo VM (`ProcessVM::registers.regs[R01..R12]`).
-4. Invoca el codigo JIT-compilado de la funcion Vex objetivo.
+4. Invoca el codigo JIT-compilado de la funcion Vesta objetivo.
 5. Lee el valor de retorno de `regs[R00]` y lo devuelve en `RAX` (convencion C).
 
 El thunk se cachea por `(pc, argc)`, asi que multiples llamadas a
@@ -44,13 +44,13 @@ i64 cb = as_native_callback(my_comparator);
 // cb ahora es callable desde codigo C nativo.
 ```
 
-El argumento de `as_native_callback` debe ser un identificador de funcion Vex
+El argumento de `as_native_callback` debe ser un identificador de funcion Vesta
 (no una expresion, no una lambda).  La firma de la funcion determina la calling
 convention que el thunk emite.
 
 ### Tipos de argumentos soportados
 
-| Categoria          | Tipos Vex                                      | Calling convention nativa                |
+| Categoria          | Tipos Vesta                                      | Calling convention nativa                |
 |--------------------|------------------------------------------------|------------------------------------------|
 | Enteros 8-64 bits  | `i8`, `i16`, `i32`, `i64`, `u8`, `u16`, `u32`, `u64` | Registro entero completo (zero/sign-extended) |
 | Booleano           | `bool`                                          | Registro entero, 0 o 1                   |
@@ -58,7 +58,7 @@ convention que el thunk emite.
 | Float              | `f32`, `f64`                                    | XMM register (no soportado todavia)      |
 
 Hasta **12 argumentos** por callback (mismo limite que la calling convention
-interna VM_ABI usada por las funciones Vex regulares).  El thunk maneja
+interna VM_ABI usada por las funciones Vesta regulares).  El thunk maneja
 automaticamente la mezcla de registros + stack del ABI nativo:
 
 - **Win64**: argumentos 1-4 en RCX/RDX/R8/R9 (registros), argumentos 5-12
@@ -68,10 +68,10 @@ automaticamente la mezcla de registros + stack del ABI nativo:
   argumentos 7-12 leidos del stack del caller en `[caller_rsp + (i-6)*8]`.
 
 El thunk salva los argumentos en registros a su frame propio, luego los
-copia a `proc->registers.regs[R01..R12]` desde donde el codigo Vex
+copia a `proc->registers.regs[R01..R12]` desde donde el codigo Vesta
 JIT-compilado los lee mediante su prologue.
 
-### Ejemplo: qsort con comparator Vex
+### Ejemplo: qsort con comparator Vesta
 
 ```java
 extern "msvcrt.dll" {
@@ -142,7 +142,7 @@ i32 main() {
 }
 ```
 
-Ver `examples_codes_vex/173_wndproc_win32.vex` para el ejemplo completo con
+Ver `examples_codes_vex/173_wndproc_win32.vx` para el ejemplo completo con
 ventana hidden, message pump, PostMessageW + GetMessageW + DispatchMessageW.
 
 ### Memoria HOST vs VM en interop con APIs nativas
@@ -280,19 +280,19 @@ re-leer el TLS.
 
 ### Re-entrancia del callback
 
-El thunk garantiza que el codigo Vex caller (main u otro callback
+El thunk garantiza que el codigo Vesta caller (main u otro callback
 anidado) recupera su estado intacto tras la invocacion.  Para eso, al
 entrar al thunk:
 
 1. Salva `proc->registers.regs[R0..R15]` (128 bytes) a un area dedicada
    del propio frame del thunk.
 2. Copia los argumentos nativos a `regs[R1..R<argc>]` y argc a `R15`.
-3. Llama el codigo Vex JIT-compilado del callback.
+3. Llama el codigo Vesta JIT-compilado del callback.
 4. Lee el return value de `regs[R0]` a `RAX`.
 5. Restaura `regs[R1..R15]` desde el save area (preserva todo el state
    del caller; R0 se deja con el return value).
 
-Esto permite patrones como callbacks invocados desde un loop Vex que
+Esto permite patrones como callbacks invocados desde un loop Vesta que
 itera sobre variables locales: cada invocacion del callback NO corrompe
 los registros virtuales que el JIT del caller esta usando.
 
@@ -301,7 +301,7 @@ los registros virtuales que el JIT del caller esta usando.
 Limitaciones encontradas e identificadas durante la implementacion del
 sistema y ya resueltas:
 
-- **Globals Vex modificados desde callback**: el JIT trataba la direccion
+- **Globals Vesta modificados desde callback**: el JIT trataba la direccion
   del slot estatico (`STR_LIT_ADDR`) como `host_ptr` y emitia un `mov`
   nativo directo en lugar de pasar por el inline cache de memoria VM.
   Para callbacks, esto causaba page fault.  Se corrigio removiendo el
@@ -315,7 +315,7 @@ sistema y ya resueltas:
   stack del caller con offsets ajustados al frame del thunk.  El
   limite actual es 12 (mismo que la calling convention VM_ABI).
 
-- **Re-entrancia rota**: callbacks invocados desde un caller Vex con
+- **Re-entrancia rota**: callbacks invocados desde un caller Vesta con
   state vivo en `proc->regs[]` corrompian ese state.  El thunk ahora
   salva 128 bytes de `proc->regs[R0..R15]` a un area dedicada de su
   frame antes de pisar los regs con los argumentos del callback, y
@@ -339,7 +339,7 @@ sistema y ya resueltas:
   emite CALL a `vrt_raw_alloc`/`vrt_raw_free` con stackmap automatico.
 
 - **Compilacion JIT de la fn callee**: el thunk requiere que la
-  funcion Vex objetivo este JIT-compilada (necesita la direccion del
+  funcion Vesta objetivo este JIT-compilada (necesita la direccion del
   codigo nativo para `call rax`).  `as_native_callback` fuerza la
   compilacion eager con `maybe_compile_callvm_target` antes de
   devolver el thunk, garantizando que callbacks funcionen aunque el
@@ -356,13 +356,13 @@ sistema y ya resueltas:
 | Lenguaje        | Costo aprox. por callback C->lenguaje | Notas                                                |
 |-----------------|--------------------------------------:|------------------------------------------------------|
 | C nativo        | 0-2 ns                                | Llamada directa, sin marshalling                     |
-| **Vex (thunk)** | **11 ns**                             | Thunk x86-64 + JIT code de la fn                     |
+| **Vesta (thunk)** | **11 ns**                             | Thunk x86-64 + JIT code de la fn                     |
 | Lua via FFI     | ~30-50 ns                             | Setup de Lua state                                   |
 | Python (CPython)| ~500-1000 ns                          | PyArg_ParseTuple + GIL                               |
 | JNI (Java)      | ~100-200 ns                           | JVMTI thread state + arg marshalling                 |
 | .NET P/Invoke   | ~30-80 ns                             | CLR transition + GC pinning                          |
 
-El overhead de Vex es comparable a soluciones de bajo nivel como Lua FFI
+El overhead de Vesta es comparable a soluciones de bajo nivel como Lua FFI
 y significativamente menor que VMs administradas como JVM o CLR.
 
 ### Programa minimo de validacion

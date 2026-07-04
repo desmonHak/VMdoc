@@ -1,7 +1,7 @@
 # Interop con C y ownership de structs
 
-Vex se integra con C en las dos direcciones: el codigo Vex puede llamar a C
-(via `extern "lib"`) y, sobre todo, el codigo Vex compilado a nativo (AOT) puede
+Vesta se integra con C en las dos direcciones: el codigo Vesta puede llamar a C
+(via `extern "lib"`) y, sobre todo, el codigo Vesta compilado a nativo (AOT) puede
 ser **llamado desde C** como una libreria mas, sin runtime de la VM en la
 frontera.  Esta integracion descansa en dos propiedades del lenguaje: el layout
 C de los structs y un modelo de ownership con liberacion determinista (RAII +
@@ -30,7 +30,7 @@ espacio de la VM) no es C-representable pero tampoco es gestionado.
 
 ### El layout C de los structs es el unico layout
 
-Todos los structs Vex usan layout C: campos en orden de declaracion y alineacion
+Todos los structs Vesta usan layout C: campos en orden de declaracion y alineacion
 de plataforma (padding al campo mas grande).  No existe un layout alternativo,
 asi que no hay nada que activar: un struct sin campos gestionados es C-compatible
 por defecto.
@@ -181,13 +181,13 @@ a su destructor.
 
 Todo lo anterior es identico en los tres backends (interprete, JIT y AOT nativo).
 
-## Usar codigo Vex desde C
+## Usar codigo Vesta desde C
 
 El frontend puede emitir una cabecera C tipada con `--emit-header`, junto al
 modo de transpilacion a C:
 
 ```sh
-vex --port c --emit-header mi_lib.vex -o mi_lib
+vex --port c --emit-header mi_lib.vx -o mi_lib
 # genera  mi_lib.c  (codigo)  +  mi_lib.h  (tipos y prototipos)
 ```
 
@@ -203,7 +203,7 @@ int main(void) {
 }
 ```
 
-Para que el `.vex` sea consumible como libreria no debe tener `main` (si lo
+Para que el `.vx` sea consumible como libreria no debe tener `main` (si lo
 tiene, el transpilador emite un `main` envoltorio que colisiona con el del
 consumidor).
 

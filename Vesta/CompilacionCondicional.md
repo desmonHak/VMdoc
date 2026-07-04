@@ -1,6 +1,6 @@
 # Compilación condicional con `@Target`
 
-Vex soporta compilación condicional mediante la anotación `@Target("spec")`.
+Vesta soporta compilación condicional mediante la anotación `@Target("spec")`.
 La anotación evalúa un spec (expresión booleana sobre tags del binario)
 en tiempo de compilación; si el spec no coincide, la declaración se
 descarta del AST sin generar código ni diagnósticos espurios.
@@ -110,7 +110,7 @@ Tag con prefijo `mode:` controlable mediante la variable
 | `jit-required` | `mode:jit-required` | Código que solo funciona con JIT (por ejemplo, asm inline). |
 
 ```bash
-VEX_TARGET_MODE=jit vm --vex prog.vex -o prog
+VEX_TARGET_MODE=jit vm --vex prog.vx -o prog
 ```
 
 ## Ejemplos
@@ -211,7 +211,7 @@ preceder al `import`:
 
 // Si ninguna condición coincide, el import se descarta del AST.
 // La dependencia no se resuelve ni se compila, lo que permite tener
-// .vex exclusivos de cada plataforma sin necesidad de stub vacíos en
+// .vx exclusivos de cada plataforma sin necesidad de stub vacíos en
 // las demás.
 
 i32 main() {
@@ -257,7 +257,7 @@ incrementar:
 1. Editar `CMakeLists.txt`: `project(VMProject VERSION 1.1.0 ...)`.
 2. Rebuild: `cmake --build cmake-build-windows --target vm`.
 3. El header `version_generated.h` se regenera automáticamente y los
- programas Vex compilados con el nuevo binario emiten los nuevos
+ programas Vesta compilados con el nuevo binario emiten los nuevos
  tags.
 
 ### Features de CPU son estáticos al binario

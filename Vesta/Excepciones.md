@@ -1,6 +1,6 @@
-# Manejo de excepciones en Vex
+# Manejo de excepciones en Vesta
 
-Vex ofrece un modelo de excepciones estructurado con tres capas:
+Vesta ofrece un modelo de excepciones estructurado con tres capas:
 
 1. **Excepciones de usuario** (`throw` / `try-catch`): control de flujo de alto nivel.
 2. **FatalError predefinido**: errores del runtime (NPE, illegal opcode, etc.) que se
@@ -72,7 +72,7 @@ try {
 ## FatalError (clase predefinida del runtime)
 
 El runtime de VestaVM lanza `FatalError` cuando ocurre un error irrecuperable. Desde
-Vex se puede capturar como cualquier otra excepcion:
+Vesta se puede capturar como cualquier otra excepcion:
 
 ```java
 class Servicio {
@@ -116,8 +116,8 @@ Cuando `FatalError` incluye informacion de debug, el stack trace contiene:
 
 ```
 Stack trace (Vesta):
-    at metodo [Servicio] (src/servicio.vex:42)
-    at principal [App] (src/app.vex:10)
+    at metodo [Servicio] (src/servicio.vx:42)
+    at principal [App] (src/app.vx:10)
     in process pid=0 sched=0
 ```
 

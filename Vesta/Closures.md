@@ -1,6 +1,6 @@
-# Closures y lambdas en Vex
+# Closures y lambdas en Vesta
 
-Vex soporta funciones de primera clase: lambdas inline con captura léxica, paso de
+Vesta soporta funciones de primera clase: lambdas inline con captura léxica, paso de
 funciones como argumentos (HOF), y promoción automática de funciones top-level a
 function values.
 
@@ -262,7 +262,7 @@ El helper sintético `__lambda_<N>`:
  en heap RAW para closures que retornan no tienen free automático. Deferido a
  Phase B con escape analysis + promoción al GC heap.
 
-2. **`++`/`--` dentro de lambdas**: no soportados directamente (Vex en general).
+2. **`++`/`--` dentro de lambdas**: no soportados directamente (Vesta en general).
  Usar `x = x + 1` explícito.
 
 3. **Recursión directa en lambda**: una lambda no puede referenciarse a si misma

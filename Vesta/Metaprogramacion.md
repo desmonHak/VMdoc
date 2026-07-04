@@ -1,9 +1,9 @@
 # Metaprogramacion e introspeccion
 
-Vex tiene un sistema de metaprogramacion compile-time potente que combina:
+Vesta tiene un sistema de metaprogramacion compile-time potente que combina:
 
 - **Macros** (`@Macro`) que ejecutan codigo arbitrario en tiempo de compilacion
- y emiten codigo Vex que se inyecta en el call site.
+ y emiten codigo Vesta que se inyecta en el call site.
 - **Captura raw** de expresiones (`expr` param) para crear DSLs embebidos.
 - **Introspeccion** de tipos con cero overhead runtime (sizeof, alignof,
  typename, kind, field_count, etc.).
@@ -34,7 +34,7 @@ macros ya estan resueltos. El binario solo contiene el codigo generado.
 
 ## 1. @Macro basicos
 
-Un `@Macro` es una funcion comptime que devuelve un `string` con codigo Vex
+Un `@Macro` es una funcion comptime que devuelve un `string` con codigo Vesta
 valido. El compilador re-parsea esa string en el call site y la inyecta como
 si el usuario la hubiera escrito a mano.
 
@@ -57,7 +57,7 @@ i32 main() {
 - El tipo de retorno es siempre `string` (el codigo emitido).
 - Los parametros aceptan tipos primitivos (`i64`, `string`, `bool`, etc.).
 
-El cuerpo es codigo Vex normal con ciertas restricciones (ver Limitaciones).
+El cuerpo es codigo Vesta normal con ciertas restricciones (ver Limitaciones).
 Dentro del cuerpo NO necesitas `comptime var` -- todas las vars locales son
 implicitamente comptime porque el body se interpreta integramente.
 
@@ -80,7 +80,7 @@ sirven del cache sin re-ejecutar el body. Util para macros pesados.
 ## 2. Capturando codigo arbitrario con `expr`
 
 El tipo especial `expr` (solo valido como parametro de `@Macro`) captura
-el texto **raw** del call site -- sin parsearlo como expresion Vex. Permite
+el texto **raw** del call site -- sin parsearlo como expresion Vesta. Permite
 crear DSLs embebidos:
 
 ```vex
@@ -631,11 +631,11 @@ soportado en la VM eval -- cae al AST evaluator.
 - [FFI.md](./FFI.md) -- FFI runtime tradicional.
 - [ReflexionAOP.md](./ReflexionAOP.md) -- reflexion runtime (`forName`,
  `getClass`, AOP advice).
-- [examples_codes_vex/159_macro_expr_capture.vex](../../../examples_codes_vex/159_macro_expr_capture.vex)
+- [examples_codes_vex/159_macro_expr_capture.vx](../../../examples_codes_vex/159_macro_expr_capture.vx)
  -- demo de `expr` capture.
-- [examples_codes_vex/160_macro_walk_pchase.vex](../../../examples_codes_vex/160_macro_walk_pchase.vex)
+- [examples_codes_vex/160_macro_walk_pchase.vx](../../../examples_codes_vex/160_macro_walk_pchase.vx)
  -- macro `walk` real con DSL.
-- [examples_codes_vex/161_macro_ffi_compile_time.vex](../../../examples_codes_vex/161_macro_ffi_compile_time.vex)
+- [examples_codes_vex/161_macro_ffi_compile_time.vx](../../../examples_codes_vex/161_macro_ffi_compile_time.vx)
  -- FFI a kernel32 + virtual lib.
-- [examples_codes_vex/162_macro_comptime_data.vex](../../../examples_codes_vex/162_macro_comptime_data.vex)
+- [examples_codes_vex/162_macro_comptime_data.vx](../../../examples_codes_vex/162_macro_comptime_data.vx)
  -- arrays, structs, dict via arrays paralelos.

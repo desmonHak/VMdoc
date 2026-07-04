@@ -1,6 +1,6 @@
-# Compilacion nativa en Vex
+# Compilacion nativa en Vesta
 
-Vex puede compilar a binarios nativos del sistema operativo: ejecutables
+Vesta puede compilar a binarios nativos del sistema operativo: ejecutables
 standalone, objetos, librerias estaticas y librerias compartidas, **sin
 necesidad de la maquina virtual ni de un compilador de C externo** (gcc/clang/
 ld no hacen falta).  El enlazador y el archivador son propios del lenguaje.
@@ -29,7 +29,7 @@ Un programa con `main` se compila a un ejecutable que el sistema operativo
 arranca directamente:
 
 ```bash
-vm --vex programa.vex -m aot -o programa
+vm --vex programa.vx -m aot -o programa
 ```
 
 El valor que devuelve `main` es el codigo de salida del proceso:
@@ -41,7 +41,7 @@ i64 main() {
 ```
 
 ```bash
-vm --vex programa.vex -m aot -o programa.exe   # Windows (PE)
+vm --vex programa.vx -m aot -o programa.exe   # Windows (PE)
 ./programa.exe                                  # codigo de salida = 42
 ```
 
@@ -61,7 +61,7 @@ suficiente para la mayoria del codigo y es lo mas predecible.
 
 Cuando el grafo de objetos tiene **ciclos** o vidas que no encajan en un ambito
 (estructuras compartidas, grafos, cachés), conviene una gestion automatica de
-memoria.  Para eso Vex ofrece el tipo `gc<T>`.
+memoria.  Para eso Vesta ofrece el tipo `gc<T>`.
 
 ### Como funciona el GC nativo
 
@@ -105,7 +105,7 @@ programa usa `gc<T>`, **la libreria del recolector se incluye y se enlaza de
 forma automatica**:
 
 ```bash
-vm --vex programa.vex -m aot -o programa.exe
+vm --vex programa.vx -m aot -o programa.exe
 ```
 
 El binario resultante lleva el recolector dentro (no es una dependencia
@@ -125,10 +125,10 @@ enlazarlo despues:
 
 ```bash
 # Linux (ELF .o)
-vm --vex modulo.vex -m aot --emit obj --format elf -o modulo.o
+vm --vex modulo.vx -m aot --emit obj --format elf -o modulo.o
 
 # Windows (COFF .obj)
-vm --vex modulo.vex -m aot --emit obj --format pe -o modulo.obj
+vm --vex modulo.vx -m aot --emit obj --format pe -o modulo.obj
 ```
 
 El simbolo `main` (si existe) y las funciones quedan disponibles para el
@@ -147,11 +147,11 @@ El `.a` lleva un indice de simbolos, de modo que al enlazar **solo se incluyen
 los objetos que se usan** (los demas se descartan).  El archivo es estandar:
 tambien lo entienden `ar`, `nm` y los enlazadores del sistema.
 
-Tambien puedes crear cada objeto desde Vex y archivarlos juntos:
+Tambien puedes crear cada objeto desde Vesta y archivarlos juntos:
 
 ```bash
-vm --vex suma.vex      -m aot --emit obj --format pe -o suma.obj
-vm --vex resta.vex     -m aot --emit obj --format pe -o resta.obj
+vm --vex suma.vx      -m aot --emit obj --format pe -o suma.obj
+vm --vex resta.vx     -m aot --emit obj --format pe -o resta.obj
 vm --ar libmate.a suma.obj resta.obj
 ```
 
@@ -161,10 +161,10 @@ Una libreria compartida se carga en tiempo de ejecucion y exporta sus funciones:
 
 ```bash
 # Linux (.so)
-vm --vex libmate.vex -m aot --emit shared --format elf -o libmate.so
+vm --vex libmate.vx -m aot --emit shared --format elf -o libmate.so
 
 # Windows (.dll)
-vm --vex libmate.vex -m aot --emit shared --format pe -o mate.dll
+vm --vex libmate.vx -m aot --emit shared --format pe -o mate.dll
 ```
 
 Todas las funciones del modulo quedan exportadas y se pueden resolver por nombre
@@ -201,7 +201,7 @@ objetos (`.o`/`.obj`), librerias estaticas (`.a`) y librerias compartidas
 
 ```bash
 # 1. compilar el programa a objeto
-vm --vex programa.vex -m aot --emit obj --format pe -o programa.obj
+vm --vex programa.vx -m aot --emit obj --format pe -o programa.obj
 
 # 2a. enlazar con una libreria ESTATICA (se incluye en el binario)
 vm --link programa.obj libmate.a -o programa.exe --format pe
@@ -270,11 +270,11 @@ exporta cada funcion leyendo su tabla de simbolos, sin listas fijas.
 
 ## 6. Concurrencia y asincronia en compilacion nativa
 
-El modelo de concurrencia de Vex es **cooperativo** (asincronia con tareas verdes,
+El modelo de concurrencia de Vesta es **cooperativo** (asincronia con tareas verdes,
 igual que en el interprete/JIT), **no** hilos 1:1 del sistema operativo.  `spawn`
 encola una tarea; el bloqueo (`await`) bombea la cola hasta que el resultado esta
-listo.  Todo el scheduler es codigo Vex que el compilador incluye en el binario
-(`stdlib/vex/vex_async.vex`), por lo que el ejecutable nativo es autonomo (no
+listo.  Todo el scheduler es codigo Vesta que el compilador incluye en el binario
+(`stdlib/vex/vex_async.vx`), por lo que el ejecutable nativo es autonomo (no
 depende de la VM ni de ninguna DLL).
 
 ### Lo que YA funciona en nativo (validado)
@@ -308,7 +308,7 @@ compilan a `.exe`/`.elf` autonomos.
 - **Fibras (context-switch cooperativo)** — es la pieza que falta para suspender y
   reanudar tareas: guardar/restaurar `{rsp, rip, registros callee-saved}` y una
   pila por fibra.  Desbloquea el *ping-pong* y `wait`/`notify`.  Se implementara
-  en Vex (con inline-asm `@Naked` + reserva de pila via `extern`), sin la VM.
+  en Vesta (con inline-asm `@Naked` + reserva de pila via `extern`), sin la VM.
 - **Pool de hilos reales (paralelismo)** — N workers del SO ejecutando las tareas
   verdes en paralelo (modelo M:N).  Encima de las fibras.
 - **`rspawn` (procesos remotos / distribuido)** — requiere red (TCP); queda
@@ -323,12 +323,12 @@ compilan a `.exe`/`.elf` autonomos.
 
 ## 7. Paridad ELF / Linux
 
-El mismo codigo Vex compila a PE (Windows) y a ELF (Linux) con `--format pe`
+El mismo codigo Vesta compila a PE (Windows) y a ELF (Linux) con `--format pe`
 o `--format elf`.  El estado de paridad es:
 
 ### Lo que es identico en ambos formatos
 
-- **Codigo Vex generado** (aritmetica, structs, clases, strings, colecciones,
+- **Codigo Vesta generado** (aritmetica, structs, clases, strings, colecciones,
   smart pointers, `strconv`, control de flujo, FFI dinamico): **libre de libc**.
   Los strings usan SSO (datos inline) o el slab propio `vex_mem` (`__vex_malloc`),
   nunca `malloc` de libc.  `panic`/`print` salen por syscalls.  Validado en ELF:

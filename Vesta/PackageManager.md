@@ -16,7 +16,7 @@ Este manual cubre:
 
 | Problema en npm/pip/cargo | Solucion en VestaVM |
 | :--- | :--- |
-| Scripts `postinstall` ejecutan codigo arbitrario al instalar | Paquetes son solo codigo Vex + datos. Cero ejecucion en install. |
+| Scripts `postinstall` ejecutan codigo arbitrario al instalar | Paquetes son solo codigo Vesta + datos. Cero ejecucion en install. |
 | `^1.2` floating sin lock fuerte | `vex.lock` obligatorio con `sha256` por dep. Sin sha256, falla cerrado. |
 | Typosquatting (`raqquests` vs `requests`) | Trust pins por glob: `[trust] "@vesta/*" = "kpub1:..."`. |
 | Cualquier paquete puede leer `/etc/passwd` | Capabilities declaradas por paquete + grant explicito. Default deny-all. |
@@ -111,23 +111,23 @@ mi-paquete/
   README.md               # documentacion
   LICENSE                 # texto de la license
   src/
-    lib.vex               # entry point publico del paquete
+    lib.vx               # entry point publico del paquete
     internal/
-      helpers.vex         # codigo no-publico
+      helpers.vx         # codigo no-publico
   tests/
-    test_lib.vex
+    test_lib.vx
   examples/
-    demo.vex
+    demo.vx
 ```
 
-El **entry point convencional** es `src/lib.vex`. Cuando alguien hace
+El **entry point convencional** es `src/lib.vx`. Cuando alguien hace
 `import "@autor/mi-paquete";`, ese fichero (y los que reexporte) es lo
 visible.
 
 ### Declarar la API publica
 
 ```vex
-// src/lib.vex
+// src/lib.vx
 import "src/internal/helpers";       // privado por defecto
 
 // Reexportar simbolos publicos:
@@ -169,7 +169,7 @@ aceptar la lib.
 
 ```bash
 vm pkg verify                       # check estructura, hashes locales
-vm --vex src/lib.vex -o /tmp/test   # confirma que compila standalone
+vm --vex src/lib.vx -o /tmp/test   # confirma que compila standalone
 ```
 
 ## Firmar el paquete
@@ -330,7 +330,7 @@ copiar nada -- detecta tampering y cambios silenciosos.
 ### Usar el paquete en tu codigo
 
 ```vex
-// src/main.vex
+// src/main.vx
 import "@autor/mi-paquete";
 
 fn main() -> i32 {
@@ -451,7 +451,7 @@ declared = ["fs:read=/tmp", "net=api.foo.com:443"]
 "exact/foo" = "kpub1:..."            # match exacto
 
 [scripts]
-build = "vm --vex src/main.vex -o build/app"
+build = "vm --vex src/main.vx -o build/app"
 test  = "vm --run tests/run_all.velb"
 fmt   = "vm fmt src/"
 
@@ -545,7 +545,7 @@ mkdir mi-app && cd mi-app
 vm pkg init
 vm pkg add github.com/autor/lib@v1.0.0
 vm pkg install
-vm --vex src/main.vex -o build/app
+vm --vex src/main.vx -o build/app
 ```
 
 ### Lib local en desarrollo
@@ -627,7 +627,7 @@ A diferencia de npm, el manager NO ejecuta scripts del paquete
 descargado. Si un paquete necesita "build steps":
 
 - Codigo runtime regular: el consumer lo compila como cualquier
-  modulo Vex.
+  modulo Vesta.
 - Codigo comptime: usar `@Macro` que corre en `ComptimeRuntime` con
   sandbox cap-restricted. Ver `Metaprogramacion.md`.
 

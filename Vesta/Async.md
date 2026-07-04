@@ -1,10 +1,10 @@
-# Concurrencia y programacion asincrona en Vex
+# Concurrencia y programacion asincrona en Vesta
 
-Vex tiene soporte de primer nivel para concurrencia: procesos ligeros (green threads),
+Vesta tiene soporte de primer nivel para concurrencia: procesos ligeros (green threads),
 futuros/promesas, mensajeria entre procesos (IPC) y ejecucion remota en nodos
 distribuidos.
 
-Toda esta infraestructura existe en el bytecode de VestaVM. Vex la expone con sintaxis
+Toda esta infraestructura existe en el bytecode de VestaVM. Vesta la expone con sintaxis
 de alto nivel que baja directamente a las instrucciones correspondientes, sin overhead
 adicional.
 
@@ -246,7 +246,7 @@ i64 fibra_a = spawn {
 
 ## Sincronizacion: monitor
 
-El `synchronized` de Vex es el mecanismo de sincronizacion de nivel superior:
+El `synchronized` de Vesta es el mecanismo de sincronizacion de nivel superior:
 
 ```java
 class Buffer {
@@ -285,7 +285,7 @@ Los primitivos de monitor disponibles dentro de `synchronized`:
 
 ## Tabla de instrucciones de concurrencia
 
-| Instruccion Vex | Opcode bytecode | Descripcion |
+| Instruccion Vesta | Opcode bytecode | Descripcion |
 | :-------------------- | :-------------- | :---------------------------------------- |
 | `spawn { }` | `0xEE` spawn | Crear proceso local |
 | `spawn here { }` | `0x58` spawnon | Crear proceso en mismo scheduler |
@@ -386,7 +386,7 @@ con tipos definidos por el usuario coexisten en el mismo programa.  El
 compilador coerciona automaticamente `T <-> i64` al fulfill/await
 preservando los bits IEEE 754 para floats.
 
-Ejemplo extenso: `examples_codes_vex/174_async_chains_complex.vex` muestra
+Ejemplo extenso: `examples_codes_vex/174_async_chains_complex.vx` muestra
 6 procesos paralelos con fan-out + fan-in + encadenamiento + tipos
 mezclados (i64 + bool + i32).
 

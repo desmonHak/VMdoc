@@ -1,6 +1,6 @@
-# Control de flujo en Vex
+# Control de flujo en Vesta
 
-Vex soporta el set completo de control de flujo estilo C/Java + extensiones modernas
+Vesta soporta el set completo de control de flujo estilo C/Java + extensiones modernas
 (foreach Python-like, goto/labels, pattern matching `match`).
 
 ---
@@ -30,7 +30,7 @@ if (n > 0) {
 ```
 
 - Las llaves `{ ... }` son **obligatorias** (no se permite `if (x) statement;`).
-- La condicion debe ser `bool` (Vex no convierte implícitamente int -> bool).
+- La condicion debe ser `bool` (Vesta no convierte implícitamente int -> bool).
 - `else if` es azúcar para `else { if ... }`.
 
 **Lowering**: cada branch crea bloques basicos separados; el merge inserta PHIs si las

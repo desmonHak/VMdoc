@@ -71,8 +71,8 @@ cmpjmp.jge r1, r2, done_label
 CMP y el BR_COND (verificado via `has_phi_copies_to`). Cuando si hay,
 fallback al patron tradicional (las phi copies clobreraian regs del CMP).
 
-**Bench observado:** `58_quicksort.vex` 10/11 comparaciones fusionadas (91%);
-`01_factorial.vex`, `03_contador.vex`, `17_ecs_basico.vex`: 100% fusion rate.
+**Bench observado:** `58_quicksort.vx` 10/11 comparaciones fusionadas (91%);
+`01_factorial.vx`, `03_contador.vx`, `17_ecs_basico.vx`: 100% fusion rate.
 
 ---
 
@@ -97,7 +97,7 @@ decjnz r_counter, label // r_counter -= 1; if (r_counter != 0) jmp label
 
 Reusa `SubOp` para flags consistentes con `subs r, 1`.
 
-**Estado:** opcode disponible desde , pero el frontend Vex AUN NO lo
+**Estado:** opcode disponible desde , pero el frontend Vesta AUN NO lo
 emite automaticamente. La fusion automatica del patron `i--; if(i!=0) goto top`
 requeriria reordenar las phi copies del back-edge para que capturen el valor
 POST-decjnz, lo que necesita un trampoline block adicional que negaria el

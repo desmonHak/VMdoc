@@ -48,7 +48,7 @@ byte2 = (r_dst << 4) | r_src (convencion B)
 
 ### Caso de uso
 
-El frontend Vex emite `gchandle` al entrar en un bloque `synchronized(obj)`:
+El frontend Vesta emite `gchandle` al entrar en un bloque `synchronized(obj)`:
 
 ```
 // synchronized (lock) { ... }
@@ -87,7 +87,7 @@ Para PIDs locales: bit 63 = 0. Para PIDs remotos (cross-node): bit 63 = 1.
 getpid r0 // r0 = PID encoded del proceso actual
 ```
 
-Builtin Vex: `i64 mi_pid = pid();`
+Builtin Vesta: `i64 mi_pid = pid();`
 
 ---
 
@@ -118,7 +118,7 @@ byte2 = (r_fn << 4) | r_hint
  `Loader::copy_executables_to`.
 - Retorna el PID encoded del hijo en R0.
 
-### Uso desde Vex
+### Uso desde Vesta
 
 ```vex
 i64 hijo_here = spawn here { ... }; // emite spawnon r_fn, -1
@@ -172,7 +172,7 @@ Cada entrada de la tabla es de 24 bytes:
 Al hacer rebase, el loader recalcula `delta = nueva_va - va_original` y patchea
 cada slot cuyo `target_value` cae en el rango original del code section.
 
-### Uso desde Vex
+### Uso desde Vesta
 
 ```vex
 i64 ret = loadmodule("plugins/extra.velb"); // builtin que emite loadmod
@@ -204,7 +204,7 @@ byte2 = (r_msg_addr << 4) | r_msg_len
 
 `FATAL_USER_ABORT = 6` — identifica panics iniciados por el programador.
 
-### Uso desde Vex
+### Uso desde Vesta
 
 ```vex
 panic("Indice fuera de rango: ${idx}");
@@ -248,7 +248,7 @@ byte2 = (r_method << 4) | r_params
 
 ### Uso
 
-El frontend Vex emite `setmethdbg` en `__module_init` justo despues de cada `defmethod`:
+El frontend Vesta emite `setmethdbg` en `__module_init` justo despues de cada `defmethod`:
 
 ```
 defmethod r1, r3 // anade el metodo
@@ -281,7 +281,7 @@ La conversion es exacta para todos los valores representables en f32.
 
 ### Uso
 
-El backend del IR Vex baja `IrOp::F32TOF64` a:
+El backend del IR Vesta baja `IrOp::F32TOF64` a:
 
 ```
 bitcast GP -> f0 (gp_to_zmm_bits: copiar bits del GP al ZMM via memoria)
@@ -342,7 +342,7 @@ mov r1, @Absolute("data.s_kernel32") // VA del string "kernel32.dll"
 mov r2, 12 // longitud del nombre
 dlopen r3, r1, r2 // r3 = handle de kernel32.dll
 
-// En Vex:
+// En Vesta:
 i64 handle = ffi_open("kernel32.dll");
 ```
 
@@ -376,7 +376,7 @@ byte3 = (r_name_addr << 4) | r_name_len
 dlsym r4, r3, r_name_addr, r_name_len // r4 = puntero a funcion
 ```
 
-En Vex:
+En Vesta:
 ```vex
 i64 sym_Sleep = ffi_sym(handle, "Sleep");
 ```
@@ -421,13 +421,13 @@ mov r1, 500 // primer argumento (Sleep: milisegundos)
 mov r15, 1 // argc = 1
 callni r4 // invocar Sleep(500)
 
-// En Vex:
+// En Vesta:
 ffi_call(sym_Sleep, 500);
 ```
 
 ---
 
-## Ejemplo completo: FFI dinamico desde Vex
+## Ejemplo completo: FFI dinamico desde Vesta
 
 ```vex
 // Abrir kernel32.dll en runtime:
@@ -480,5 +480,5 @@ Implementacion: `src/runtime/exec_instruction_gc.cpp` (gchandle, getproc, getvm,
 `src/runtime/exec_instruction_float.cpp` (fextend, fnarrow),
 `src/runtime/exec_instruction_meta.cpp` (dlopen, dlsym, callni).
 
-Ver tambien: [[Vex/FFI]], [[GC/GC]], [[NativePluginAPI]],
-[[NativeCall (CallN)]], [[CORO]], [[Vex/Async]]
+Ver tambien: [[Vesta/FFI]], [[GC/GC]], [[NativePluginAPI]],
+[[NativeCall (CallN)]], [[CORO]], [[Vesta/Async]]

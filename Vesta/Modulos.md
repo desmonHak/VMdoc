@@ -1,6 +1,6 @@
 # Sistema de módulos
 
-Vex tiene un sistema de módulos completo que permite dividir código en
+Vesta tiene un sistema de módulos completo que permite dividir código en
 múltiples archivos, importar símbolos, organizar paquetes (directorios) y
 distribuir librerías precompiladas con su interfaz binaria estable.
 
@@ -13,7 +13,7 @@ Documentos relacionados:
 ## Resumen rápido
 
 ```java
-// math_utils.vex
+// math_utils.vx
 public i32 add(i32 a, i32 b) { return a + b; }
 public const i32 PI_FIXED = 314;
 public class Counter {
@@ -25,7 +25,7 @@ private i32 internal_helper() { return 42; } // NO se exporta
 ```
 
 ```java
-// main.vex
+// main.vx
 import "math_utils"; // namespace cualificado
 import "math_utils" as mu; // alias
 import "math_utils" only add, PI_FIXED, Counter; // al scope local
@@ -42,7 +42,7 @@ i32 main() {
 Compilación:
 
 ```bash
-vm --vex main.vex -o programa
+vm --vex main.vx -o programa
 ```
 
 El compilador detecta los `import` automáticamente, resuelve las
@@ -68,17 +68,17 @@ Notas:
 
 - El `path` es siempre un string literal. No se admite variable.
 - Los paths usan `/` como separador (multiplataforma).
-- No se incluye la extensión `.vex` — el resolvedor la añade automáticamente.
+- No se incluye la extensión `.vx` — el resolvedor la añade automáticamente.
 - Para cargar un `.velb` en runtime, ver `loadmodule(path)` en [[CargaDinamica]].
 
 ### Resolución de paths
 
 Para `import "a/b/c";` el resolvedor busca en este orden:
 
-1. **Directorio del importador**: `<importer_dir>/a/b/c.vex` (módulo single-file) o `<importer_dir>/a/b/c/mod.vex` (paquete-directorio).
+1. **Directorio del importador**: `<importer_dir>/a/b/c.vx` (módulo single-file) o `<importer_dir>/a/b/c/mod.vx` (paquete-directorio).
 2. **Search paths**: cada entrada de la variable de entorno `VEX_PATH` (separador `:` en POSIX, `;` en Windows) y cualquier `--vex-path /dir` adicional.
-3. **Paquetes locales**: `./vex_modules/a/b/c.vex` (reservado para el futuro gestor de paquetes).
-4. **Standard library**: `$VEX_HOME/stdlib/a/b/c.vex` (solo si el path empieza con `std/`).
+3. **Paquetes locales**: `./vex_modules/a/b/c.vx` (reservado para el futuro gestor de paquetes).
+4. **Standard library**: `$VEX_HOME/stdlib/a/b/c.vx` (solo si el path empieza con `std/`).
 
 El primer match gana. Si nada coincide, se reporta un error claro con la
 lista de paths probados.
@@ -109,22 +109,22 @@ error: el modulo 'lib' no exporta 'internal_helper' (es privado o no existe)
 
 ## Múltiples ficheros: paquetes-directorio
 
-Un paquete es un directorio con un fichero de entrada `mod.vex` más
-otros `.vex` adicionales.
+Un paquete es un directorio con un fichero de entrada `mod.vx` más
+otros `.vx` adicionales.
 
 ```text
 proyecto/
-├── main.vex
+├── main.vx
 └── mypkg/
-    ├── mod.vex ; entry point del paquete
-    ├── utils.vex
-    └── internal.vex
+    ├── mod.vx ; entry point del paquete
+    ├── utils.vx
+    └── internal.vx
 ```
 
 ```java
-// mypkg/mod.vex
+// mypkg/mod.vx
 // Re-export plain: TODOS los símbolos públicos de utils son visibles
-// como si estuvieran declarados directamente en mod.vex.
+// como si estuvieran declarados directamente en mod.vx.
 public import "utils";
 
 // También se puede hacer re-export selectivo:
@@ -135,15 +135,15 @@ public i32 mod_value() { return 100; }
 ```
 
 ```java
-// mypkg/utils.vex
+// mypkg/utils.vx
 // El path es relativo al directorio del importador (mypkg/).
-// Desde mod.vex, "import 'utils'" resuelve a mypkg/utils.vex.
+// Desde mod.vx, "import 'utils'" resuelve a mypkg/utils.vx.
 public i32 utility_a() { return 1; }
 public i32 utility_b() { return 2; }
 ```
 
 ```java
-// proyecto/main.vex
+// proyecto/main.vx
 import "mypkg" only utility_a, utility_b, mod_value, helpful_function;
 
 i32 main() {
@@ -151,7 +151,7 @@ i32 main() {
 }
 ```
 
-Cuando el resolvedor encuentra `mypkg/mod.vex`, el nombre lógico del
+Cuando el resolvedor encuentra `mypkg/mod.vx`, el nombre lógico del
 módulo es `mypkg` (no `mod`). El paquete se identifica por su
 directorio, no por el fichero entry.
 
@@ -164,17 +164,17 @@ paquete.
 ### Forma selectiva (`only`)
 
 ```java
-// mid.vex
+// mid.vx
 public import "base" only foo, bar; // foo y bar visibles como propios de mid
 ```
 
 Ahora `import "mid" only foo;` funciona aunque `foo` esté declarado en
-`base.vex`.
+`base.vx`.
 
 ### Forma plana (re-export completo)
 
 ```java
-// mid.vex
+// mid.vx
 public import "base"; // TODOS los símbolos públicos de base son re-exportados
 ```
 
@@ -208,7 +208,7 @@ Adicionalmente:
 
 Tres niveles independientes:
 
-1. **Source hash**: si el `.vex` del módulo cambió (cualquier byte), su caché se invalida y se recompila.
+1. **Source hash**: si el `.vx` del módulo cambió (cualquier byte), su caché se invalida y se recompila.
 2. **Dependencia transitiva**: si una dependencia DIRECTA del módulo cambió su `abi_hash` (interfaz pública), el módulo también se recompila aunque su source no haya cambiado.
 3. **Compiler version hash**: si el binario del compilador cambió (otro build, otra versión), todas las cachés se invalidan automáticamente.
 
@@ -238,8 +238,8 @@ nivel.
 Override vía `VEX_PARALLEL_COMPILE=N`:
 
 ```bash
-VEX_PARALLEL_COMPILE=1 vm --vex main.vex -o prog # secuencial forzado
-VEX_PARALLEL_COMPILE=4 vm --vex main.vex -o prog # exactamente 4 threads
+VEX_PARALLEL_COMPILE=1 vm --vex main.vx -o prog # secuencial forzado
+VEX_PARALLEL_COMPILE=4 vm --vex main.vx -o prog # exactamente 4 threads
 # Sin la variable: auto (hardware_concurrency limitado a 8)
 ```
 
@@ -256,7 +256,7 @@ decrecientes por contención.
 
 El `.vexi` es un blob binario que describe la API pública de un módulo.
 Es lo único que un consumidor necesita conocer de la dependencia — el
-source `.vex` puede mantenerse privado, distribuyendo solo `.vexi` y
+source `.vx` puede mantenerse privado, distribuyendo solo `.vexi` y
 `.velb` (librería precompilada).
 
 ### Layout
@@ -266,7 +266,7 @@ source `.vex` puede mantenerse privado, distribuyendo solo `.vexi` y
 [+4 ] u16 format_version
 [+6 ] u16 reservado
 [+8 ] u64 abi_hash (FNV-1a sobre símbolos y firmas públicas)
-[+16 ] u64 source_hash (FNV-1a sobre el .vex fuente)
+[+16 ] u64 source_hash (FNV-1a sobre el .vx fuente)
 [+24 ] u64 compiler_version_hash (auto-invalidación cross-version)
 [+32 ] u32 symbol_count
 [+36 ] u32 string_pool_offset
@@ -346,14 +346,14 @@ Cuando se hace `import "lib";` (plain), los TIPOS públicos del módulo
 quedan accesibles como `lib.TypeName`:
 
 ```java
-// lib.vex
+// lib.vx
 public class Counter { public i32 value; public Counter(i32 v) { this.value = v; } }
 public struct Point { i32 x; i32 y; }
 public typedef i64 UserId;
 ```
 
 ```java
-// main.vex
+// main.vx
 import "lib";
 
 i32 main() {
@@ -374,7 +374,7 @@ Permite reducir el `.velb` final eliminando dependencias cuyos símbolos
 importados no se referencien. Desactivado por defecto.
 
 ```bash
-VEX_TREE_SHAKE=1 vm --vex main.vex -o prog
+VEX_TREE_SHAKE=1 vm --vex main.vx -o prog
 ```
 
 Reglas:
@@ -392,9 +392,9 @@ Beneficio típico: en una librería con 3 funciones y ninguna usada, el
 
 ```text
 error: modulo 'mypkg/utils' no encontrado. Paths probados:
-    - main.vex/../mypkg/utils.vex
-    - main.vex/../mypkg/utils/mod.vex
-    - VEX_HOME/stdlib/mypkg/utils.vex
+    - main.vx/../mypkg/utils.vx
+    - main.vx/../mypkg/utils/mod.vx
+    - VEX_HOME/stdlib/mypkg/utils.vx
 ```
 
 Causas posibles:
@@ -409,8 +409,8 @@ Causas posibles:
 error: el modulo 'lib' no exporta 'helper' (es privado o no existe)
 ```
 
-El símbolo `helper` está declarado en `lib.vex` pero sin `public`. O no
-existe. Verificar con `grep "public.*helper" lib.vex`.
+El símbolo `helper` está declarado en `lib.vx` pero sin `public`. O no
+existe. Verificar con `grep "public.*helper" lib.vx`.
 
 ### "ciclo de herencia detectado"
 
@@ -428,7 +428,7 @@ profundidad.
 [vex-cache] miss (transitivo): dep 'lib' cambio (abi_hash old=0x... new=0x...)
 ```
 
-Tras cambiar `lib.vex` modificando su interfaz pública, los
+Tras cambiar `lib.vx` modificando su interfaz pública, los
 consumidores detectan el desajuste y se recompilan. Solo informativo;
 el build continúa.
 
@@ -441,7 +441,7 @@ emitir el `.velb` final. No puede consumir directamente un `.velb` ya
 compilado para incluirlo en otro `.velb`. Consecuencia práctica:
 
 - Para distribuir una librería precompilada sin source, el consumidor
- necesita el `.vex` original. El `.vexi` por sí solo no basta porque
+ necesita el `.vx` original. El `.vexi` por sí solo no basta porque
  carece de los cuerpos IR necesarios para el merge.
 - **Alternativa**: usar `loadmodule("lib.velb")` en runtime (ver
  [[CargaDinamica]]). El módulo se carga dinámicamente en el proceso

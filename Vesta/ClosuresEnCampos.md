@@ -1,9 +1,9 @@
 # Closures en campos y metodos ligados
 
-Una lambda en Vex es un valor de 16 bytes: el par `{codigo, env}`, donde `env`
+Una lambda en Vesta es un valor de 16 bytes: el par `{codigo, env}`, donde `env`
 es el bloque que guarda las variables capturadas.  Cuando una lambda con captura
 se almacena en un **campo** de un objeto, su `env` debe vivir exactamente lo que
-viva ese objeto.  Vex lo resuelve con ownership determinista (RAII), sin
+viva ese objeto.  Vesta lo resuelve con ownership determinista (RAII), sin
 intervencion del recolector de basura: el `env` es propiedad del objeto que lo
 contiene y se libera con el, igual que un campo `unique<T>`.
 
@@ -21,7 +21,7 @@ ligado al del objeto contenedor.
 ## El env como propiedad del contenedor (sin GC)
 
 El `env` de una lambda no es un objeto del recolector: sale de un allocator que
-devuelve memoria cruda del host.  En lugar de hacerlo rastreable por el GC, Vex
+devuelve memoria cruda del host.  En lugar de hacerlo rastreable por el GC, Vesta
 lo modela como un **recurso propiedad del objeto contenedor**:
 
 - El `env` y el par `{codigo, env}` se alocan en el heap del host cuando la

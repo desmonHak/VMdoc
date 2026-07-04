@@ -1,6 +1,6 @@
-# Funciones matematicas en Vex
+# Funciones matematicas en Vesta
 
-Vex incluye un conjunto de **funciones matematicas integradas** que estan
+Vesta incluye un conjunto de **funciones matematicas integradas** que estan
 disponibles sin necesidad de importar nada: se llaman como cualquier
 funcion normal, son comprobadas por tipos en compile-time y bajan
 directamente a la operacion mas eficiente que la plataforma puede
@@ -362,7 +362,7 @@ u64 e = rotr(y, 63);   // 0x1     (el bit 63 da la vuelta al 0)
 
 ## 9. Como se optimizan
 
-Vex aplica varias capas de optimizacion sobre las funciones
+Vesta aplica varias capas de optimizacion sobre las funciones
 matematicas.  No tienes que hacer nada para beneficiarte: ocurre
 automaticamente al compilar.
 
@@ -396,7 +396,7 @@ runtime para esos calculos.
 ### 9.2 Instruccion maquina directa
 
 Cuando los argumentos NO son constantes (se conocen solo en runtime),
-Vex elige la instruccion del procesador mas eficiente para cada
+Vesta elige la instruccion del procesador mas eficiente para cada
 funcion.
 
 | Funcion | Instruccion x86-64 | Coste tipico |
@@ -421,19 +421,19 @@ nanosegundos), esto es entre 10 y 50 veces mas rapido.
 
 Las funciones trigonometricas (`sin`, `cos`, `tan`), logaritmicas
 (`log`, `log2`, `log10`) y `pow` no tienen una instruccion maquina
-unica.  Para estas, Vex llama a la implementacion de la libreria
+unica.  Para estas, Vesta llama a la implementacion de la libreria
 matematica del sistema, que usa polinomios ajustados a la
 arquitectura.  El coste es de 10 a 50 nanosegundos, dependiendo de
 la funcion y el procesador.
 
 Si necesitas un caso especifico mas rapido (por ejemplo, `sin` para
 angulos siempre en `[0, 2*PI]`), puedes implementar tu propia
-aproximacion con polinomios.  Vex no impone su implementacion.
+aproximacion con polinomios.  Vesta no impone su implementacion.
 
 ### 9.4 Tipos pequenos se promueven
 
 Si pasas un `f32`, un `i32`, un `u8` o cualquier tipo mas pequeno
-que `i64`/`f64`, Vex lo convierte automaticamente al tipo esperado
+que `i64`/`f64`, Vesta lo convierte automaticamente al tipo esperado
 por la funcion.  La conversion se aplica antes de la llamada, asi
 que no hay coste en runtime mas alla de la promocion misma.
 
@@ -552,5 +552,5 @@ u64 read_be64(u64 little_endian_value) {
 
 Si necesitas funciones que no estan en esta lista (por ejemplo
 `asin`, `atan2`, `exp`, `expm1`), revisa la libreria
-[stdlib/native/math](#) o impone tu propia implementacion: Vex no te
+[stdlib/native/math](#) o impone tu propia implementacion: Vesta no te
 limita a las funciones builtin.

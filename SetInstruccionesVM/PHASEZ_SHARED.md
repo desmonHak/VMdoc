@@ -94,7 +94,7 @@ ya esta shared, no-op.
 10. Escribir `new_ptr` en `r_dst` y `h_shared` en R0.
 
 **Nota**: el caller debe actualizar referencias al objeto viejo si las hay
-(el binding del Vex local se actualiza automaticamente en el lowering de
+(el binding del Vesta local se actualiza automaticamente en el lowering de
 `share()`). El objeto local queda en su sitio y sera colectado por el GC
 local en el siguiente ciclo si nadie lo referencia.
 
@@ -171,7 +171,7 @@ operacion:
 | 1 | total_allocated_bytes en SharedHeap | uint64 en `r_dst` |
 | 2 | Triggerar `shared_gc_collect()` (mark+sweep STW) | 1 si ok, 0 si error |
 
-Builtins Vex equivalentes:
+Builtins Vesta equivalentes:
 
 - `shared_heap_live_count() -> u32`
 - `shared_heap_total_bytes() -> u64`

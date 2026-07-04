@@ -1,6 +1,6 @@
-# Borrow checker en Vex (estilo Rust)
+# Borrow checker en Vesta (estilo Rust)
 
-Vex implementa un **borrow checker estático** al estilo de Rust: tipos `borrow<T>`
+Vesta implementa un **borrow checker estático** al estilo de Rust: tipos `borrow<T>`
 (shared, múltiples lectores) y `borrow_mut<T>` (exclusivo, un escritor), con
 4 reglas validadas en compile-time y 4 fases avanzadas (F1-F4: NLL, OwnerKind,
 reborrow con suspend, lifetime elision).
@@ -12,7 +12,7 @@ reborrow con suspend, lifetime elision).
 
 ## Indice
 
-- [Borrow checker en Vex (estilo Rust)](#borrow-checker-en-vex-estilo-rust)
+- [Borrow checker en Vesta (estilo Rust)](#borrow-checker-en-vex-estilo-rust)
  - [Indice](#indice)
  - [1. Por qué un borrow checker](#1-por-qué-un-borrow-checker)
  - [2. `borrow<T>` shared y `borrow_mut<T>` exclusive](#2-borrowt-shared-y-borrow_mutt-exclusive)
@@ -37,7 +37,7 @@ reborrow con suspend, lifetime elision).
 
 ## 1. Por qué un borrow checker
 
-Vex tiene smart pointers (`unique<T>`, `shared<T>`) y referencias raw (`T*`).
+Vesta tiene smart pointers (`unique<T>`, `shared<T>`) y referencias raw (`T*`).
 Para preservar **memory safety** sin sacrificar performance, el borrow checker
 valida en compile-time que las referencias temporales (`borrow<T>`/`borrow_mut<T>`)
 no creen aliasing peligroso:
@@ -294,7 +294,7 @@ borrow<i32> first_view(borrow<i32> b) { return second_view(b); }
 
 ```
 error: no se puede mover 'owner' porque tiene un prestamo shared activo
-    --> 116_borrow_err_move_while_borrowed.vex:6:25
+    --> 116_borrow_err_move_while_borrowed.vx:6:25
     |
 note: prestamo shared por 'r' tomado aqui
     --> 5:25

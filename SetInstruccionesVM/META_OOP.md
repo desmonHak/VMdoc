@@ -306,7 +306,7 @@ byte2 = (r_method << 4) | r_obj
 
 - Polimorfismo via tipo interfaz (donde no hay vtable_index conocido).
 - Builtins de reflexion `invoke(method, this, args)`.
-- Frontend Vex en dispatch de interfaces.
+- Frontend Vesta en dispatch de interfaces.
 
 ---
 
@@ -338,7 +338,7 @@ proceed // invocar el target original
 mov r_result, r0 // capturar resultado
 ```
 
-### Builtin Vex equivalente
+### Builtin Vesta equivalente
 
 ```vex
 @Around("Servicio.calcular")
@@ -352,10 +352,10 @@ public i64 alrededor(i64 x) {
 
 ## Flujo completo de POO dinamica
 
-El siguiente pseudocodigo muestra como el frontend Vex compila una clase simple:
+El siguiente pseudocodigo muestra como el frontend Vesta compila una clase simple:
 
 ```
-// Fuente Vex:
+// Fuente Vesta:
 class Animal {
     public string nombre;
     public i32 edad;
@@ -411,4 +411,4 @@ Implementacion: `src/runtime/exec_instruction_meta.cpp` (0xC9–0xCF),
 `src/runtime/exec_instruction_oop.cpp` (0xFD callm, 0xFE proceed).
 
 Ver tambien: [[OOP/CALLVIRT y CALLSUPER]], [[GC/Generacional (para objetos OOP)]],
-[[Vex/OOP]], [[Vex/ReflexionAOP]]
+[[Vesta/OOP]], [[Vesta/ReflexionAOP]]

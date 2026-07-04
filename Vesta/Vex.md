@@ -1,6 +1,6 @@
-# Vex - El lenguaje de alto nivel de VestaVM
+# Vesta - El lenguaje de alto nivel de VestaVM
 
-**Vex** es el lenguaje de alto nivel que compila a bytecode de VestaVM. Es un lenguaje
+**Vesta** es el lenguaje de alto nivel que compila a bytecode de VestaVM. Es un lenguaje
 multi-paradigma estaticamente tipado disenado con tres principios:
 
 1. **Expresivo**: sintaxis C/Java/Python combinada. Sin burocracia de clase obligatoria.
@@ -11,7 +11,7 @@ multi-paradigma estaticamente tipado disenado con tres principios:
 
 ---
 
-## Indice de documentacion Vex
+## Indice de documentacion Vesta
 
 ### Sintaxis y semantica del lenguaje
 
@@ -74,13 +74,13 @@ multi-paradigma estaticamente tipado disenado con tres principios:
 ## Pipeline de compilacion
 
 ```
-.vex fuente
+.vx fuente
     |
     v VPP preprocesador (#define #include #if #foreach)
     |
-    v Lexer Vex (tokens, strings interpolados, literales)
+    v Lexer Vesta (tokens, strings interpolados, literales)
     |
-    v Parser Vex (AST: decls, stmts, exprs, tipos)
+    v Parser Vesta (AST: decls, stmts, exprs, tipos)
     |
     v Type Checker (inference, aliases, generics, nullability)
     |
@@ -107,9 +107,9 @@ El flag `--diagram-all` ademas genera diagramas Mermaid (`.ast.mmd`, `.ir.pre.mm
 ## Primer programa
 
 ```java
-// hola.vex
+// hola.vx
 i32 main(string[] args) {
-    println("Hola desde Vex ${1 + 1}!");
+    println("Hola desde Vesta ${1 + 1}!");
     return 0;
 }
 ```
@@ -117,14 +117,14 @@ i32 main(string[] args) {
 Compilar y ejecutar:
 
 ```bash
-./vm --vex hola.vex -o hola
+./vm --vex hola.vx -o hola
 ./vm --run hola.velb
 ```
 
 Salida esperada:
 
 ```
-Hola desde Vex 2!
+Hola desde Vesta 2!
 ```
 
 ---
@@ -178,8 +178,8 @@ Patron: `[A-Za-z_][A-Za-z0-9_]*`
 | Triple-quoted | `"""multi\nlinea"""` | No |
 
 ```java
-string nombre = "Vex";
-string msg = "Hola ${nombre}!"; // interpolacion: "Hola Vex!"
+string nombre = "Vesta";
+string msg = "Hola ${nombre}!"; // interpolacion: "Hola Vesta!"
 string raw = r"ruta\sin\escape"; // sin procesar escapes
 string multi = """
 Primera linea
@@ -206,7 +206,7 @@ ejecutables directamente.
 ## Imports
 
 ```java
-import std.io; // modulo Vex estandar (dot-separated)
+import std.io; // modulo Vesta estandar (dot-separated)
 import std.collections.List; // importar tipo especifico
 extern import "stdlib/native/io/vesta_io"; // plugin nativo compilado
 ```
@@ -359,12 +359,12 @@ Todos funcionan sobre lvalues no triviales: `obj.campo += v`, `arr[i] *= 2`, `*p
 ```java
 i32 x = 42;
 f64 pi = 3.14159;
-string nombre = "Vex";
+string nombre = "Vesta";
 
 // Tipos soportados en ${...}:
 println("Entero: ${x}"); // "Entero: 42"
 println("Float: ${pi}"); // "Float: 3.141590"
-println("String: ${nombre}"); // "String: Vex"
+println("String: ${nombre}"); // "String: Vesta"
 println("Expr: ${x * 2 + 1}"); // "Expr: 85"
 println("Bool: ${x > 0}"); // "Bool: true"
 ```
@@ -425,7 +425,7 @@ print_color(codigo_ansi);
 
 ## Preprocesador VPP
 
-El preprocesador VPP corre como primera etapa antes del lexer Vex:
+El preprocesador VPP corre como primera etapa antes del lexer Vesta:
 
 ```java
 #define MAX_SIZE 1024

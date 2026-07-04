@@ -1,6 +1,6 @@
 # Smart pointers: `unique<T>` y `shared<T>`
 
-Vex ofrece dos punteros inteligentes con gestion de recursos **determinista**
+Vesta ofrece dos punteros inteligentes con gestion de recursos **determinista**
 (RAII), independientes del recolector de basura: `unique<T>` para ownership
 exclusivo y `shared<T>` para ownership compartido por conteo de referencias.
 Ambos liberan su recurso en un momento preciso -- al destruirse el ultimo dueno,
@@ -76,7 +76,7 @@ unique<i32>  u = unique_box(42);         // deleter por defecto: free
 shared<i64>  s = shared_box(100);
 
 // Deleter personalizado para adoptar cualquier recurso del SO.  El segundo
-// argumento es un NOMBRE de funcion de aridad 1 (Vex o extern), no una llamada.
+// argumento es un NOMBRE de funcion de aridad 1 (Vesta o extern), no una llamada.
 unique<i64>  g = unique_with(VirtualAlloc(0, 4096, 0x3000, 0x04), liberar_vmem);
 ```
 

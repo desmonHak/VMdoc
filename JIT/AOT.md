@@ -12,7 +12,7 @@ mantener la VM al lado.
 
 ## Filosofia: tres tiers de deployment, una sola fuente
 
-El objetivo es que el mismo codigo Vex pueda compilarse a tres modos
+El objetivo es que el mismo codigo Vesta pueda compilarse a tres modos
 distintos de deployment, eligiendo el tradeoff entre features del
 lenguaje y tamano/dependencias del binario:
 
@@ -20,13 +20,13 @@ lenguaje y tamano/dependencias del binario:
 +--------------+-----------------+--------------+----------------+
 | Tier         | Runtime         | Tamano       | Caso de uso    |
 +--------------+-----------------+--------------+----------------+
-| Vex Full     | libvesta_rt     | 3-5 MB       | CLI, servers,  |
+| Vesta Full     | libvesta_rt     | 3-5 MB       | CLI, servers,  |
 |              | linkado dinam.  | (link dynam) | apps managed   |
 +--------------+-----------------+--------------+----------------+
-| Vex Embed    | Mini-runtime    | 500KB-1MB    | CLI tools,     |
+| Vesta Embed    | Mini-runtime    | 500KB-1MB    | CLI tools,     |
 |              | embebido static | (standalone) | ETL, scripts   |
 +--------------+-----------------+--------------+----------------+
-| Vex Bare     | Solo libc/no_std| 50-200 KB    | Kernels, dev   |
+| Vesta Bare     | Solo libc/no_std| 50-200 KB    | Kernels, dev   |
 |              | (sin runtime)   | (standalone) | OS, drivers,   |
 |              |                 |              | hot-path libs, |
 |              |                 |              | embedded, FW   |
@@ -35,15 +35,15 @@ lenguaje y tamano/dependencias del binario:
 
 Modelos analogos:
 
-- **Vex Full** ≈ Go (runtime statically linked), Java con JRE,
+- **Vesta Full** ≈ Go (runtime statically linked), Java con JRE,
   C# con CoreCLR.
-- **Vex Embed** ≈ Rust con std, Swift native, OCaml native.
-- **Vex Bare** ≈ Zig minimal, Rust `#![no_std]`, C/C++ embedded,
+- **Vesta Embed** ≈ Rust con std, Swift native, OCaml native.
+- **Vesta Bare** ≈ Zig minimal, Rust `#![no_std]`, C/C++ embedded,
   Forth, Ada-pure.
 
 ## Casos de uso target
 
-Vex Bare desbloquea casos inaccesibles para lenguajes managed:
+Vesta Bare desbloquea casos inaccesibles para lenguajes managed:
 
 1. **Desarrollo de sistemas operativos** propios.  Kernel + drivers
    compilados a un ELF/PE bootable.  Sin GC heap interfiriendo con
@@ -61,7 +61,7 @@ Vex Bare desbloquea casos inaccesibles para lenguajes managed:
 8. **Microservices serverless** (AWS Lambda, Cloudflare Workers) donde
    el tamano del binario es critico para cold-start.
 
-Vex Full y Embed cubren el caso comun de aplicaciones desktop/server
+Vesta Full y Embed cubren el caso comun de aplicaciones desktop/server
 con UI/networking/parseo complejo.
 
 ## Compatibility matrix de features por tier
@@ -108,7 +108,7 @@ con UI/networking/parseo complejo.
 ## Mapping IR -> nativo
 
 El SSA IR ya esta abstraido del runtime VM en su forma estructural.  El
-"runtime" entra solo en QUE HACE cada IR op a nivel bajo.  Para Vex
+"runtime" entra solo en QUE HACE cada IR op a nivel bajo.  Para Vesta
 Bare, las IR ops se clasifican en tres grupos:
 
 **Pure native** (1:1 a instrucciones x86-64/ARM):
@@ -153,7 +153,7 @@ FINDCLASS, FINDMETHOD, FINDFIELD
 Mensaje de error tipico al intentar Bare con feature no soportada:
 
 ```
-foo.vex:42:5: error: 'new Foo()' requiere GC heap; no compilable
+foo.vx:42:5: error: 'new Foo()' requiere GC heap; no compilable
   en --target=bare.
   hint: usa @c struct Foo { ... } (value-type) + asignacion explicita
         en stack o malloc, O cambia a --target=embed para mantener
@@ -163,7 +163,7 @@ foo.vex:42:5: error: 'new Foo()' requiere GC heap; no compilable
 ## Pipeline AOT
 
 ```
-main.vex
+main.vx
   | frontend (lexer + parser + typecheck + lower)
 SSA IR
   | ir_optimizer (mismas pases que JIT: DCE/CSE/copy-prop/LICM/inline)
@@ -185,13 +185,13 @@ program.exe (PE64) / program (ELF64) / program.efi (UEFI PE)
 Dependencias del binario final:
   - libc: msvcrt.dll / libc.so.6 / mingwex
     (NULL en --target=freestanding para kernels)
-  - libs externas que el .vex declara con extern "lib" {}
-  - NADA del runtime de Vex (no libvesta_rt.dll, no .so, no nada).
+  - libs externas que el .vx declara con extern "lib" {}
+  - NADA del runtime de Vesta (no libvesta_rt.dll, no .so, no nada).
 ```
 
 ## Extensibilidad: el usuario implementa lo que falta
 
-Vex Bare deliberadamente deja huecos que el usuario puede llenar segun
+Vesta Bare deliberadamente deja huecos que el usuario puede llenar segun
 su caso de uso.  El modelo: el lenguaje provee primitivas; el usuario
 provee implementaciones cuando el subset Bare no cubre algo necesario.
 
@@ -238,7 +238,7 @@ namespace mi_gc {
 ```
 
 En lugar del GC del libvesta_rt, usa el tuyo (refcount, bump,
-region-based, Boehm conservativo).  Para Vex Embed con caso de uso
+region-based, Boehm conservativo).  Para Vesta Embed con caso de uso
 especifico (real-time = sin pause; embedded = sin malloc).
 
 ### 4. Custom string impl (`@StringImpl`)
@@ -289,7 +289,7 @@ portable a cualquier toolchain.
 
 ### 7. Runtime-as-library
 
-Vex Embed se distribuye tambien como `libvesta_embed.lib`/`.a`
+Vesta Embed se distribuye tambien como `libvesta_embed.lib`/`.a`
 linkable como cualquier lib externa.  Si el usuario quiere parte
 del GC managed en Bare, hace:
 
@@ -301,7 +301,7 @@ y linkea contra ese `.lib`.  Asi se transforma Bare en algo
 intermedio entre Bare puro y Embed completo, eligiendo solo las
 piezas del runtime que necesita.
 
-## Manifest del proyecto en Vex Bare
+## Manifest del proyecto en Vesta Bare
 
 ```toml
 # vex.toml para programa Bare (e.g. kernel)
@@ -348,14 +348,14 @@ Flujo PGO en AOT:
 
 ```bash
 # 1. Build instrumentado (incluye hooks runtime de profile)
-vex --aot main.vex -o main_inst.exe --profile-gen
+vex --aot main.vx -o main_inst.exe --profile-gen
 
 # 2. Ejecutar con workload representativo
 ./main_inst.exe --workload typical
 # -> genera main.vprof
 
 # 3. Build optimizado con PGO
-vex --aot main.vex -o main.exe --profile-use=main.vprof
+vex --aot main.vx -o main.exe --profile-use=main.vprof
 ```
 
 Optimizaciones AOT que **solo** son posibles con perfil:
@@ -373,13 +373,13 @@ Optimizaciones AOT que **solo** son posibles con perfil:
 
 ## Resumen estrategico
 
-Vex Bare NO es un downgrade del lenguaje.  Es un **modo de deployment
+Vesta Bare NO es un downgrade del lenguaje.  Es un **modo de deployment
 alternativo** del mismo compilador.  La misma fuente puede compilar
 a Full (con runtime) para apps managed, a Embed (runtime minimal)
 para CLI tools, o a Bare (sin runtime) para sistemas low-level.  Esa
 eleccion es **politica del programador**, no politica del lenguaje.
 
-A cambio del subset reducido, Vex Bare entrega:
+A cambio del subset reducido, Vesta Bare entrega:
 
 - Tamano binario 50-200 KB (vs 5MB Go-style).
 - Cold start <1ms (vs ~50ms con runtime managed).

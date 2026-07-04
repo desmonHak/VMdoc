@@ -78,42 +78,42 @@ Recomendamos descargarla para una correcta lectura.
 
 ----
 
-## Lenguaje Vex (Phase A)
+## Lenguaje Vesta (Phase A)
 
-Documentacion del lenguaje de alto nivel Vex que compila a VestaVM bytecode.
+Documentacion del lenguaje de alto nivel Vesta que compila a VestaVM bytecode.
 
 ### Vision general y tipos
 
 | Documento | Contenido |
 | :------------------------------------------- | :----------------------------------------------------------- |
-| [Vex](./Vex/Vex.md) | Vision general, pipeline, anotaciones, inline asm, fases A-H |
-| [TiposDatos](./Vex/TiposDatos.md) | Primitivos, string, punteros, structs, arrays, Optional, Result |
+| [Vesta](./Vesta/Vesta.md) | Vision general, pipeline, anotaciones, inline asm, fases A-H |
+| [TiposDatos](./Vesta/TiposDatos.md) | Primitivos, string, punteros, structs, arrays, Optional, Result |
 
 ### Programacion orientada a objetos
 
 | Documento | Contenido |
 | :------------------------------------ | :-------------------------------------------------------------------- |
-| [OOP](./Vex/OOP.md) | Clases, herencia, interfaces, properties, constructores, RAII |
-| [ReflexionAOP](./Vex/ReflexionAOP.md) | forName, getClass, getField, getMethod, invoke, @Aspect, proceed() |
-| [Generics](./Vex/Generics.md) | Monomorphizacion compile-time, name mangling, especialize (0x3A) |
+| [OOP](./Vesta/OOP.md) | Clases, herencia, interfaces, properties, constructores, RAII |
+| [ReflexionAOP](./Vesta/ReflexionAOP.md) | forName, getClass, getField, getMethod, invoke, @Aspect, proceed() |
+| [Generics](./Vesta/Generics.md) | Monomorphizacion compile-time, name mangling, especialize (0x3A) |
 
 ### Concurrencia y distribucion
 
 | Documento | Contenido |
 | :-------------------------------- | :--------------------------------------------------------------------------------- |
-| [Async](./Vex/Async.md) | @Async, await, spawn, spawn here/on(N), rspawn, Future, msgsend, msgrecv, synchronized |
+| [Async](./Vesta/Async.md) | @Async, await, spawn, spawn here/on(N), rspawn, Future, msgsend, msgrecv, synchronized |
 
 ### Gestion de errores
 
 | Documento | Contenido |
 | :-------------------------------------- | :------------------------------------------------------------- |
-| [Excepciones](./Vex/Excepciones.md) | try/catch/finally, FatalError, panic(), stack trace, RAII |
+| [Excepciones](./Vesta/Excepciones.md) | try/catch/finally, FatalError, panic(), stack trace, RAII |
 
 ### Colecciones y FFI
 
 | Documento | Contenido |
 | :-------------------------------------- | :------------------------------------------------------------------------ |
-| [Colecciones](./Vex/Colecciones.md) | ArrayList/HashMap/HashSet/Queue/Deque/TreeMap/TreeSet/Stack como keywords |
-| [FFI](./Vex/FFI.md) | extern declarativo, ffi_open/sym/call, plugins, vesta_io, vesta_math |
+| [Colecciones](./Vesta/Colecciones.md) | ArrayList/HashMap/HashSet/Queue/Deque/TreeMap/TreeSet/Stack como keywords |
+| [FFI](./Vesta/FFI.md) | extern declarativo, ffi_open/sym/call, plugins, vesta_io, vesta_math |
 
 ----

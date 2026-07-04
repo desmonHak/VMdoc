@@ -1,4 +1,4 @@
-# Operadores en Vex
+# Operadores en Vesta
 
 Referencia completa de operadores aritméticos, lógicos, de comparación, bitwise,
 asignación, unarios, postfix y conversiones.
@@ -7,7 +7,7 @@ asignación, unarios, postfix y conversiones.
 
 ## Indice
 
-- [Operadores en Vex](#operadores-en-vex)
+- [Operadores en Vesta](#operadores-en-vex)
  - [Indice](#indice)
  - [1. Operadores aritméticos](#1-operadores-aritméticos)
  - [2. Operadores de comparación](#2-operadores-de-comparación)
@@ -196,7 +196,7 @@ i++; // i = 1 (postfix: usa valor previo, luego incrementa)
 ++i; // i = 2 (prefix: incrementa, luego usa)
 ```
 
-**Importante con `++`/`--`**: en Vex, NO se permiten dentro de expresiones complejas
+**Importante con `++`/`--`**: en Vesta, NO se permiten dentro de expresiones complejas
 para evitar UB. Usar en statements solos: `i++;` está bien, `a = b++ + ++c;` no se
 acepta (ambiguous order of evaluation).
 

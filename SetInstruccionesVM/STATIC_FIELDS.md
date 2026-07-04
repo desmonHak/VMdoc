@@ -32,7 +32,7 @@ Ambas instrucciones tienen un encoding de 8 bytes:
 - `_pad8`: byte de relleno, debe ser 0.
 - `offset_u32_LE`: offset en bytes dentro de `ClassInfo::static_data`, codificado en
  little-endian de 4 bytes. El offset es un literal calculado en compile-time por el
- frontend Vex.
+ frontend Vesta.
 
 ---
 
@@ -65,7 +65,7 @@ memcpy(&value, cls->static_data + offset, 8);
 vm->registers[r_dst] = value;
 ```
 
-Para tipos mas pequenos que i64 (e.g. i32), el frontend Vex emite un truncado despues
+Para tipos mas pequenos que i64 (e.g. i32), el frontend Vesta emite un truncado despues
 del load: el valor leido como i64 se enmascara o sign-extiende al tipo logico.
 
 ### Ejemplo
@@ -77,7 +77,7 @@ findclass r1, r12 // r1 = ClassInfo* de Animal
 getstatic r2, r1, 0 // r2 = Animal.contador (leido del static_data[0])
 ```
 
-En Vex:
+En Vesta:
 
 ```vex
 u64 n = Animal.contador; // baja a: findclass + getstatic offset
@@ -113,7 +113,7 @@ int64_t value = vm->registers[r_value];
 memcpy(cls->static_data + offset, &value, 8);
 ```
 
-Para tipos mas pequenos que i64 (e.g. i32), el frontend Vex sign-extiende el valor
+Para tipos mas pequenos que i64 (e.g. i32), el frontend Vesta sign-extiende el valor
 antes del store si el campo es signed, o lo zero-extiende si es unsigned.
 
 ### Ejemplo
@@ -125,7 +125,7 @@ add r2, 1
 setstatic r2, r1, 0 // Animal.contador = r2
 ```
 
-En Vex:
+En Vesta:
 
 ```vex
 Animal.contador += 1; // baja a: findclass + getstatic + add + setstatic
@@ -148,7 +148,7 @@ ClassInfo::static_data
 ```
 
 El offset de cada campo se calcula en `deffield` de forma acumulativa (igual que los
-campos de instancia). El frontend Vex conoce el offset en compile-time y lo incrusta
+campos de instancia). El frontend Vesta conoce el offset en compile-time y lo incrusta
 directamente en el encoding de `getstatic`/`setstatic` como `offset_u32`.
 
 ---
@@ -156,7 +156,7 @@ directamente en el encoding de `getstatic`/`setstatic` como `offset_u32`.
 ## Cache del ClassInfo*
 
 Para evitar el costo de `findclass` en cada acceso a un campo estatico, el frontend
-Vex reserva un slot de 8 bytes en `static_data` con clave `__class_cache_<Class>`.
+Vesta reserva un slot de 8 bytes en `static_data` con clave `__class_cache_<Class>`.
 El `__module_init` escribe el `ClassInfo*` en ese slot justo despues del `defclass`,
 y el helper `__new_<Class>` lo lee en lugar de invocar `findclass`.
 
@@ -168,7 +168,7 @@ helper `__new_<Class>`.
 
 ## Inicializacion de campos estaticos con valor por defecto
 
-El frontend Vex emite codigo en `__module_init` para inicializar los campos estaticos
+El frontend Vesta emite codigo en `__module_init` para inicializar los campos estaticos
 que tienen valor por defecto:
 
 ```vex
@@ -244,4 +244,4 @@ de vtable ni de GC.
 Implementacion: `src/runtime/exec_instruction_meta.cpp`
 (funciones `exec_instr_getstatic` y `exec_instr_setstatic`).
 
-Ver tambien: [[META_OOP]], [[Vex/OOP]], [[GC/GC]]
+Ver tambien: [[META_OOP]], [[Vesta/OOP]], [[GC/GC]]

@@ -1,6 +1,6 @@
 # Carga dinámica de módulos
 
-Vex soporta cargar `.velb` adicionales en runtime mediante
+Vesta soporta cargar `.velb` adicionales en runtime mediante
 `loadmodule(path)` y descargarlos con `unloadmodule(path)`. Es útil
 para:
 
@@ -55,7 +55,7 @@ Compilación del plugin (preventiva contra solapamiento de VA):
 ```bash
 # Compilar el plugin con base address distinta de 0 para evitar solape
 # con el caller cuando se cargue.
-vm --vex plugin.vex -o plugin --vex-base 0x10000000
+vm --vex plugin.vx -o plugin --vex-base 0x10000000
 ```
 
 Tras `loadmodule`, el loader aplica **rebase transparente** si la VA
@@ -209,7 +209,7 @@ sub-llamada síncrona desde el caller). Convención: devolver `1` para
 indicar "module loaded ok", `0` para "init failed".
 
 ```java
-// plugin.vex
+// plugin.vx
 class PluginGreeter {
     public i64 valor() { return 12345; }
 }
@@ -231,7 +231,7 @@ El plugin se puede comunicar con el caller mediante mailbox
 reflexión:
 
 ```java
-// caller.vex
+// caller.vx
 loadmodule("plugin.velb");
 i64 cls = forName("Plugin");
 i64 obj = newInstance(cls);
@@ -240,7 +240,7 @@ invoke(setup, obj, host_pid); // pasamos el PID del caller al plugin
 ```
 
 ```java
-// plugin.vex
+// plugin.vx
 class Plugin {
     public i64 host_pid;
     public void setup(i64 host) {
@@ -336,8 +336,8 @@ para hot-reload.
 
 Tests integradores en `tests/bugs/m_dyn_test/`:
 
-- `plugin.vex` — módulo trivial con clase `DynModule`.
-- `main.vex` — ciclo completo: load + use + unload + reload + use.
+- `plugin.vx` — módulo trivial con clase `DynModule`.
+- `main.vx` — ciclo completo: load + use + unload + reload + use.
 
 ```bash
 bash tests/vex/test_vex_e2e.sh | grep "M.dyn"

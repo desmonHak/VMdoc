@@ -1,6 +1,6 @@
-# Programacion Orientada a Objetos en Vex
+# Programacion Orientada a Objetos en Vesta
 
-Vex implementa POO dinamica con reflexion en runtime. Las clases no se persisten como
+Vesta implementa POO dinamica con reflexion en runtime. Las clases no se persisten como
 metadata estatica en el `.velb`; el bytecode las registra en el `ClassRegistry` del
 `Loader` durante la ejecucion de `__module_init` (que corre antes de `main`).
 

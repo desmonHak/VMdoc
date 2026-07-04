@@ -1,4 +1,4 @@
-# Sincronizacion en Vex
+# Sincronizacion en Vesta
 
 Primitivas de sincronización para concurrencia entre procesos: monitores
 reentrantes (`synchronized`), wait/notify (similar a Java), y patrón de
@@ -8,7 +8,7 @@ exception-safe automatico.
 
 ## Indice
 
-- [Sincronizacion en Vex](#sincronizacion-en-vex)
+- [Sincronizacion en Vesta](#sincronizacion-en-vex)
  - [Indice](#indice)
  - [1. Modelo de procesos en VestaVM](#1-modelo-de-procesos-en-vestavm)
  - [2. `synchronized (obj) { ... }`](#2-synchronized-obj---)

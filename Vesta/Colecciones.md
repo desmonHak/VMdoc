@@ -1,6 +1,6 @@
-# Colecciones en Vex
+# Colecciones en Vesta
 
-Vex trata ocho tipos de coleccion como **tipos primitivos del lenguaje** (keywords). No
+Vesta trata ocho tipos de coleccion como **tipos primitivos del lenguaje** (keywords). No
 son clases genericas en el heap GC; son handles opacos a estructuras nativas del plugin
 `stdlib/native/collections/vesta_collections`.
 
