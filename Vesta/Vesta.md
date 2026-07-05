@@ -58,6 +58,7 @@ multi-paradigma estaticamente tipado disenado con tres principios:
 | Documento | Contenido |
 | :------------------------------ | :----------------------------------------------------------- |
 | [[Modulos]] | `import`, public/private, paquete-dir, reexport, cache, paralelismo M8 |
+| [[Namespaces]] | `namespace a.b.c;`, `import a.b.c;`, alias, `internal`, PackageId `@id`, `extension`/`impl` |
 | [[CompilacionCondicional]] | `@Target(...)` con OS/arch/CPU/semver/mode + AND/OR/NOT/parens + sobre imports |
 | [[CargaDinamica]] | `loadmodule`/`unloadmodule`, hot-reload, transitividad caps |
 | [[Sandbox]] | Capability-based sandbox (10 caps + whitelists), `--vx-caps`, zero overhead |
