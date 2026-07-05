@@ -137,6 +137,6 @@ main:
 
 Ver tambien:
 - [[Macros constantes.md]] - macros de valor fijo
-- [[../SintaxisCore/Anotaciones modulo y genericos.md]] - @Module, @Export, @Generic
+- [[../Vesta/Vesta.md]] - anotaciones del lenguaje; [[../Vesta/Namespaces.md]] - namespaces y modulos
 - [[../VELB (VEL Binary Format)/Header_VELB.md]] - estructura del header del binario .velb
 - [[../VELB (VEL Binary Format)/TablaDeSecciones.md]] - tabla de secciones del .velb

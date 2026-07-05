@@ -150,4 +150,4 @@ Ver tambien:
 - [[EBNF/Que es EBNF.md]] - introduccion a la notacion EBNF
 - [[EBNF/Reglas de sintaxis.md]] - ejemplos detallados de reglas con atributos
 - [[Macros parametricas.md]] - macros con argumentos para codigo de usuario
-- [[../SintaxisCore/Bucles.md]] - construcciones de bucle estandar
+- [[../Vesta/ControlFlow.md]] - construcciones de bucle estandar

@@ -101,14 +101,35 @@ try {
 
 | Codigo | Constante | Significado |
 | :----- | :------------------------- | :----------------------------------------- |
-| 0 | `FATAL_NULL_POINTER` | Desreferencia de puntero/referencia nula |
-| 1 | `FATAL_ILLEGAL_INSTRUCTION`| Opcode invalido o metodo abstracto |
-| 2 | `FATAL_STACK_OVERFLOW` | Desbordamiento de la pila |
-| 3 | `FATAL_OUT_OF_MEMORY` | Sin memoria disponible |
-| 4 | `FATAL_NATIVE_EXCEPTION` | Excepcion C++ escapo de un plugin nativo |
-| 5 | `FATAL_NATIVE_CRASH` | Crash del sistema en plugin nativo (SEH) |
-| 6 | `FATAL_USER_ABORT` | El programador llamo `panic()` |
-| 7 | `FATAL_CLASS_CAST` | Cast a tipo incompatible |
+| 1 | `FATAL_NULL_POINTER` | Desreferencia de puntero/referencia nula o handle invalido |
+| 2 | `FATAL_DIVISION_BY_ZERO` | Division o modulo entre cero (signed o unsigned) |
+| 3 | `FATAL_STACK_OVERFLOW` | Desbordamiento de la pila |
+| 4 | `FATAL_STACK_UNDERFLOW` | `POP` / `RET` con RSP en la frontera |
+| 5 | `FATAL_ILLEGAL_INSTRUCTION`| Opcode invalido u operando malformado |
+| 6 | `FATAL_INVALID_SYSCALL` | `calln` a un simbolo no resuelto |
+| 7 | `FATAL_SEGMENTATION_FAULT` | Acceso a una direccion fuera de cualquier mapeo (deref de host pointer invalido) |
+| 8 | `FATAL_NATIVE_CRASH` | Crash del sistema en plugin nativo (SEH / SIGSEGV) |
+| 9 | `FATAL_NATIVE_EXCEPTION` | Excepcion C++ escapo de un plugin nativo |
+| 10 | `FATAL_OUT_OF_MEMORY` | Sin memoria disponible (raw o GC) |
+| 11 | `FATAL_USER_ABORT` | El programador llamo `panic()` |
+
+### Captura de accesos invalidos a memoria (segmentation fault)
+
+La desreferencia de un puntero host invalido (por ejemplo `*(i64*)0`, un `host_ptr`
+obsoleto tras un `free`, o un acceso fuera de cualquier region mapeada) no crashea la VM:
+el runtime la intercepta a nivel del sistema operativo y la convierte en un
+`FatalError` con `kind == FATAL_SEGMENTATION_FAULT` (7), capturable como cualquier otra
+excepcion.
+
+```java
+try {
+    i64* p = (i64*)0; // puntero invalido
+    i64 v = *p;        // acceso a VA no mapeada
+} catch (FatalError e) {
+    println("Segfault capturado: ${e.kind}"); // FATAL_SEGMENTATION_FAULT = 7
+    print_cstr(e.message);
+}
+```
 
 ### Stack trace con file:line
 
@@ -237,11 +258,15 @@ struct ExceptionFrame {
 
 ## Restricciones conocidas
 
-- Las variables de tipo CLASS declaradas dentro de un bloque `try/catch` no tienen
- liberacion automatica de GcHandle (RAII no aplica en presencia de handlers de
- excepcion). Workaround: declarar la variable fuera del try o usar `~Class()` explicito.
 - `@Async` + excepcion dentro del cuerpo: la excepcion no llega al llamante. Usar
  `fulfill`/`reject` para comunicar el error via future.
+
+Las variables de tipo CLASS declaradas dentro de un bloque `try/catch` SI se recolectan
+automaticamente: el GC escanea la pila y los registros del proceso buscando handles vivos,
+por lo que un objeto que deja de estar referenciado se libera sin necesidad de liberacion
+manual ni `~Class()` explicito, tambien en presencia de handlers de excepcion. El
+destructor `~Class()` sigue disponible para liberacion deterministica de recursos del
+sistema operativo (ficheros, sockets, mutex).
 
 ---
 

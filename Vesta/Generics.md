@@ -1,9 +1,11 @@
 # Generics en Vesta
 
-Vesta soporta clases genericas con monomorphizacion en compile-time. Cada instanciacion
-`Cls<T>` con un tipo concreto genera una clase independiente con su propio layout,
-vtable y nombre mangled (`Cls_T`). No hay boxing, no hay overhead de vtable para el
-tipo parametrico.
+Vesta soporta genericos con monomorphizacion en compile-time para clases, structs,
+enums y funciones libres. Cada instanciacion `Cls<T>` con un tipo concreto genera
+una definicion independiente con su propio layout, vtable (si aplica) y nombre
+mangled (`Cls_T`). No hay boxing, no hay type descriptors ni dispatch dinamico: el
+backend (interprete, JIT, AOT) solo ve tipos y funciones CONCRETOS. No hay overhead
+de vtable para el tipo parametrico.
 
 ---
 
@@ -136,25 +138,36 @@ println("${d.transform(21)}"); // 42
 
 ---
 
-## Restricciones del MVP
+## Alcance y limites
 
-Las restricciones siguientes aplican a la implementacion actual. Se levantan
-progresivamente en fases posteriores.
+Lo que Vesta soporta hoy (validado end-to-end en interprete, JIT y AOT):
 
-1. **Solo monomorphizacion compile-time**: el codigo fuente del template debe estar
- disponible en el momento de la compilacion. No hay generacion de codigo en runtime
- para clases genericas cuya fuente no este disponible (el fallback `specialize` 0x3A
- esta reservado para fases futuras).
+- **Genericos de clase, struct y enum**: `class List<T>`, `struct Caja<T>`,
+ `enum Maybe<T>`, con campos, metodos, multiples parametros (`Pair<K, V>`) y
+ anidamiento (`Box<Box<i32>>`).
+- **Funciones libres genericas**: `R id<T>(T x) { ... }`, con type-args
+ explicitos (`id<i64>(x)`) o inferidos de los argumentos (`id(x)`).
+- **Metodos genericos**: `R metodo<U>(...)` con parametros de tipo propios del
+ metodo, independientes de los del contenedor.
+- **Tipos de usuario y punteros como type-arg**: `Caja<Punto>`, `Lista<MiClase>`,
+ `Caja<i64*>` (host) y `Caja<VirtualPtr<i64>>` (VM).
+- **Inferencia**: `auto v = expr;` (tipo completo) y CTAD (`Caja c = expr;`,
+ nombre del template sin args, deducidos del inicializador).
+- **Constraints / conceptos**: `<T: Concepto>` inline y clausula `where T: A + B`.
+- **Especializacion total y parcial**: `Caja<i64>` (exacta) y `Caja<T*>` (patron).
+- **Genericos cross-module**: las plantillas y conceptos atraviesan el sistema de
+ modulos via imports.
 
-2. **Sin constraints de tipo**: no hay `where T : Comparable` ni `T extends Base`. El
- type checker acepta cualquier tipo concreto como argumento. Errores de tipo en metodos
- que usen operadores no soportados por T se detectan al monomorphizar.
+Lo que Vesta deliberadamente NO ofrece:
 
-3. **Sin metodos genericos sueltos**: no hay `T max<T>(T a, T b) { ... }` a nivel
- de funcion. Los genericos son solo de clase.
-
-4. **Sin wildcards**: no hay `Box<?>` ni `Box<? extends T>` al estilo Java. Las
- referencias son siempre al tipo concreto instanciado.
+- **Wildcards estilo Java**: no hay `Box<?>` ni `Box<? extends T>`. Como la
+ monomorphizacion produce tipos concretos, las referencias son siempre al tipo
+ concreto instanciado. Para abstraer sobre familias de tipos se usan conceptos
+ (bounds) o interfaces, no comodines.
+- **Instanciacion desde sintaxis con `specialize` runtime**: la monomorphizacion
+ requiere el codigo fuente del template en compile-time. El mecanismo de
+ instanciacion en runtime (ver mas abajo) existe a nivel de bytecode, pero no se
+ expone en la sintaxis Vesta.
 
 ---
 
@@ -200,7 +213,7 @@ Cada clase concreta tiene su propia vtable, sus propios `ClassInfo*` y `FieldInf
 
 ---
 
-## `specialize` (0x3A) — fallback runtime
+## `specialize` (0x3A) -- fallback runtime
 
 Cuando la fuente del template NO esta disponible en compile-time (por ejemplo, al cargar
 un `.velb` externo que uso generics), el runtime puede instanciar clases genericas
@@ -215,7 +228,7 @@ specialize r_dst, r_class, r_types, count
 - `count`: numero de argumentos de tipo (0..15)
 - `r_dst`: `ClassInfo*` de la instanciacion (cacheada en el Loader para reutilizar)
 
-Este mecanismo NO esta disponible desde la sintaxis Vesta actual (Phase A). Su uso directo
+Este mecanismo NO esta disponible desde la sintaxis Vesta actual. Su uso directo
 requiere assembly `.vel` o bytecode manual.
 
 ---
@@ -481,9 +494,9 @@ una plantilla recompila los modulos que la instancian.
 
 ---
 
-Ejemplos: `examples_codes_vx/222_metodos_genericos.vx` (#4),
-`223_conceptos_genericos.vx` + `227_concepts_avanzado.vx` (#6),
-`225_especializacion.vx` + `226_especializacion_avanzada.vx` (#7),
-`229_typedef_genericos.vx` (typedef).
+Ejemplos: `examples_codes_vx/222_metodos_genericos.vx` (metodos genericos),
+`223_conceptos_genericos.vx` + `227_concepts_avanzado.vx` (conceptos/constraints),
+`225_especializacion.vx` + `226_especializacion_avanzada.vx` (especializacion),
+`229_typedef_genericos.vx` (typedef como type-arg).
 
 Ver tambien: [[TiposDatos]], [[OOP]], [[Metaprogramacion]], [[SetInstruccionesVM/GENERIC_SPECIALIZE]]

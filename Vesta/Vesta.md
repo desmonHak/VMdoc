@@ -53,7 +53,7 @@ multi-paradigma estaticamente tipado disenado con tres principios:
 | [[FFI]] | extern declarativo, ffi_open/sym/call, plugins nativos |
 | [[CallbacksNativos]] | `as_native_callback`, thunks x86-64, WndProc, qsort, audio |
 
-### Sistema de modulos (Phase M)
+### Sistema de modulos
 
 | Documento | Contenido |
 | :------------------------------ | :----------------------------------------------------------- |
@@ -62,13 +62,16 @@ multi-paradigma estaticamente tipado disenado con tres principios:
 | [[CompilacionCondicional]] | `@Target(...)` con OS/arch/CPU/semver/mode + AND/OR/NOT/parens + sobre imports |
 | [[CargaDinamica]] | `loadmodule`/`unloadmodule`, hot-reload, transitividad caps |
 | [[Sandbox]] | Capability-based sandbox (10 caps + whitelists), `--vx-caps`, zero overhead |
-| [[PackageManager]] | `vm pkg` (Phase PM): vx.toml/json, vx.lock, firmas ed25519, anti-malware by design |
+| [[PackageManager]] | `vm pkg`: vx.toml/json, vx.lock, firmas ed25519, anti-malware by design |
 
 ### Compilacion nativa
 
 | Documento | Contenido |
 | :------------------------------ | :----------------------------------------------------------- |
 | [[CompilacionNativa]] | Ejecutables/objetos/`.a`/`.so`/`.dll` nativos, GC en AOT, usar y crear librerias, enlazado estatico sin dependencias |
+| [[Enlazador]] | Linker y archivador propios (`vm --link`/`vm --ar`), flags de salida (`--emit`/`--format`/`--no-pie`/`--bin-base`/`--target`/`--freestanding`/`--float-isa`) |
+| [[DisposicionSecciones]] | Layout en el propio lenguaje (sustituto de linker scripts): `@section`/`@at`/`@order`, bloques `bytes {}`, `@bits` asm, `.bin` plano, script de enlace en Vesta (`fn link()`) |
+| [[InlineAsm]] | Ensamblador inline (`asm {}` + `@Naked`), `register()`, calificadores `volatile`/`nomem`/`preserves_flags`/`pure`, `clobbers`, sustitucion comptime |
 
 ---
 
@@ -461,25 +464,263 @@ u64 fast_add(u64 a, u64 b) {
 El cuerpo se emite verbatim al flujo `.vel`. Util para operaciones que el compilador no
 puede expresar eficientemente o para acceder a instrucciones VM avanzadas.
 
-El `asm { }` inline dentro de funciones normales esta reservado para Phase D (MachineIR).
+El `asm { }` inline dentro de funciones normales tambien esta soportado, en
+sintaxis NASM Intel + storage-class `register("reg")` para ligar variables a
+registros.  El cuerpo se ensambla a codigo nativo host y corre en los tres modos
+de ejecucion (por defecto, `-m jit` y `-m vm` interprete puro, este ultimo via un
+trampolin con marshalling de los `register()`).  Los registros y flags que el
+bloque pisa se INFIEREN automaticamente (incluidos callee-saved y los reservados
+por el runtime); declarar `clobbers(...)` es opcional.  Las `comptime` consts se
+sustituyen por su literal en el cuerpo antes de ensamblar.  Ver los ejemplos en
+`examples_codes_vx/asm/`.
 
 ---
 
 ## Anotaciones del compilador
 
+Las anotaciones llevan prefijo `@`. Por convencion las que estan en PascalCase
+(`@Override`, `@Async`, ...) declaran comportamiento, y las que estan en minuscula
+(`@align`, `@hot`, `@pure`, ...) son atributos y contratos. Una anotacion no
+reconocida se ignora silenciosamente (no es error, pero tampoco tiene efecto).
+
+### OOP y aspectos (AOP)
+
+| Anotacion | Ambito | Efecto |
+| :-------- | :----- | :----- |
+| `@Override` | metodo | Obligatorio al sobrescribir un metodo; error de compilacion si esta ausente |
+| `@Aspect` | clase | La clase define consejos AOP; ver [[ReflexionAOP]] |
+| `@Before("Cls.metodo")` | metodo (en `@Aspect`) | Registra un consejo BEFORE sobre el metodo objetivo |
+| `@After("Cls.metodo")` | metodo (en `@Aspect`) | Registra un consejo AFTER |
+| `@AfterReturning("Cls.metodo")` | metodo (en `@Aspect`) | Registra un consejo tras el retorno normal |
+| `@Around("Cls.metodo")` | metodo (en `@Aspect`) | Registra un consejo AROUND (envuelve la llamada) |
+
+`final` (clase no heredable / metodo no sobrescribible) es una **palabra clave**,
+no una anotacion; se escribe `final class C { ... }`. Ver [[OOP]].
+
+### Codegen e inline assembly
+
+| Anotacion | Ambito | Efecto |
+| :-------- | :----- | :----- |
+| `@Inline` | metodo | Marca el metodo para expandirse en el call site (sin CALLVIRT) |
+| `@Asm` | funcion | El cuerpo es ensamblador `.vel` verbatim (ver "Inline assembly" arriba) |
+| `@Naked` | funcion | Sin prologo ni epilogo; para rutinas de interrupcion (ISRs) y stubs nativos |
+
+### Concurrencia
+
+| Anotacion | Ambito | Efecto |
+| :-------- | :----- | :----- |
+| `@Async` | funcion | La funcion retorna un `Future` implicito (envuelta en future + spawn); ver [[Async]] |
+
+### Metaprogramacion y reflexion
+
+| Anotacion | Ambito | Efecto |
+| :-------- | :----- | :----- |
+| `@Macro` | funcion | Funcion macro evaluada en tiempo de compilacion; ver [[Metaprogramacion]] |
+| `@Pure` | macro | Marca un `@Macro` como memoizable: mismos argumentos devuelven el resultado cacheado. Distinto del contrato `@pure` en minuscula (ver seccion de contratos) |
+| `@Introspect` | clase/struct/enum | Genera metadata de introspeccion en runtime (reflexion sobre campos y metodos del tipo) |
+
+### Propiedades y boilerplate de clases (estilo Lombok)
+
+Se declaran a nivel de clase (o de campo cuando aplica). Un pre-pase del
+compilador genera los metodos correspondientes en el AST, como si se hubieran
+escrito a mano.
+
+| Anotacion | Ambito | Efecto |
+| :-------- | :----- | :----- |
+| `@Getter` / `@Setter` | clase o campo | Genera `get_X()` / `set_X(v)` para los campos |
+| `@Getter(lazy=true)` | campo | Getter perezoso: calcula el valor una vez y lo cachea |
+| `@NonNull` | campo | Reescribe el tipo del campo a `nonnull T` (rechazo de null en compile-time) |
+| `@With` | clase o campo | Genera `with_X(v)`, que devuelve una copia de la instancia con `X = v` |
+| `@ToString` | clase | Genera `string toString()` |
+| `@EqualsAndHashCode` | clase | Genera `bool equals(Object o)` + `u64 hashCode()` |
+| `@NoArgsConstructor` | clase | Constructor sin argumentos |
+| `@AllArgsConstructor` | clase | Constructor con todos los campos |
+| `@RequiredArgsConstructor` | clase | Constructor con los campos `final` / `nonnull` |
+| `@Data` | clase | `= @Getter + @Setter + @ToString + @EqualsAndHashCode + @RequiredArgsConstructor` |
+| `@Value` | clase | `= @Data` inmutable (todos los campos `final`) |
+| `@Builder` | clase | Genera una clase auxiliar `XBuilder` con metodos encadenables |
+| `@Synchronized` | clase | Envuelve cada metodo no-static en `synchronized(this) { ... }` |
+| `@Log` | clase | Anade un logger estatico a la clase |
+
+### Excepciones
+
+| Anotacion | Ambito | Efecto |
+| :-------- | :----- | :----- |
+| `@NoExcept` | funcion | La funcion no usa excepciones; un fallo no capturable termina el proceso. Ver [[Excepciones]] y [[RuntimeHooks]] |
+| `@NoExceptions` | modulo | Sticky: todo el fichero queda sin excepciones (equivale a marcar `@NoExcept` en cada funcion) |
+
+### Hooks de runtime (compilacion sin runtime)
+
+El programador provee la implementacion de un servicio del runtime. La funcion
+anotada reemplaza el default. Ver [[RuntimeHooks]] para el detalle y las firmas.
+
+| Anotacion | Ambito | Efecto |
+| :-------- | :----- | :----- |
+| `@AllocatorOverride` | funcion | Reemplaza el allocator (equivalentes a `malloc` / `free`) |
+| `@PanicHandler` | funcion | Reemplaza el handler de `panic` |
+| `@SyncImpl` | funcion | Reemplaza las primitivas de monitor (enter/exit) |
+| `@StringConcat` | funcion | Reemplaza la concatenacion de strings |
+| `@StringEq` | funcion | Reemplaza la comparacion de igualdad de strings |
+| `@HelperOverride(nombre)` | funcion | Reemplaza un helper multi-versionado del build (p.ej. `memcpy`) |
+
+### Atributos de layout y seccion
+
+Se aplican a funciones, constantes `comptime`, bloques `bytes` y bloques `asm`.
+Controlan como se coloca el simbolo en la imagen nativa.
+
 | Anotacion | Efecto |
-| :---------------- | :------------------------------------------------------------ |
-| `@Override` | Obligatorio al sobrescribir un metodo; error si esta ausente |
-| `@Inline` | Expande el cuerpo en el call site (sin CALLVIRT) |
-| `@Async` | La funcion retorna un Future implicito |
-| `@Sync` | El cuerpo de un metodo se ejecuta con `synchronized(this)` |
-| `@Aspect` | La clase define consejos AOP (BEFORE/AFTER/AROUND) |
-| `@Final` | Alias del keyword `final` sobre clase o metodo |
-| `@Asm` | El cuerpo de la funcion es ensamblador .vel verbatim |
-| `@Naked` | Sin prologo/epilogo (placeholder, efecto completo en Phase D) |
-| `@Module(pkg.x)` | Declara el modulo activo para el archivo |
-| `@Export(Symbol)` | Marca el simbolo como publicamente accesible |
-| `@Generic(T)` | Registra parametro de tipo para monomorphizacion |
+| :-------- | :----- |
+| `@align(N)` | Alineacion del simbolo; `N` potencia de 2 en `[1,4096]` |
+| `@hot` / `@cold` | Hint de layout: codigo/datos calientes vs frios |
+| `@section("nombre"[, "rwx"])` | Coloca el simbolo en una seccion nativa; 2do argumento opcional = permisos de pagina |
+| `@at(N)` | Offset/direccion fija de la seccion en la imagen (binarios planos) |
+| `@order(N)` | Orden relativo de la seccion en la imagen (menor primero) |
+| `@bits(16\|32\|64)` | Bitness de un bloque `asm` ensamblado (modo real/protegido/largo) |
+
+### Compilacion condicional
+
+| Anotacion | Efecto |
+| :-------- | :----- |
+| `@Target("...")` | Descarta la declaracion (o el `import`) si el target actual no cumple la condicion (OS/arch/CPU/semver/mode, con `&&` / `\|\|` / `!` / parentesis). Ver [[CompilacionCondicional]] |
+
+### Otras anotaciones contextuales
+
+| Anotacion | Contexto | Efecto |
+| :-------- | :------- | :----- |
+| `@id("...")` | tras `namespace` | Fija el PackageId del namespace manteniendo la identidad ABI; ver [[Namespaces]] |
+| `@opaque` | `typedef ... new` | Newtype opaco (no cruza la barrera de conversion sin `explicit`); ver [[TiposDatos]] |
+| `@align(N)` | `typedef ... new` | Alineacion del newtype; ver [[TiposDatos]] |
+
+> Modulos, exports y genericos NO se declaran con anotaciones: se usan las
+> construcciones del lenguaje `namespace` / `public` / `class Box<T>`
+> respectivamente (ver [[Namespaces]], [[Modulos]], [[Generics]]).
+
+---
+
+## Contratos comprobables de recurso y efecto (huella computacional)
+
+Vesta permite adjuntar a una funcion una **huella computacional**: propiedades
+de recurso y efecto que forman parte de su "tipo" y que el compilador
+**verifica**. No son comentarios ni documentacion pasiva. El compilador infiere
+del codigo la huella REAL de la funcion (cuantas allocaciones hace, cuanto stack
+usa, si es pura, si puede lanzar o hacer panic, si es recursiva) y la compara
+contra lo declarado.
+
+Los contratos son anotaciones en minuscula:
+
+| Contrato | Significado |
+| :------- | :---------- |
+| `@pure` | La funcion no tiene efectos de dato observables |
+| `@nothrow` | No hay ningun `throw` alcanzable |
+| `@nopanic` | No hay ningun `panic` alcanzable |
+| `@alloc(N)` | A lo sumo `N` sitios de allocacion en heap (GC / raw / `new` / closure) |
+| `@stack(N)` | A lo sumo `N` bytes de marco de pila propio |
+| `@complexity(O(...))` | Contrato de coste asintotico (Big-O); ver mas abajo |
+
+### Verificacion: OK, VIOLATED, UNVERIFIABLE
+
+Al compilar, cada contrato declarado se resuelve a uno de tres estados:
+
+- **OK** — el compilador PRUEBA que el contrato se cumple.
+- **VIOLATED** — el compilador PRUEBA que el contrato NO se cumple. Es un error
+  de compilacion: el build se aborta con un mensaje del tipo
+  `contrato @alloc incumplido en 'crea': esperado <=0, inferido 1`.
+- **UNVERIFIABLE** — el compilador no puede decidir (hay una llamada dinamica o
+  externa opaca en el cierre de la funcion). No se afirma ni se niega el
+  contrato: el compilador nunca miente.
+
+La verificacion es **sound y asimetrica**. Las propiedades exactas
+(allocaciones, stack, throw/panic, pureza) son un contrato duro: solo se marca
+`VIOLATED` cuando la violacion es demostrable, y nunca hay un falso `VIOLATED`.
+La complejidad `@complexity` es asimetrica: solo se rechaza cuando el coste
+inferido es demostrablemente de otra clase que el declarado.
+
+### Composicion por el grafo de llamadas
+
+Las propiedades se **componen** de forma interprocedural: se agregan la funcion
+mas su cierre transitivo por el grafo de llamadas estatico. Una funcion es pura
+solo si TODO lo que alcanza es puro; sus allocaciones totales son las propias
+mas las de sus callees; etc. Si en ese cierre aparece una llamada dinamica
+(metodo virtual, closure) o a un simbolo externo no resuelto, los efectos dejan
+de conocerse del todo y los totales se vuelven conservadores: nunca se afirma
+`@nothrow` o `@alloc(0)` sin poder demostrarlo.
+
+```java
+@pure @nothrow @nopanic @alloc(0)
+i64 cuadrado(i64 x) {
+    return x * x;                 // sin efectos: las cuatro propiedades se prueban
+}
+
+// PUREZA POR COMPOSICION: 'combina' no tiene efectos propios y solo llama a
+// 'cuadrado', que es pura -> el compilador deduce que 'combina' es pura.
+@pure @alloc(0) @nothrow
+i64 combina(i64 a, i64 b) {
+    return cuadrado(a) + cuadrado(b);
+}
+
+// @alloc(0): garantiza que el bucle no reserva heap (hot path sin GC).
+@alloc(0) @nothrow @nopanic
+i64 suma_hasta(i64 n) {
+    i64 acc = 0;
+    i64 i = 0;
+    while (i < n) { acc = acc + i; i = i + 1; }
+    return acc;
+}
+
+// @stack(N): acota los bytes de marco propio.
+@stack(256) @alloc(0)
+i64 poligono(i64 lado, i64 n) => lado * lado * n;
+```
+
+Ejemplos de violacion (abortan la compilacion a proposito):
+
+```java
+@alloc(0)
+Punto crea() { return new Punto(); }
+//  -> error: contrato @alloc incumplido en 'crea': esperado <=0, inferido 1
+
+@pure
+void escribe(i64* p) { *p = 5; }
+//  -> error: contrato @pure incumplido en 'escribe': la funcion tiene efectos
+
+@nopanic
+i64 fuerza(i64 x) { if (x < 0) { panic("negativo"); } return x; }
+//  -> error: contrato @nopanic incumplido en 'fuerza': puede hacer panic
+```
+
+### El contrato de coste `@complexity`
+
+`@complexity(O(...))` declara el coste asintotico (Big-O) de una funcion. Es
+azucar de la dimension "total tras retorno" del subsistema de coste. Dos formas:
+
+```java
+@complexity(O(n^2))
+void ordena(i32[] a) { ... }
+
+// Nombrar la variable del tamano cuando no es evidente:
+@complexity(O(n), n = len(arg0))
+i64 suma(i64[] xs) { ... }
+```
+
+El compilador infiere la clase de coste de la funcion y valida cada dimension
+declarada; si la clase inferida es demostrablemente distinta de la declarada,
+lo reporta como discrepancia.
+
+### Inspeccion: modo analisis
+
+Estos contratos y la huella inferida se muestran con el modo de analisis, sin
+generar codigo, y estan pensados tambien para el hover de un editor:
+
+```bash
+vm --analyze fichero.vx          # salida legible: huella + estado de cada contrato
+vm --analyze fichero.vx --analyze-json   # el mismo analisis como JSON
+```
+
+Por cada funcion imprime una linea `Huella:` con las propiedades exactas
+(`allocs`, `stack`, `pure`, `throws`, `panics`, `recursion`) y, debajo, el
+estado de cada contrato declarado (`OK` / `FALLA` / `?`). Al compilar de verdad
+(`vm --vesta fichero.vx -o ...`), un contrato en estado `VIOLATED` aborta el
+build. El ejemplo completo esta en `examples_codes_vx/analyze/contracts.vx`.
 
 ---
 

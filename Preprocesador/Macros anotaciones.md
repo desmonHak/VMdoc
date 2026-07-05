@@ -59,7 +59,7 @@ de alto nivel) y configuran el modulo, las exportaciones y los genericos:
 @Generic(K, V) // dos parametros (diccionario clave-valor)
 ```
 
-Ver [[../SintaxisCore/Anotaciones modulo y genericos.md]] para la referencia completa.
+Ver [[../Vesta/Vesta.md]] (seccion "Anotaciones del compilador") para la referencia completa.
 
 ---
 
@@ -128,7 +128,7 @@ libreria en el filesystem y resuelve los simbolos importados.
 ---
 
 Ver tambien:
-- [[../SintaxisCore/Decoradores.md]] - decoradores de alto nivel
-- [[../SintaxisCore/Anotaciones modulo y genericos.md]] - @Module, @Export, @Generic en detalle
+- [[../Vesta/Vesta.md]] - referencia de anotaciones del lenguaje
+- [[../Vesta/Namespaces.md]] - namespaces y modulos; [[../Vesta/Generics.md]] - genericos
 - [[Macros configuracion de ejecutable.md]] - @Format, @Section, @SpaceAddress
 - [[Macros nativas.md]] - macros %native para funciones externas

@@ -204,51 +204,191 @@ evaluator del macro como en codigo runtime. Mismo bytecode emitido.
 
 ## 4. Introspeccion de tipos
 
-Builtins **zero-overhead** que se resuelven en compile-time a un solo
-literal en el `.velb`:
+Vesta ofrece un conjunto completo de builtins de introspeccion
+**zero-overhead**: cada uno recibe uno o dos type-args entre `<...>` y
+se resuelve en compile-time a un solo literal en el `.velb` (un `CONST`
+IR op para enteros/bool, un `STRMAKE` para strings). No hay runtime
+dispatch: cuando el programa corre, la respuesta ya esta horneada.
+
+**Sintaxis general**: `builtin<T>()`, `builtin<T>(arg)` o
+`builtin<A, B>()`. Todos se invocan con parentesis. Los argumentos de
+runtime (cuando existen) deben ser **literales compile-time**: un string
+literal no interpolado para nombres de campo/metodo, o un literal entero
+para indices.
+
+### 4.1 Tamanos y layout
+
+| Builtin | Firma | Devuelve | Notas |
+|---|---|---|---|
+| `sizeof<T>()` | `<T>()` | `u64` | Bytes del tipo. Para `CLASS` devuelve 8 (es un puntero al objeto, no el tamano de la instancia). |
+| `alignof<T>()` | `<T>()` | `u64` | Alineamiento en bytes. |
+| `offsetof<T>("campo")` | `<T>(string_lit)` | `u64` | Offset del campo dentro del struct/clase. |
 
 ```vx
-// Tamaño y alineamiento.
-u64 sz_i64 = sizeof<i64>(); // 8
-u64 sz_punto = sizeof<Punto>(); // suma de fields
-u64 al_f64 = alignof<f64>(); // 8
-
-// Nombre canonico y hash.
-string name = typename<i32>(); // "i32"
-u32 id = type_id<i32>(); // hash FNV-1a estable cross-build
-
-// Kind del tipo.
-i32 k = kind<Punto>(); // STRUCT / CLASS / Primitive / etc.
-
-// Solo en tipos compuestos:
-u32 nf = field_count<Punto>();
-u32 nm = method_count<Animal>();
-u64 off = offsetof<Punto>("y");
-bool hf = has_field<Punto>("z");
-bool hm = has_method<Animal>("speak");
-string fn = field_name<Punto>(0); // "x"
-string ft = field_type<Punto>("x"); // "i64"
-
-// Predicates de categoria.
-bool ic = is_class<Animal>();
-bool is = is_struct<Punto>();
-bool ip = is_primitive<i32>();
-
-// Newtypes (typedef T name new).
-bool nt = is_newtype<user_id>(); // true si user_id es typedef new
-bool op = is_opaque<session_id>(); // true si es @opaque
-string un = underlying_of<user_id>(); // "u64" -- nombre del underlying
-
-// Relaciones.
-bool sub = is_subtype<Perro, Animal>();
-bool same = is_same<i32, i32>(); // compara identidad nominal:
-// is_same<user_id, group_id> = false
-// aunque ambos sean u64
+u64 sz_i64 = sizeof<i64>();        // 8
+u64 sz_punto = sizeof<Punto>();    // suma de fields alineada
+u64 al_f64 = alignof<f64>();       // 8
+u64 off_y = offsetof<Punto>("y");  // p.ej. 8
 ```
 
-**Verificacion empirica**: cada llamada baja a un solo `CONST` IR op
-(`const.u64 8`, `const.u32 ...`) o un `STRMAKE` para strings. Sin
-runtime dispatch.
+### 4.2 Identidad del tipo
+
+| Builtin | Firma | Devuelve | Notas |
+|---|---|---|---|
+| `typename<T>()` | `<T>()` | `string` | Nombre canonico sin espacios: `"i32"`, `"Punto"`, `"Box<i32>"`, `"i32*"`, `"i32[8]"`. |
+| `type_id<T>()` | `<T>()` | `u32` | Hash FNV-1a de 32 bits del nombre canonico. Estable cross-build; permite "es el tipo X?" con 1 comparacion entera. |
+| `kind<T>()` | `<T>()` | `i32` | Categoria del tipo (ver tabla de codigos). |
+
+**Codigos de `kind<T>()`** (valores estables; nuevos kinds se agregan al
+final):
+
+| Codigo | Categoria | Codigo | Categoria |
+|---:|---|---:|---|
+| 0 | `Primitive` | 8 | `Function` |
+| 1 | `Class` | 9 | `String` |
+| 2 | `Struct` | 10 | `Borrow` |
+| 3 | `Enum` | 11 | `Future` |
+| 4 | `Optional` | 12 | `Unique` |
+| 5 | `Result` | 13 | `Shared` |
+| 6 | `Array` | 14 | `Collection` |
+| 7 | `Ptr` | 99 | `Unknown` |
+
+```vx
+string name = typename<Box<i32>>();  // "Box<i32>"
+u32 id = type_id<i32>();             // hash FNV-1a estable
+i32 k = kind<Punto>();               // 2 (Struct)
+```
+
+### 4.3 Campos
+
+| Builtin | Firma | Devuelve | Notas |
+|---|---|---|---|
+| `field_count<T>()` | `<T>()` | `u32` | Numero de campos (incluye heredados en clases). |
+| `has_field<T>("f")` | `<T>(string_lit)` | `bool` | Cierto si el campo existe. |
+| `field_name<T>(idx)` | `<T>(int_lit)` | `string` | Nombre del campo idx-esimo (orden de declaracion); vacio si fuera de rango. |
+| `field_type<T>("f")` | `<T>(string_lit)` | `string` | Nombre del tipo del campo. |
+| `field_type_at<T>(idx)` | `<T>(int_lit)` | `Type` | Tipo del campo idx-esimo como valor de tipo (ver 4.7). |
+
+```vx
+u32 nf = field_count<Punto>();       // 2
+bool hf = has_field<Punto>("z");     // false
+string fn = field_name<Punto>(0);    // "x"
+string ft = field_type<Punto>("x");  // "i64"
+```
+
+### 4.4 Metodos
+
+| Builtin | Firma | Devuelve | Notas |
+|---|---|---|---|
+| `method_count<T>()` | `<T>()` | `u32` | Numero de metodos (incluye heredados). |
+| `has_method<T>("m")` | `<T>(string_lit)` | `bool` | Cierto si el metodo existe. |
+| `method_name<T>(idx)` | `<T>(int_lit)` | `string` | Nombre del metodo idx-esimo; vacio si fuera de rango. |
+| `method_return_type<T>(idx)` | `<T>(int_lit)` | `Type` | Tipo de retorno del metodo idx-esimo como valor de tipo (ver 4.7). |
+
+```vx
+u32 nm = method_count<Animal>();       // p.ej. 3
+bool hm = has_method<Animal>("speak"); // true
+string m0 = method_name<Animal>(0);    // "speak"
+```
+
+### 4.5 Predicados de categoria
+
+Todos devuelven `bool` y toman un unico type-arg.
+
+| Builtin | Cierto cuando `T` es... |
+|---|---|
+| `is_class<T>()` | una clase (reference type). |
+| `is_struct<T>()` | un struct value-type. |
+| `is_primitive<T>()` | un primitivo (`i8..u64`, `f32`, `f64`, `bool`, `char`, `void`). |
+| `is_integer<T>()` | un entero con signo o sin signo. |
+| `is_signed<T>()` | un entero con signo. |
+| `is_unsigned<T>()` | un entero sin signo. |
+| `is_float<T>()` | `f32` o `f64`. |
+| `is_numeric<T>()` | entero o float. |
+| `is_bool<T>()` | `bool`. |
+| `is_char<T>()` | `char`. |
+| `is_pointer<T>()` | un puntero raw `T*`. |
+| `is_string<T>()` | `string`. |
+
+```vx
+bool ic = is_class<Animal>();     // true
+bool iu = is_unsigned<u32>();     // true
+bool inum = is_numeric<f64>();    // true
+bool ip = is_pointer<i64*>();     // true
+```
+
+### 4.6 Newtypes y relaciones entre tipos
+
+| Builtin | Firma | Devuelve | Notas |
+|---|---|---|---|
+| `is_newtype<T>()` | `<T>()` | `bool` | Cierto si `T` es un `typedef ... name new`. |
+| `is_opaque<T>()` | `<T>()` | `bool` | Cierto si es un newtype opaco. |
+| `underlying_of<T>()` | `<T>()` | `string` | Nombre del tipo subyacente de un newtype (`"u64"`, ...). |
+| `is_subtype<D, B>()` | `<D, B>()` | `bool` | Cierto si `D` deriva de `B` (herencia). |
+| `is_same<A, B>()` | `<A, B>()` | `bool` | Identidad nominal. `is_same<user_id, group_id>` es `false` aunque ambos sean `u64`. |
+
+```vx
+bool nt = is_newtype<user_id>();       // true (typedef new)
+bool op = is_opaque<session_id>();     // true (@opaque)
+string un = underlying_of<user_id>();  // "u64"
+
+bool sub = is_subtype<Perro, Animal>();  // true
+bool same = is_same<i32, i32>();         // true
+```
+
+### 4.7 Tipos como valores (Type-as-first-class-value)
+
+Estos builtins devuelven un **valor de tipo** que se guarda en un
+`comptime const Type X = ...` y luego se reutiliza en cualquier
+posicion de tipo (por ejemplo dentro de `sizeof<X>()` o `typename<X>()`).
+
+| Builtin | Firma | Devuelve | Notas |
+|---|---|---|---|
+| `comptime_type<T>()` | `<T>()` | `Type` | Materializa `T` como valor reutilizable. |
+| `parent_class<T>()` | `<T>()` | `Type` | Superclase de `T`; tipo meta vacio si no hay super o `T` no es clase. |
+| `element_type<T>()` | `<T>()` | `Type` | Tipo interior de wrappers: `T*`->`T`, `T[N]`->`T`, `Optional<T>`->`T`, `Future<T>`->`T`, `borrow<T>`/`unique<T>`/`shared<T>`->`T`. |
+| `error_type<T>()` | `<T>()` | `Type` | Para `Result<V, E>` devuelve `E`; tipo meta vacio si no es `Result`. |
+
+```vx
+comptime const Type Base = parent_class<Perro>();  // Animal
+string base_name = typename<Base>();               // "Animal"
+
+comptime const Type Elem = element_type<i32*>();   // i32
+u64 elem_sz = sizeof<Elem>();                      // 4
+```
+
+### 4.8 Iteracion y acceso directo a campos
+
+```vx
+// Loop desenrollado en compile-time: el callback se invoca UNA vez
+// por cada campo/metodo, sin bucle runtime.
+for_each_field<Punto>((string name) => { /* ... */ });
+for_each_method<Animal>((string name) => { /* ... */ });
+
+// Acceso directo por nombre de campo cuando el tipo es conocido en
+// compile-time.  Bypass del path getfield/setfield virtual.
+i32 val = field_get<Punto>(p, "x");  // baja a LOAD directo al offset
+field_set<Punto>(p, "y", 100);       // baja a STORE directo al offset
+```
+
+`field_get<T>(obj, "f")` devuelve el tipo del propio campo;
+`field_set<T>(obj, "f", value)` devuelve `void` y exige que `value` sea
+asignable al tipo del campo.
+
+### 4.9 Depuracion de metaprogramas
+
+`comptime_print(val)` imprime un valor a la salida de error **durante la
+compilacion** (no en runtime). Acepta enteros, strings, valores de tipo,
+arrays o structs. Devuelve `0` (`u64`) para poder componerlo dentro de
+`static_assert`:
+
+```vx
+static_assert(comptime_print(sizeof<Punto>()) == 0, "solo para debug");
+```
+
+**Verificacion empirica**: cada builtin escalar baja a un solo `CONST`
+IR op (`const.u64 8`, `const.u32 ...`); los que devuelven `string` bajan
+a un `STRMAKE`. Sin runtime dispatch en ningun caso.
 
 ### Bloque `comptime if` y `comptime for`
 

@@ -124,7 +124,7 @@ Baja a la instruccion `callm` (0xFD). Recorre `MethodInfo::advice_chain` igual q
 
 **Firma de `invoke`**: variadic, 1 + N argumentos donde el primero es `this` y los
 siguientes son los argumentos del metodo. El tipo de retorno es siempre `i64` (sin
-coercion automatica al tipo logico del metodo en el MVP actual).
+coercion automatica al tipo logico del metodo, actualmente).
 
 ### Ciclo completo de reflexion
 
@@ -233,6 +233,31 @@ y devuelve su resultado. Permite:
 - Pre/post-procesamiento del valor de retorno.
 - Decoradores (memoizacion, timing, logging, rate-limiting).
 
+#### Varios `@Around` anidados
+
+Cuando un mismo metodo tiene varios consejos `@Around`, todos se anidan en cadena:
+cada `proceed()` del `@Around` mas externo invoca al siguiente `@Around`, y solo el
+`proceed()` del mas interno llama al metodo objetivo real. El runtime mantiene una
+`around_chain` en el `FrameHeader` que `proceed()` consume en orden, por lo que se
+pueden componer decoradores arbitrarios (hasta 16 `@Around` anidados sobre el mismo
+metodo).
+
+```java
+@Aspect class Decoradores {
+    @Around("Servicio.op")
+    public i64 timing() {
+        // se ejecuta primero; su proceed() invoca al siguiente @Around
+        return proceed();
+    }
+
+    @Around("Servicio.op")
+    public i64 cache() {
+        // se ejecuta anidado dentro de timing(); su proceed() invoca Servicio.op
+        return proceed();
+    }
+}
+```
+
 ### Como funciona internamente
 
 ```
@@ -260,8 +285,8 @@ SIN aspectos tiene exactamente el mismo coste que antes de introducir AOP.
 | `@After("Cls.met")` | Consejo ejecutado DESPUES del metodo objetivo |
 | `@Around("Cls.met")` | Intercepta; usa `proceed()` para invocar el objetivo |
 
-El pointcut es un string `"NombreClase.nombreMetodo"` exacto (no es glob en el MVP
-actual; coincidencia exacta via `findclass` + `findmethod`).
+El pointcut es un string `"NombreClase.nombreMetodo"` exacto (no hay soporte de glob
+todavia; coincidencia exacta via `findclass` + `findmethod`).
 
 ### Ejemplo completo BEFORE + AFTER + AROUND
 
@@ -386,15 +411,12 @@ donde el tipo se conoce solo en runtime (plugins, frameworks, configuracion dina
 
 ---
 
-## Limitaciones del MVP
+## Limitaciones conocidas
 
 - El pointcut `@Before("Cls.met")` es una cadena exacta; no hay soporte de glob
  (e.g. `"Servicio.*"` NO funcionaria).
-- Solo el primer `@Around` en la cadena tiene efecto. El soporte para
-  varios `@Around` anidados requeriría un stack de `proceed_targets`
-  y está pendiente de implementación.
 - `invoke` devuelve `i64` sin coercion automatica al tipo logico del metodo.
-- `getInt(field, obj)`/`setInt(field, obj, val)` no estan disponibles en el MVP
+- `getInt(field, obj)`/`setInt(field, obj, val)` no estan disponibles todavia
  (requeririan opcodes `freadi`/`fwritei` o exposicion de `FieldInfo->offset`).
 
 ---

@@ -7,7 +7,7 @@ asignación, unarios, postfix y conversiones.
 
 ## Indice
 
-- [Operadores en Vesta](#operadores-en-vx)
+- [Operadores en Vesta](#operadores-en-vesta)
  - [Indice](#indice)
  - [1. Operadores aritméticos](#1-operadores-aritméticos)
  - [2. Operadores de comparación](#2-operadores-de-comparación)
@@ -19,7 +19,7 @@ asignación, unarios, postfix y conversiones.
  - [8. Operadores de punteros](#8-operadores-de-punteros)
  - [9. Postfix: `!!`, `?`](#9-postfix--)
  - [`!!a` — unwrap-or-fail](#a--unwrap-or-fail)
- - [`?` postfix (en `Optional<T>`) — early-return](#-postfix-en-optionalt--early-return)
+ - [`?` postfix (en `Result<V, E>`) — early-return](#-postfix-en-resultv-e--early-return)
  - [10. Cast C-style: `(T)expr`](#10-cast-c-style-texpr)
  - [11. Precedencia y asociatividad](#11-precedencia-y-asociatividad)
 
@@ -163,7 +163,7 @@ i += 5; // i = 5
 i *= 2; // i = 10
 i >>= 1; // i = 5
 
-obj.field += 10; // class/struct field compound (A.22)
+obj.field += 10; // class/struct field compound
 arr[i] *= 2; // array element compound
 *p &= 0xFF; // deref compound
 c.prop |= flag; // property compound (invoca getter + setter)
@@ -244,9 +244,42 @@ i32? maybe = nullable_thing();
 i32 v = !!maybe; // unwrap nullable; lanza FATAL si null
 ```
 
-### `?` postfix (en `Optional<T>`) — early-return
+### `?` postfix (en `Result<V, E>`) — early-return
 
-(Propuesto, NO implementado todavía — ver "Implementaciones todavia pendientes" en propuesta P2).
+Aplica a `Result<V, E>` (NO a `Optional<T>`). Dentro de una función que retorna un
+`Result<V, E>`, el postfix `?` sobre una expresión de tipo `Result<V, E>`:
+
+- Si es `Err(e)`, copia el error al buffer de retorno de la función y hace `return`
+  inmediato (early-return).
+- Si es `Ok(v)`, extrae el valor `v` y la expresión continúa con `v`.
+
+El tipo del error `E` debe coincidir entre la expresión y la función contenedora.
+
+```vx
+Result<i64, i64> parse_pos(i64 n) {
+    if (n < 0) return Err(99);
+    return Ok(n);
+}
+
+Result<i64, i64> sum_two_pos(i64 a, i64 b) {
+    i64 x = parse_pos(a)?; // si Err, sum_two_pos retorna ese Err; si Ok, x = valor
+    i64 y = parse_pos(b)?; // idem
+    return Ok(x + y);
+}
+```
+
+Desugar conceptual de `i64 x = parse_pos(a)?;`:
+
+```vx
+Result<i64, i64> __tmp = parse_pos(a);
+if (!isOk(__tmp)) {
+    return __tmp; // propaga el Err al caller
+}
+i64 x = value(__tmp); // extrae el Ok
+```
+
+Cero overhead runtime frente al patrón `if`-`return` manual. Ver
+[[OptionalResult]] para el detalle del operador y de `Result<V, E>`.
 
 ---
 

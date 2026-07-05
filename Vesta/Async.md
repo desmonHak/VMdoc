@@ -151,7 +151,7 @@ future_alloc() -> [PENDING]
 ## @Async: funciones asincronas
 
 La anotacion `@Async` convierte una funcion en asincrona: en lugar de ejecutarse en el
-proceso del llamante, lanza un proceso hijo y retorna un `Future` que se resolverá cuando
+proceso del llamante, lanza un proceso hijo y retorna un `Future` que se resolvera cuando
 el hijo termine.
 
 ```java
@@ -162,14 +162,30 @@ i64 calcular() {
 }
 
 // El llamante obtiene el future:
-i64 fut = calcular(); // tipo de retorno real: i64 (handle del future)
+Future<i64> fut = calcular();
 // ... hacer otras cosas mientras el hijo calcula ...
 i64 resultado = await fut; // bloquea hasta que calcular() termine
 println("Resultado: ${resultado}");
 ```
 
-**Limitacion MVP:** la version actual no soporta parametros en funciones `@Async`.
-Workaround: usar `msgsend`/`msgrecv` para pasar datos al hijo.
+### Parametros y tipo de retorno
+
+Las funciones `@Async` aceptan parametros y devuelven un `Future<T>` tipado (no solo un
+`i64` handle). Los argumentos se copian al proceso hijo antes de arrancarlo (via
+`spawnargs`, sin serializacion por mensajeria), y el `await` devuelve el valor con su tipo
+logico. El compilador coerciona automaticamente `T <-> i64` preservando los bits IEEE 754
+para floats, de modo que `Future<f64>`, `Future<bool>`, `Future<i32>`, etc. funcionan
+directamente.
+
+```java
+@Async
+f64 compute(i32 a, i64 b) {
+    return (f64)(a + b) * 2.0;
+}
+
+Future<f64> fut = compute(10, 32);
+f64 resultado = await fut; // 84.0
+```
 
 ---
 

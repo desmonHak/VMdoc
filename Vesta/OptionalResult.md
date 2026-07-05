@@ -13,11 +13,12 @@ ABI SRET, y sin overhead de GC.
 3. [Builtins: Some, None, Ok, Err](#3-builtins-some-none-ok-err)
 4. [Builtins de inspección y unwrap](#4-builtins-de-inspeccion-y-unwrap)
 5. [Implicit Some](#5-implicit-some)
-6. [Must-handle Result (`#[must_use]`)](#6-must-handle-result-must_use)
+6. [Must-handle Result](#6-must-handle-result)
 7. [Operador `!!` (unwrap-or-fail)](#7-operador--unwrap-or-fail)
-8. [`nonnull T` y `T !!name`](#8-nonnull-t-y-t-name)
-9. [Optional vs nullable (`T?`)](#9-optional-vs-nullable-t)
-10. [Layout runtime](#10-layout-runtime)
+8. [Operador `?` (propagación de error en Result)](#8-operador--propagacion-de-error-en-result)
+9. [`nonnull T` y `T !!name`](#9-nonnull-t-y-t-name)
+10. [Optional vs nullable (`T?`)](#10-optional-vs-nullable-t)
+11. [Layout runtime](#11-layout-runtime)
 
 ---
 
@@ -197,7 +198,49 @@ Funciona sobre:
 
 ---
 
-## 8. `nonnull T` y `T !!name`
+## 8. Operador `?` (propagación de error en Result)
+
+El postfix `?` propaga errores de `Result<V, E>` con early-return. Aplica SOLO a
+`Result<V, E>` (no a `Optional<T>`), y sólo dentro de una función que también
+retorna un `Result<V, E>` con el mismo tipo de error `E`.
+
+Semántica de `expr?` cuando `expr` es de tipo `Result<V, E>`:
+
+- Si es `Err(e)`, copia el error al buffer de retorno de la función contenedora y
+  hace `return` inmediato (propaga el `Err` al caller).
+- Si es `Ok(v)`, la expresión evalúa al valor `v` desempaquetado.
+
+```vx
+Result<i64, i64> parse_pos(i64 n) {
+    if (n < 0) return Err(99);
+    return Ok(n);
+}
+
+Result<i64, i64> sum_two_pos(i64 a, i64 b) {
+    i64 x = parse_pos(a)?; // si Err, sum_two_pos retorna ese Err; si Ok, x = valor
+    i64 y = parse_pos(b)?; // idem
+    return Ok(x + y);
+}
+```
+
+Desugar conceptual de `i64 x = parse_pos(a)?;`:
+
+```vx
+Result<i64, i64> __tmp = parse_pos(a);
+if (!isOk(__tmp)) {
+    return __tmp; // propaga el Err al caller
+}
+i64 x = value(__tmp); // extrae el Ok
+```
+
+El compilador valida en compile-time que la expresión sea `Result`, que la función
+contenedora retorne `Result`, y que ambos tipos de error `E` coincidan. Cero
+overhead runtime frente al patrón `if`-`return` manual (reusa el mismo `LOAD`/`CMP`/
+`BR_COND`/`RET`; sin nuevos opcodes).
+
+---
+
+## 9. `nonnull T` y `T !!name`
 
 ### `nonnull T` (keyword)
 
@@ -230,7 +273,7 @@ mensaje claro en lugar de propagar el null hacia adentro del código.
 
 ---
 
-## 9. Optional vs nullable (`T?`)
+## 10. Optional vs nullable (`T?`)
 
 Vesta tiene DOS modelos para "valor que puede no existir":
 
@@ -256,7 +299,7 @@ Person? owner = item.owner; // referencia opcional, mejor nullable
 
 ---
 
-## 10. Layout runtime
+## 11. Layout runtime
 
 ### Optional<T>
 

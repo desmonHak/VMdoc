@@ -10,7 +10,7 @@ Vesta tiene tres maneras de manejar texto:
 
 ## Indice
 
-- [Strings en Vesta](#strings-en-vx)
+- [Strings en Vesta](#strings-en-vesta)
  - [Indice](#indice)
  - [1. El tipo `string`](#1-el-tipo-string)
  - [2. Literales: estándar, raw, triple-quoted](#2-literales-estándar-raw-triple-quoted)
@@ -91,7 +91,8 @@ string html = """
 ```
 
 Permite saltos de línea literales dentro del bloque. Procesa escapes
-(`\t`, `\n`, etc.). Soporta interpolación `${expr}` desde .
+(`\t`, `\n`, etc.). Soporta interpolación `${expr}` (incluido con format
+specifiers `${expr:fmt}`) dentro del triple-quoted.
 
 Modo raw triple-quoted: `r"""..."""` (sin interpolación, sin escapes).
 
@@ -138,8 +139,7 @@ materializar el fragment.
 
 ## 4. Format specifiers `${expr:fmt}`
 
-Sintaxis estilo Python/Rust dentro de `${...}` para evitar 40 builtins discretos
-(añadido ):
+Sintaxis estilo Python/Rust dentro de `${...}` para evitar 40 builtins discretos:
 
 ```vx
 i32 n = 255;
@@ -193,7 +193,7 @@ string u = s + t; // "hola mundo" - bytecode strcat (ROPE O(1))
 bool eq = (s == "hola"); // true - bytecode strcmp byte-a-byte
 bool ne = (s != t); // true
 
-// Auto-coerce literal + string (A.18 fase B):
+// Auto-coerce literal + string:
 string r = "prefix " + dynamic_name; // literal se promociona a StringObject
 ```
 
@@ -274,11 +274,12 @@ string path = "C:\\file.txt";
 u32 attrs = GetFileAttributesA(str_cstr(path));
 ```
 
-**Alias `cstring`** (A.18 fase B): es equivalente a `char*`, útil para legibilidad
-en signatures FFI.
+**Alias `cstring`**: es equivalente a `char*`, útil para legibilidad
+en signatures FFI. La sintaxis de `typedef` en Vesta es estilo C (tipo primero,
+alias después):
 
 ```vx
-typedef cstring = char*; // alias declarado en el preludio (no hace falta hacer typedef)
+typedef char* cstring; // alias; tipo a la izquierda, nombre nuevo a la derecha
 extern fn fopen(cstring path, cstring mode) -> i64;
 ```
 
@@ -308,12 +309,16 @@ si todos los caracteres están en ambos encodings (Unicode BMP).
 
 ## Limitaciones conocidas
 
-1. **Interpolación con `float`/`f64`/`struct`/`class`/`enum`**: no soportada
- (emite error). Workaround: `print` directo (que sí soporta floats) o
- stringify explícito. Propuesta futura P1: añadir helper
- `vio_float_to_vmbuf` y mecanismo `toString()` virtual para clases.
+1. **Interpolación con `float`/`f64`/`struct`/`class`/`enum`** en contexto STRING
+ (construir un `string` con `${expr}`): todavía no soportada para esos tipos
+ (emite error). Los tipos primitivos soportados en interpolación de string son
+ `string`, `i8`..`i64`, `u8`..`u64`, `bool`, `char` y `ptr`/`array`. Workaround
+ para float: `print`/`println` directo (que sí soporta floats) o stringify
+ explícito. Se planea añadir soporte de float y un mecanismo `toString()` virtual
+ para clases.
 
-2. **Interpolación `${...}` dentro de triple-quoted**: SI soportada desde .
+2. **Interpolación `${...}` dentro de triple-quoted**: SI soportada, incluido con
+ format specifiers `${expr:fmt}`.
 
 3. **Format spec en STRING**: `${str_var:hex}` ignora el spec (sólo aplica a tipos
  numéricos). Para alinear strings, medir con `str_length(s)` y usar
