@@ -391,7 +391,12 @@ genericos.
 
 `Numeric/Integer/Float`, `Signed/Unsigned`, `Bool/Char/String/Pointer`,
 `Comparable/Ordered/Eq`, `Sized/Copyable`, `Hashable/Stringable`,
-`Default/Callable/Destructible/Iterable/Shareable`, `Primitive/Class/Struct`.
+`Default/Callable/Destructible/Iterable/Shareable`, `Primitive/Class/Struct`,
+`Enum/ValuedEnum` (ver [[Enums]]).
+
+Cualquier concepto se puede usar como **bound** (`<T: Concepto>`) o invocar como
+**predicado** booleano compile-time: `if (Numeric<T>()) { ... }`,
+`bool b = Enum<T>();`. Se dobla a una constante -- cero runtime.
 
 ### Conceptos de usuario (tres formas)
 

@@ -18,6 +18,7 @@ multi-paradigma estaticamente tipado disenado con tres principios:
 | Documento | Contenido |
 | :------------------------------ | :----------------------------------------------------------- |
 | [[TiposDatos]] | Tipos primitivos, punteros, struct, enum, aliases, newtypes (@opaque/@align/explicit) |
+| [[Enums]] | Uniones etiquetadas (ADT) y enums con valor C-style (backing int/float/string/struct/clase), concepts (is_enum/Enum/ValuedEnum), comptime |
 | [[Operadores]] | Aritmeticos, comparacion, logicos, bitwise, compound, cast |
 | [[Matematicas]] | Funciones integradas: sqrt/pow/trig/log/abs/min/max/clamp + bit ops + rotaciones |
 | [[Vectorizacion]] | Auto-vectorizacion SSE2/AVX2/AVX512: patrones, tipos, como exprimir el SIMD |

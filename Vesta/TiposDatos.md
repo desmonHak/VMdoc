@@ -254,6 +254,12 @@ Vec2 v = {1.0, 2.0};
 
 ## Enums (tipos algebraicos / ADTs)
 
+> Vesta tiene **dos** clases de enum: los **ADT** (union etiquetada) de esta
+> seccion, y los **con valor** C-style (`enum Op : u8 { A = 0x01 }`, backing
+> int/float/string/struct/clase). La referencia completa de ambos -- mas
+> concepts (`is_enum`/`Enum`/`ValuedEnum`) y uso en comptime -- esta en
+> [[Enums]].
+
 ```java
 enum Color {
     Red, // variante sin payload
