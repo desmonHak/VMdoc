@@ -72,6 +72,7 @@ multi-paradigma estaticamente tipado disenado con tres principios:
 | [[Enlazador]] | Linker y archivador propios (`vm --link`/`vm --ar`), flags de salida (`--emit`/`--format`/`--no-pie`/`--bin-base`/`--target`/`--freestanding`/`--float-isa`) |
 | [[DisposicionSecciones]] | Layout en el propio lenguaje (sustituto de linker scripts): `@section`/`@at`/`@order`, bloques `bytes {}`, `@bits` asm, `.bin` plano, script de enlace en Vesta (`fn link()`) |
 | [[InlineAsm]] | Ensamblador inline (`asm {}` + `@Naked`), `register()`, calificadores `volatile`/`nomem`/`preserves_flags`/`pure`, `clobbers`, sustitucion comptime |
+| [[Overlays]] | Vistas tipadas sobre memoria binaria: `@offset`/`@element`/`@endian`, bitfields, arrays con stride, `parent<T>`, `offsetof`/`in_bounds`/`extent` |
 
 ---
 
