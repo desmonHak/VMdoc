@@ -42,11 +42,11 @@ expr ::= and ("||" and)*
 
 ### Arquitectura
 
-| Tag | Significado |
-|:---|:---|
-| `arch:x86_64` | AMD64 / x86-64. |
-| `arch:arm64` | ARM64 / AArch64. |
-| `arch:x86` | x86 32 bits. |
+| Tag           | Significado      |
+| :------------ | :--------------- |
+| `arch:x86_64` | AMD64 / x86-64.  |
+| `arch:arm64`  | ARM64 / AArch64. |
+| `arch:x86`    | x86 32 bits.     |
 
 ### Modo de build
 

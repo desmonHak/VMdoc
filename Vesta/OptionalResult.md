@@ -8,7 +8,7 @@ ABI SRET, y sin overhead de GC.
 
 ## Indice
 
-1. [Optional<T>: valor que puede no existir](#1-optionalt-valor-que-puede-no-existir)
+1. [``Optional<T>``: valor que puede no existir](#1-optionalt-valor-que-puede-no-existir)
 2. [Result<V, E>: éxito o error](#2-resultv-e-exito-o-error)
 3. [Builtins: Some, None, Ok, Err](#3-builtins-some-none-ok-err)
 4. [Builtins de inspección y unwrap](#4-builtins-de-inspeccion-y-unwrap)
@@ -22,7 +22,7 @@ ABI SRET, y sin overhead de GC.
 
 ---
 
-## 1. Optional<T>: valor que puede no existir
+## 1. ``Optional<T>``: valor que puede no existir
 
 `Optional<T>` representa "puede haber valor de tipo T, o puede no haberlo". Es
 una alternativa segura a punteros nullable cuando no necesitas indirection.
@@ -301,7 +301,7 @@ Person? owner = item.owner; // referencia opcional, mejor nullable
 
 ## 11. Layout runtime
 
-### Optional<T>
+### ``Optional<T>``
 
 ```
 +---------+---------+

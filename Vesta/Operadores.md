@@ -143,19 +143,19 @@ izquierdo. Cantidad de desplazamiento toma los bits bajos (mod 64).
 
 ## 6. Asignación y asignación compuesta
 
-| Operador | Equivalente a |
-| :------: | :--------------- |
-| `=` | (asignación directa) |
-| `+=` | `x = x + v` |
-| `-=` | `x = x - v` |
-| `*=` | `x = x * v` |
-| `/=` | `x = x / v` |
-| `%=` | `x = x % v` |
-| `&=` | `x = x & v` |
-| `|=` | `x = x | v` |
-| `^=` | `x = x ^ v` |
-| `<<=` | `x = x << v` |
-| `>>=` | `x = x >> v` |
+| Operador | Equivalente a        |
+| :------: | :------------------- |
+|   `=`    | (asignación directa) |
+|   `+=`   | `x = x + v`          |
+|   `-=`   | `x = x - v`          |
+|   `*=`   | `x = x * v`          |
+|   `/=`   | `x = x / v`          |
+|   `%=`   | `x = x % v`          |
+|   `&=`   | `x = x & v`          |
+|   `\|=`    | `x = x \| v`              |
+|   `^=`   | `x = x ^ v`          |
+|  `<<=`   | `x = x << v`         |
+|  `>>=`   | `x = x >> v`         |
 
 ```vx
 i32 i = 0;
