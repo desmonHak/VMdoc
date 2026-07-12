@@ -32,6 +32,72 @@ macros ya estan resueltos. El binario solo contiene el codigo generado.
 
 ---
 
+## `const` y `comptime`: valores compile-time
+
+En Vesta **toda constante es comptime por definicion**. Un `const` cuyo
+inicializador es evaluable en compile-time entra en el "mundo comptime":
+lo pueden **leer y consumir** los macros, los builtins comptime y la
+introspeccion, exactamente igual que un valor `comptime`.
+
+```vx
+const i64 N = 5;
+const string E = comptime_concat("(", comptime_concat(comptime_to_str(N), ") * 8"));
+const i64 R = comptime_compile(E);          // 40, calculado al compilar
+static_assert(R == 40, "5 * 8");
+```
+
+| Forma | Para que sirve |
+|---|---|
+| `const X = expr;` | un **valor** (runtime-inmutable, mutable durante comptime). |
+| `comptime X = expr;` | idem -- un valor comptime; equivalente a `const` para globales. |
+| `comptime T fn(...) { ... }` | una **funcion** comptime. |
+| `comptime { ... }` | un **bloque** imperativo comptime. |
+
+**Mutabilidad: solo en compile-time.** Un global `const` o `comptime` es
+**mutable mientras compila** (el codigo comptime lo puede alterar: id
+counters, tablas acumuladas, maquinas de estado) e **inmutable en runtime**
+(reasignarlo desde codigo runtime es error; se congela a su valor final).
+Da igual con cual de las dos palabras lo declares: funciona igual.
+
+```vx
+const i64 g_id = 0;                 // runtime-inmutable
+@Macro comptime string fresh() {
+    g_id = g_id + 1;               // mutado EN comptime -> OK
+    return to_str(g_id);
+}
+// en runtime `g_id = 5;` seria un error de compilacion.
+```
+
+Regla practica: **usa `const`/`comptime` para valores; `comptime fn` /
+`comptime { }` para logica meta** (loops, generacion de codigo).
+
+> Ya no existen `comptime const` ni `comptime var`: eran redundantes
+> (`comptime`/`const` ya implican "constante en runtime, mutable en
+> comptime").  Para inferencia de tipo usa `auto` (valido en comptime y en
+> runtime; distinto de `var`, que se elimino).
+
+**Dentro de un `comptime fn` o `comptime { }`** los locales se declaran
+tipo-primero, sin prefijo -- el contexto ya es comptime y son mutables por
+defecto:
+
+```vx
+comptime i64 factorial(i64 n) {
+    i64 p = 1;              // local pelado: mutable y comptime
+    i64 i = 1;
+    while (i <= n) { p = p * i; i = i + 1; }
+    return p;
+}
+const i64 F6 = factorial(6);   // 720, horneado en el binario
+```
+
+**Eliminacion del const muerto**: si una constante se usa **solo** en
+comptime (por ejemplo dentro de `static_assert` o como argumento de un
+builtin comptime), el optimizador la elimina por completo -- no deja ningun
+slot en el binario. Una constante usada en runtime se inlina (escalares) o
+se emite en la seccion de datos (strings).
+
+---
+
 ## 1. @Macro basicos
 
 Un `@Macro` es una funcion comptime que devuelve un `string` con codigo Vesta
@@ -58,8 +124,9 @@ i32 main() {
 - Los parametros aceptan tipos primitivos (`i64`, `string`, `bool`, etc.).
 
 El cuerpo es codigo Vesta normal con ciertas restricciones (ver Limitaciones).
-Dentro del cuerpo NO necesitas `comptime var` -- todas las vars locales son
-implicitamente comptime porque el body se interpreta integramente.
+Dentro del cuerpo los locales se declaran tipo-primero (`i64 x = 0;`) y son
+mutables por defecto -- el body es integramente comptime, no hace falta ningun
+prefijo para marcarlos.
 
 Marca tu macro con `@Pure` cuando el resultado dependa SOLO de los args
 (no de globales mutables ni FFI no-determinista):
@@ -339,8 +406,8 @@ bool same = is_same<i32, i32>();         // true
 ### 4.7 Tipos como valores (Type-as-first-class-value)
 
 Estos builtins devuelven un **valor de tipo** que se guarda en un
-`comptime const Type X = ...` y luego se reutiliza en cualquier
-posicion de tipo (por ejemplo dentro de `sizeof<X>()` o `typename<X>()`).
+`const Type X = ...` y luego se reutiliza en cualquier posicion de tipo
+(por ejemplo dentro de `sizeof<X>()` o `typename<X>()`).
 
 | Builtin | Firma | Devuelve | Notas |
 |---|---|---|---|
@@ -350,11 +417,11 @@ posicion de tipo (por ejemplo dentro de `sizeof<X>()` o `typename<X>()`).
 | `error_type<T>()` | `<T>()` | `Type` | Para `Result<V, E>` devuelve `E`; tipo meta vacio si no es `Result`. |
 
 ```vx
-comptime const Type Base = parent_class<Perro>();  // Animal
-string base_name = typename<Base>();               // "Animal"
+const Type Base = parent_class<Perro>();  // Animal
+string base_name = typename<Base>();      // "Animal"
 
-comptime const Type Elem = element_type<i32*>();   // i32
-u64 elem_sz = sizeof<Elem>();                      // 4
+const Type Elem = element_type<i32*>();   // i32
+u64 elem_sz = sizeof<Elem>();             // 4
 ```
 
 ### 4.8 Iteracion y acceso directo a campos
@@ -737,15 +804,6 @@ Los init lists solo son validos en el path estatico del var-decl.
 
 **Workaround**: emitir una expresion escalar (suma, primer elemento, etc.) o
 usar el macro para emitir cada elemento individualmente.
-
-### Variables `comptime var` mutables globales
-
-`comptime var X = ...` a nivel modulo NO se puede leer desde un `@Macro`
-lowereado a IR (el compilador rechaza el lowering y cae al AST evaluator).
-`comptime const X = ...` inmutables SI funcionan.
-
-**Workaround**: usar `comptime const` cuando sea posible. Para mutables,
-mantenerlas locales al macro.
 
 ### Builtins `comptime_compile` / `comptime_emit_expr` / `comptime_type`
 

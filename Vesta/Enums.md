@@ -165,6 +165,43 @@ import isa.x86;
 u8 op = x86.Op.MOV;
 ```
 
+### 2.5. Estilo C: `typedef enum` y backing inferido
+
+Para portar cabeceras C casi verbatim, un enum **sin** `: tipo` explicito tambien
+es un enum con valor si alguna variante lleva un valor (o si usas la forma
+`typedef enum`). El ancho del backing se **infiere**:
+
+```vesta
+// typedef enum al estilo C: SIEMPRE es un enum con valor entero.
+typedef enum {
+    A = 1,
+    B,          // 2  (auto-incremento)
+    C = 18,
+    D           // 19
+} E1;
+
+// enum "pelado" con valores explicitos: tambien con valor (no ADT).
+enum Color { Red = 0, Green, Blue }     // 0, 1, 2
+```
+
+Reglas de inferencia del backing (imitan a C):
+
+- Si **todas** las variantes caben en `int` (`i32`), el backing es `i32`.
+- Si algun valor no cabe en `i32` pero si en `u32` (p.ej. `0xFFFFFFFF`), se
+  ensancha a `u32`; si tampoco, a `i64`.
+- Si las variantes son **strings**, el backing se infiere `string`.
+- Puedes forzar el ancho con `: tipo` explicito: `typedef enum : u8 { P = 40, Q } S;`.
+
+```vesta
+typedef enum { LOW = 0x1, BIG = 0xFFFFFFFF } Flags;   // backing u32 (BIG no cabe en i32)
+typedef enum { OK = "ok", ERR = "err" } Names;        // backing string
+```
+
+Un `enum Nombre { Rojo, Verde }` **pelado y sin valores ni payloads** sigue siendo
+un **ADT** (union etiquetada). La presencia de un `= valor` (o de la palabra
+`typedef enum`) es lo que lo convierte en enum con valor. Los payloads
+(`enum E { A(i32) }`) siempre marcan un ADT.
+
 ---
 
 ## 3. Enums y concepts

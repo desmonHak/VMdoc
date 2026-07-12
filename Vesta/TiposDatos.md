@@ -168,6 +168,25 @@ void* generic = (void*)arr; // cast a puntero generico
 u32* palabras = (u32*)arr; // reinterpretacion del buffer
 ```
 
+La conversion **entero <-> puntero** requiere SIEMPRE un cast explicito -- nunca es
+implicita. Con cast, ambas direcciones funcionan:
+
+```java
+u8* p    = (u8*)malloc(16);
+u64 addr = (u64)p;          // puntero -> entero
+u8* q    = (u8*)addr;       // entero  -> puntero
+u32* w   = (u32*)addr;      // entero  -> otro tipo de puntero
+u8* null = (u8*)0;          // literal entero -> puntero
+```
+
+Sin el cast, la asignacion es un **error de compilacion** que indica que apliques
+el cast:
+
+```java
+u64 bad = p;   // error: la conversion entero<->puntero no es implicita,
+               //        usa un cast explicito: (u64)expr
+```
+
 ---
 
 ## Arrays nativos
@@ -249,6 +268,71 @@ Point p3 = {.x = 1.0};
 typedef struct { f64 x; f64 y; } Vec2;
 Vec2 v = {1.0, 2.0};
 ```
+
+### Multi-declarador de campo (`T a, b;`)
+
+Varios campos del mismo tipo se declaran en una sola linea, al estilo C. Cada
+declarador puede llevar sus propias dimensiones de array y bit-width:
+
+```java
+struct Rect {
+    i32 x0, y0;          // dos campos i32
+    i32 x1, y1;
+    u8  flags : 4, kind : 4;   // dos bit fields
+}
+```
+
+Funciona en struct plano, en `typedef struct { ... }` y en agregados anonimos
+inline (union/struct anidados).
+
+### Struct C-tagless (nombre al final)
+
+Al portar cabeceras C se acepta la forma con el nombre **despues** del cuerpo, sin
+`typedef`, incluyendo alias de puntero:
+
+```java
+struct {
+    u8  request_type;
+    u16 value, index, length;
+} SETUP, *PSETUP;        // SETUP es el tipo; PSETUP = SETUP*
+```
+
+Es equivalente a `typedef struct { ... } SETUP, *PSETUP;`.
+
+### Alineacion del struct (`@align(N)`)
+
+`@align(N)` sobre una declaracion de struct fuerza la alineacion del layout a
+`max(natural, N)` y padea el tamano a un multiplo de esa alineacion (nunca reduce
+la natural). Equivale a `__declspec(align(N))` / `_Alignas(N)` de C:
+
+```java
+@align(16)
+struct Vec4 { f32 x, y, z, w; }    // alineado a 16, tamano padeado a 16
+```
+
+Ver tambien la seccion "Alineacion forzada" mas abajo (para newtypes).
+
+### Enum ADT como campo
+
+Un enum **ADT sin payload** (`enum Color { Red, Green, Blue }`) puede usarse como
+campo de struct: su valor es un unico qword (el tag), ocupa 8 bytes y se
+asigna/lee como un escalar.
+
+```java
+enum Color { Red, Green, Blue }
+struct Cell {
+    u8    x;
+    Color c;          // enum ADT como campo (8 bytes)
+    u8    y;
+}
+Cell cell;
+cell.c = Color.Blue;
+match cell.c { case Blue => { /* ... */ } /* ... */ }
+```
+
+Para un ancho C-exacto (4 bytes) usa un enum con backing entero: `enum Color : u32
+{ ... }`. Un enum **con payload** todavia no puede ser campo de struct (se rechaza
+con un error claro; usa un puntero o un enum con backing).
 
 ---
 
