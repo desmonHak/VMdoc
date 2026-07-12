@@ -421,6 +421,71 @@ entrada y rutinas con convencion de llamada manual:
 Una funcion `@Naked` puede llamar a otra funcion del modulo por su nombre
 (`call add`), como se vio en la seccion de simbolos.
 
+### Recibir N argumentos crudos: `...`
+
+Una funcion `@Naked` puede recibir un numero **variable** de argumentos de
+**cualquier tipo** con un `...` **pelado** (sin tipo ni nombre) como ultimo
+parametro -- igual que una `F(a, ...)` de C.  A diferencia del variadico normal
+`T... args` (que empaqueta los args en un array y ofrece `vacount()`), el `...`
+crudo **no empaqueta nada**: cada argumento aterriza en su registro de argumento
+del ABI segun su tipo, y el cuerpo `asm` los lee de ahi directamente.
+
+```vesta
+// Wrapper de syscall: sysno + N args crudos.  El cuerpo baraja los registros
+// del ABI a la convencion del syscall.
+@Naked
+u64 syscall_exec(u32 sysno, ...) {
+    register("eax") u32 nr = sysno;   // arg fijo -> su arg-reg
+    asm {
+        // los args crudos estan en los arg-regs RESTANTES del ABI
+        mov r10, rcx        // (ejemplo) primer arg variadico
+        syscall
+        ret
+    }
+}
+
+// El caller coloca cada arg segun su tipo en el call site:
+syscall_exec(60, ptr, valor);
+```
+
+Como los registros dependen del ABI, un wrapper portable selecciona el cuerpo con
+`@Target`:
+
+| Posicion | Win64 (entero/puntero) | SysV / Linux (entero/puntero) |
+| :------- | :--------------------- | :---------------------------- |
+| arg 0    | `rcx`                  | `rdi`                         |
+| arg 1    | `rdx`                  | `rsi`                         |
+| arg 2    | `r8`                   | `rdx`                         |
+| arg 3    | `r9`                   | `rcx`                         |
+| arg 4+   | pila                   | `r8`, `r9`, pila              |
+
+```vesta
+@Target("os:windows")
+@Naked
+u64 add_raw(u64 a, ...) {
+    asm { mov rax, rcx; add rax, rdx; ret }   // a=rcx, vararg0=rdx
+}
+
+@Target("!os:windows")
+@Naked
+u64 add_raw(u64 a, ...) {
+    asm { mov rax, rdi; add rax, rsi; ret }   // a=rdi, vararg0=rsi
+}
+
+u64 r = add_raw(40, 2);   // 42
+```
+
+Reglas del `...` crudo:
+
+- **Solo en `@Naked`**: fuera de una funcion `@Naked` es un error de compilacion
+  (el cuerpo debe acceder a los registros de argumento por su cuenta).
+- **Debe ser el ultimo** parametro.
+- **No hay `vacount()` ni indexado**: `...` no introduce un nombre ni un array.
+  Para eso usa el variadico empaquetado `T... args`.
+- **Type-agnostico**: acepta enteros, punteros, floats, etc.  Los enteros y
+  punteros viajan en los arg-regs GP (tabla de arriba); los floats en los
+  arg-regs XMM (`xmm0`, `xmm1`, ...) segun la posicion del ABI.
+
 
 ## Bloques `asm` a nivel de modulo (16/32/64 bits)
 
