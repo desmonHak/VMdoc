@@ -482,9 +482,28 @@ Reglas del `...` crudo:
 - **Debe ser el ultimo** parametro.
 - **No hay `vacount()` ni indexado**: `...` no introduce un nombre ni un array.
   Para eso usa el variadico empaquetado `T... args`.
-- **Type-agnostico**: acepta enteros, punteros, floats, etc.  Los enteros y
-  punteros viajan en los arg-regs GP (tabla de arriba); los floats en los
-  arg-regs XMM (`xmm0`, `xmm1`, ...) segun la posicion del ABI.
+- **Type-agnostico**: acepta enteros, punteros, floats, etc.  El compilador
+  coloca cada argumento segun su **clase**, con conteo **separado por clase**:
+  - enteros y punteros llenan los arg-regs **GP** en orden (tabla de arriba:
+    Win64 `rcx, rdx, r8, r9`; SysV `rdi, rsi, rdx, rcx, r8, r9`);
+  - los floats llenan los arg-regs **XMM** en orden -- el **primer** float va a
+    `xmm0`, el segundo a `xmm1`, etc. (el conteo XMM es independiente del GP, no
+    de la posicion global del argumento).
+
+  Ejemplo: en `f(u64 a, f64 x, u64 b)` con `...`, `a`->GP0, `b`->GP1, y `x`->xmm0.
+
+```vesta
+@Naked
+u64 with_float(u64 a, ...) {
+    asm {
+        cvttsd2si rdx, xmm0   // primer float variadico -> xmm0
+        mov rax, rcx          // (Win64) arg fijo a
+        add rax, rdx
+        ret
+    }
+}
+u64 r = with_float(40, 2.9);   // 40 + trunc(2.9) = 42
+```
 
 
 ## Bloques `asm` a nivel de modulo (16/32/64 bits)
