@@ -299,6 +299,29 @@ struct {
 
 Es equivalente a `typedef struct { ... } SETUP, *PSETUP;`.
 
+### Struct opaco (forward-decl, `typedef struct Tag *P;`)
+
+Un `typedef struct Tag *P, *LP;` **sin cuerpo** declara un struct OPACO
+(incompleto), idioma C de handle opaco.  Registra `Tag` como un tipo incompleto
+usable solo **via puntero** (8 bytes); los alias `P`, `LP` apuntan a `Tag`.  Una
+definicion posterior `struct Tag { ... }` lo **completa** (a partir de ahi es
+derefenciable).  Mientras siga incompleto, sirve como handle que se pasa a APIs
+sin conocer su contenido.
+
+```java
+// forward-decl opaco: PCTX/LPCTX son punteros a un _CTX aun sin cuerpo.
+typedef struct _CTX *PCTX, *LPCTX;
+
+i64 as_handle(PCTX c) { return (i64)c; }   // se usa como handle, sin derefenciar
+
+// completacion: definir el struct despues -> ahora es derefenciable.
+struct _CTX { i32 a; i32 b; }
+
+_CTX c; c.a = 1; c.b = 2;
+PCTX p = &c;
+i32 s = (*p).a + (*p).b;   // OK: _CTX ya esta completo
+```
+
 ### Alineacion del struct (`@align(N)`)
 
 `@align(N)` sobre una declaracion de struct fuerza la alineacion del layout a
