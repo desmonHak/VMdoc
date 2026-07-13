@@ -46,6 +46,10 @@ fn(i32, i32) -> i32 sum = (a, b) => a + b;
 - **Block body**: usar `return` explicito.
 - **Parametros sin tipo**: el compilador infiere del tipo declarado de la variable
  destino (`fn(T1, T2) -> R` declarada -> los params son T1, T2).
+- **Tipo de retorno inferido**: un lambda block-body sin tipo de retorno declarado
+ lo infiere de su primer `return <valor>`.  Esto vale incluso cuando el lambda no
+ tiene contexto de asignacion -- p.ej. cuando lo EMITE un `@Macro` como texto:
+ `() => { i32[8] t; ...; return t[0]; }` infiere `-> i32` del `return`.
 
 ---
 

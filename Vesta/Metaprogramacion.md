@@ -818,6 +818,80 @@ string banner_msg = banner("Vesta v1.0");
 // banner_msg recibe la string con el banner pre-formateado.
 ```
 
+### Compilador embebido: Brainfuck -> Vesta (solo comptime)
+
+Un `@Macro` puede implementar un **compilador completo** en compile-time: recibe
+el fuente de otro lenguaje y EMITE codigo Vesta valido, que luego se compila y
+ejecuta como cualquier otro codigo (cero interprete en runtime).  El ejemplo
+[`311_bf_comptime.vx`](../../../examples_codes_vx/311_bf_comptime.vx) compila
+Brainfuck a un lambda Vesta.  Muestra que las comptime fn soportan **`enum` +
+`match`**, indexado de string **`s[i]`**, y llamadas anidadas entre comptime fn:
+
+```vx
+// Los 8 comandos Brainfuck como enum de tokens.
+enum BfTok { Right, Left, Inc, Dec, Out, In, Loop, EndLoop, Nop }
+
+// caracter -> token (match sobre char).
+comptime BfTok bf_classify(char c) {
+    match c {
+        case '>' => return BfTok.Right;   case '<' => return BfTok.Left;
+        case '+' => return BfTok.Inc;     case '-' => return BfTok.Dec;
+        case '.' => return BfTok.Out;     case ',' => return BfTok.In;
+        case '[' => return BfTok.Loop;    case ']' => return BfTok.EndLoop;
+        case _   => return BfTok.Nop;
+    }
+    return BfTok.Nop;
+}
+
+// token -> fragmento de codigo Vesta (match sobre el enum).
+comptime string bf_emit(BfTok t) {
+    match t {
+        case Right   => return " p = p + 1;";
+        case Inc     => return " tape[p] = tape[p] + 1;";
+        case Loop    => return " while (tape[p] != 0) {";
+        case EndLoop => return " }";
+        case Out     => return " print_char(tape[p]);";
+        // ... resto de arms ...
+        case Nop     => return "";
+    }
+    return "";
+}
+
+comptime string bf_compile_body(string src) {
+    string body = "";
+    for (i64 i = 0; i < strlen(src); i++) {
+        BfTok t = bf_classify(src[i]);   // s[i] devuelve el byte i-esimo
+        body += bf_emit(t);
+    }
+    return body;
+}
+
+// El macro EMITE un lambda; su tipo de retorno se infiere del `return`.
+@Macro comptime string bf(expr src) {
+    return "() => { i32[4096] tape; i32 p = 0;" + bf_compile_body(src) +
+           " return tape[p]; }";
+}
+
+i32 main() {
+    // 6*7 = 42 en la celda 1; el fuente BF se pasa como expresion cruda.
+    fn() -> i32 programa = bf(++++++[>+++++++<-]>);
+    return programa();   // 42
+}
+```
+
+Notas del ejemplo:
+
+- **`enum` + `match` en comptime**: las comptime fn se bajan a bytecode y corren
+  en la ComptimeVM; `match` (sobre char, entero, string o enum) funciona igual
+  que en runtime.
+- **`s[i]`**: el indexado de string por byte funciona en compile-time (y en
+  interp/JIT).  Para ASCII / UTF-8 de 1 byte coincide con el codepoint.
+- **Inferencia del lambda emitido**: el lambda `() => { ...; return tape[p]; }`
+  que emite el macro no lleva tipo de retorno declarado; se infiere del `return`.
+- **`expr` capture**: el fuente Brainfuck se pasa sin comillas.  Debe tener los
+  corchetes `[ ]` balanceados y no contener `,` (colisiona con el separador de
+  argumentos); por eso el ejemplo cubre el nucleo `> < + - [ ] .`.
+
 ---
 
 ## 9. Limitaciones y workarounds

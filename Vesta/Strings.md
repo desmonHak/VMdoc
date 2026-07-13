@@ -64,8 +64,17 @@ string with_escapes = "Linea1\nLinea2\tTabulado";
 string interp = "User: ${name}";
 ```
 
-Procesa escapes: `\n`, `\t`, `\r`, `\\`, `\"`, `\xHH`, `\uHHHH`. Permite
+Procesa escapes: `\n`, `\t`, `\r`, `\\`, `\"`, `\$`, `\xHH`, `\uHHHH`. Permite
 interpolación `${expr}`.
+
+`\$` emite un `$` **literal** sin disparar la interpolación.  Es lo que permite
+generar codigo (via `comptime` / `@Macro`) que a su vez contenga
+interpolaciones que deben re-interpretarse mas tarde:
+
+```vx
+// Este string contiene el TEXTO ${x}, no interpola x aqui.
+string codigo = "print(\"\${x}\");";   // -> print("${x}");
+```
 
 ### Literal raw `r"..."`
 
@@ -240,6 +249,25 @@ Internamente, los métodos despachan a builtins libres (`str_length(s)`,
 | `str_equals(a, b)` | `a.equals(b)` | comparación contenido |
 | `str_make(ptr, len)` | | crea StringObject desde buffer raw |
 | `str_convert(s, enc)`| | convierte a otro encoding |
+
+### Indexado por byte `s[i]`
+
+`s[i]` devuelve el **byte i-esimo** del `string` como `char` (funciona en
+interp, JIT y AOT, y tambien en compile-time dentro de un `comptime fn` /
+`@Macro`).  Para ASCII o UTF-8 de 1 byte coincide con el codepoint:
+
+```vx
+string s = "GET";
+char c = s[0];          // 'G' (0x47)
+for (i64 i = 0; i < strlen(s); i++) {
+    match s[i] { case 'G' => ...; case _ => ...; }
+}
+```
+
+Para texto multi-byte, `s[i]` es el byte crudo (no el codepoint completo); usa
+`substr(s, i, 1)` si necesitas un `string` de un caracter.  El slice
+`s[a..b]` de momento solo esta en compilacion nativa (AOT); usa
+`substr(s, start, len)` en interp/JIT.
 
 Constantes de encoding registradas globalmente:
 
