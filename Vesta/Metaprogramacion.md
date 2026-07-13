@@ -269,6 +269,53 @@ string s = outer(a + b);        // "a + b"
 i32 r2 = twice(a + b);          // inyecta:  (a + b) + (a + b)
 ```
 
+### `source(...)` como quasi-quote: huecos `${...}` e interpolacion runtime `\${...}`
+
+`source(...)` no solo captura el texto de su argumento: tambien es un
+**quasi-quote**.  Escribes una **plantilla de codigo** (que el IDE resalta como
+codigo real, no como un string opaco) y rellenas los huecos con `${expr}`:
+
+```vesta
+comptime string bf_gen(string src, u32 size_stack) {
+    return source(
+        () => {
+            i32[${size_stack}] tape;        // hueco COMPTIME: se evalua al compilar
+            i32 p = 0;
+            ${bf_compile_body(src)}         // hueco COMPTIME: splice del cuerpo
+            return tape[p];
+        }
+    );
+}
+```
+
+Hay **dos** tipos de hueco, y la distincion es importante:
+
+| Sintaxis   | Cuando se evalua | Que produce |
+| :--------- | :--------------- | :---------- |
+| `${expr}`  | **compile-time** (en la ComptimeVM) | el resultado se **splicea** en el texto generado |
+| `\${expr}` | **runtime** (en el codigo generado) | queda `${expr}` **literal** en la salida -> interpolacion del programa final |
+
+`${...}` es un hueco que el compilador rellena AHORA.  `\${...}` **atraviesa**
+hasta el codigo generado tal cual, para que la interpolacion normal de strings
+del programa lo resuelva en ejecucion.  Ejemplo (un compilador que genera un
+`print` de una celda como caracter, en runtime):
+
+```vesta
+comptime string emit_out() {
+    // El `\${...}` NO se evalua al compilar; el lambda generado hara
+    // `print("${tape[p]:char}")` y lo interpolara en RUNTIME.
+    return source( print("\${tape[p]:char}"); );
+}
+```
+
+Esta interpolacion es una propiedad de **todo el lenguaje**: el `${...}` que
+sobrevive al codigo generado se baja por el mismo mecanismo que cualquier
+`"...${x}..."` (STRMAKE + STRCAT) y funciona identico en **interprete, JIT y
+AOT**.
+
+Regla mnemotecnica: si el valor lo conoce el **compilador**, usa `${...}`; si lo
+conoce solo el **programa en ejecucion**, usa `\${...}`.
+
 ---
 
 ## 3. Builtins comptime y azucar sintactico
