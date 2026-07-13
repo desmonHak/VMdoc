@@ -228,6 +228,47 @@ load) consecutivas -- una por hop. Cero overhead vs escribirlo a mano.
 uint64_t v = *(uint64_t*)((char*)*(uint64_t**)((char*)root + 0x100) + 0);
 ```
 
+### Llamar a otras funciones desde el cuerpo
+
+Un `@Macro` o una `comptime fn` puede llamar, dentro de su cuerpo, a **otras
+funciones** -- comptime o runtime:
+
+```vesta
+i32 rt_add(i32 x, i32 y) { return x + y; }        // funcion runtime
+comptime i32 ct_double(i32 n) { return n * 2; }    // funcion comptime
+
+// comptime fn que llama a otra comptime fn:
+comptime i32 chain(i32 n) { return ct_double(n) + 1; }
+
+// comptime fn que llama a una funcion runtime (se pliega en compile-time):
+comptime i32 uses_rt(i32 n) { return rt_add(n, 2); }
+const i32 K = uses_rt(40);      // 42, calculado al compilar
+
+// @Macro que GENERA codigo que llama a una funcion runtime en el call site:
+@Macro comptime string gen(u32 n) {
+    return "rt_add(40, " + to_str(n) + ")";
+}
+i32 r = gen(2);                 // inyecta: rt_add(40, 2) -> 42
+```
+
+**Forwarding de `expr` anidado.**  Un macro/comptime fn con un parametro `expr`
+puede pasar ese parametro a otra fn `expr`-capture; el texto capturado se
+propaga (no se re-captura el identificador):
+
+```vesta
+comptime string source(expr code) { return code; }
+
+// comptime fn (VALOR):
+comptime string outer(expr code) { return source(code); }
+string s = outer(a + b);        // "a + b"
+
+// @Macro (inyecta CODIGO):
+@Macro comptime string twice(expr e) {
+    return "(" + source(e) + ") + (" + source(e) + ")";
+}
+i32 r2 = twice(a + b);          // inyecta:  (a + b) + (a + b)
+```
+
 ---
 
 ## 3. Builtins comptime y azucar sintactico
