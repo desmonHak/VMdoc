@@ -202,9 +202,11 @@ Cada enlace se lee como una **declaracion**: `<clase> <nombre> [= <init>]`.
     (*read-back*);
   - `reg t,` a secas (sin init y sin leerse despues) = **scratch** que el
     compilador reserva.
-- Los nombres del enlace se usan **tal cual** dentro del asm.  `clobber(...)`
-  (o `clobbers(...)`) va antes del `{` y acepta identificadores desnudos
-  (`clobber(flags, memory)`).
+- Los nombres del enlace se usan **tal cual** dentro del asm.  Los **clobbers
+  se infieren** (igual que con `register()`): NO hace falta declararlos.  Si
+  quieres anadir alguno que la inferencia no capta, `clobber(...)` (o
+  `clobbers(...)`) va antes del `{` y acepta identificadores desnudos
+  (`clobber(flags, memory)`) ademas de strings.
 
 Ejemplos por combinacion (ver `examples_codes_vesta/asm/10..13`):
 
