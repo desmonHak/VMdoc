@@ -22,15 +22,16 @@ tres modos de VestaVM (por defecto, `-m jit` y `-m vm`), se puede portar a C
 2. [Formas de escribir ensamblador](#formas-de-escribir-ensamblador)
 3. [El bloque `asm { ... }`](#el-bloque-asm----)
 4. [Ligar variables a registros: `register("reg")`](#ligar-variables-a-registros-registerreg)
-5. [Calificadores (qualifiers)](#calificadores-qualifiers)
-6. [La clausula `clobbers(...)`](#la-clausula-clobbers)
-7. [Sustitucion de constantes `comptime`](#sustitucion-de-constantes-comptime)
-8. [Modos de ejecucion y backends](#modos-de-ejecucion-y-backends)
-9. [Referenciar simbolos propios](#referenciar-simbolos-propios)
-10. [Funciones sin marco: `@Naked`](#funciones-sin-marco-naked)
-11. [Bloques `asm` a nivel de modulo (16/32/64 bits)](#bloques-asm-a-nivel-de-modulo-163264-bits)
-12. [Mas ejemplos](#mas-ejemplos)
-13. [Limitaciones actuales](#limitaciones-actuales)
+5. [Operandos con la lista `( ... )` (el compilador elige el registro)](#operandos-con-la-lista----el-compilador-elige-el-registro)
+6. [Calificadores (qualifiers)](#calificadores-qualifiers)
+7. [La clausula `clobbers(...)`](#la-clausula-clobbers)
+8. [Sustitucion de constantes `comptime`](#sustitucion-de-constantes-comptime)
+9. [Modos de ejecucion y backends](#modos-de-ejecucion-y-backends)
+10. [Referenciar simbolos propios](#referenciar-simbolos-propios)
+11. [Funciones sin marco: `@Naked`](#funciones-sin-marco-naked)
+12. [Bloques `asm` a nivel de modulo (16/32/64 bits)](#bloques-asm-a-nivel-de-modulo-163264-bits)
+13. [Mas ejemplos](#mas-ejemplos)
+14. [Limitaciones actuales](#limitaciones-actuales)
 
 
 ## Un primer ejemplo
@@ -164,6 +165,70 @@ asm volatile {
 - El asignador de registros **respeta el registro pedido** y protege el valor a
   traves del bloque: variables Vesta ordinarias que sigan vivas despues del asm
   no se corrompen aunque el asm pise registros (ver `clobbers`).
+
+
+## Operandos con la lista `( ... )` (el compilador elige el registro)
+
+Ademas de ligar variables con `register("reg")`, un bloque `asm` puede declarar
+sus operandos en una **lista entre parentesis** justo antes del `{`.  Asi el
+`{ ... }` queda con **solo asm real** (nada de declaraciones mezcladas), y la
+mayor ventaja: puedes pedir que **el compilador elija el registro** en vez de
+fijarlo tu.
+
+```vesta
+i64 cas(i64* addr, i64 expected, i64 desired) {
+    asm volatile (
+        reg p = addr,             // in: 'reg' = el COMPILADOR elige el registro
+        reg d = desired,          // in
+        rax a = expected,         // rax (lo exige cmpxchg); tras el bloque 'a' = resultado
+    ) clobber(flags, memory) {
+        lock cmpxchg [p], d       // aqui SOLO asm; 'p','d','a' son los operandos
+    }
+    return a;                     // read-back: 'a' contiene el valor viejo
+}
+```
+
+Cada enlace se lee como una **declaracion**: `<clase> <nombre> [= <init>]`.
+
+- **La clase es el "tipo" del enlace**:
+  - `reg` — cualquier registro entero; **el compilador elige el mejor libre**.
+  - `rax`, `rcx`, ..., `r15` — un registro concreto (cuando la instruccion lo
+    exige, p.ej. `cmpxchg` usa `rax`).
+  - `xmm`/`ymm`/`zmm` — registros vectoriales.
+  - `mem` — operando en memoria (reservado; aun no disponible).
+- **La direccion se infiere del uso** (no hay que escribir `in`/`out`):
+  - con inicializador (`= expr`) el operando **entra** con ese valor;
+  - si **lees el nombre despues** del bloque, ese es su valor de **salida**
+    (*read-back*);
+  - `reg t,` a secas (sin init y sin leerse despues) = **scratch** que el
+    compilador reserva.
+- Los nombres del enlace se usan **tal cual** dentro del asm.  `clobber(...)`
+  (o `clobbers(...)`) va antes del `{` y acepta identificadores desnudos
+  (`clobber(flags, memory)`).
+
+Ejemplos por combinacion (ver `examples_codes_vesta/asm/10..13`):
+
+```vesta
+// 'reg' auto + scratch + read-back
+asm volatile ( reg x = 15, reg y = 27, reg s, ) clobber(flags) {
+    mov s, x
+    add s, y
+}
+// s = 42
+
+// inout via read-back (xadd deja el valor viejo en el registro)
+asm volatile ( reg p = addr, reg v = delta, ) clobber(memory) {
+    lock xadd [p], v
+}
+// v = valor viejo
+```
+
+Comparado con `register("reg")`: el modelo de lista es equivalente pero mas
+legible (interfaz separada del cuerpo) y **permite `reg` = eleccion automatica
+del registro**, evitando gestionar registros a mano y los errores de portar
+codigo entre convenciones de llamada (un registro que es *callee-saved* en una
+ABI y *caller-saved* en otra).  Funciona en los cuatro modos: interprete, JIT y
+AOT (PE/ELF).
 
 
 ## Calificadores (qualifiers)
