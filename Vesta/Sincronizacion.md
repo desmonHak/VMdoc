@@ -18,6 +18,7 @@ exception-safe automatico.
  - [6. Layout runtime: ObjectHeader monitor fields](#6-layout-runtime-objectheader-monitor-fields)
  - [7. Patron productor-consumidor](#7-patron-productor-consumidor)
  - [8. Limitaciones](#8-limitaciones)
+ - [9. `atomic<T>`: sin monitor](#9-atomict-sin-monitor)
 
 ---
 
@@ -289,6 +290,158 @@ i32 main() {
 
 ---
 
+## 9. `atomic<T>`: sin monitor
+
+Un monitor protege una **región** de código: varias operaciones que tienen que
+ocurrir juntas. Cuando lo único que hay que proteger es **una** lectura o
+escritura de un entero, el monitor sobra — y `atomic<T>` lo hace en una sola
+instrucción de la CPU, sin bloquear a nadie.
+
+Vive en la stdlib, no en el compilador: es un `struct` de un solo campo que
+sobrecarga los operadores para que cada uno sea una operación atómica. Se
+escribe como una variable normal.
+
+```vx
+import "vx_atomic" only atomic;
+
+atomic<i64> peticiones;
+
+void atender() {
+    peticiones += 1;        // lock xadd -- indivisible, sin monitor
+}
+
+i64 total() {
+    return *peticiones;     // load atomico
+}
+```
+
+Las **tres** formas del incremento bajan a la misma instrucción:
+
+```vx
+peticiones++;
+peticiones += 1;
+peticiones = peticiones + 1;    // el compilador funde el read-modify-write
+```
+
+La última es la que en C++ compila y es una carrera silenciosa: allí son tres
+pasos (leer, sumar, escribir) y otro hilo cabe en medio. Aquí el compilador ve
+que las dos `peticiones` son la misma posición y las funde, así que las tres son
+igual de correctas (ver [[Operadores]], fusión read-modify-write).
+
+Coste cero frente a llamar a las primitivas a mano: los métodos de un struct se
+despachan estáticamente y se inlinean, así que `peticiones += 1` emite la
+instrucción atómica y nada más — sin llamada ni objeto intermedio.
+
+### Lo que no compila, y por qué
+
+```vx
+if (peticiones < 100) { ... }       // error: atomic<i64> no declara '<'
+i64 x = peticiones + 1;             // error: atomic<i64> no declara '+'
+```
+
+No son descuidos. Comparar o sumar dos atómicos son **dos lecturas separadas**,
+y el resultado ya no es atómico. El tipo no declara esas operaciones y el
+compilador lo dice, en vez de dejar pasar código que parece atómico y no lo es.
+Cuando de verdad hace falta leer, el load se escribe:
+
+```vx
+if (*peticiones < 100) { ... }      // se ve que hay una lectura
+```
+
+### El vocabulario completo
+
+Los operadores son cómodos, pero en código concurrente muchas veces se prefiere
+que la operación atómica **se vea**: `head.store(next)` dice más que
+`head = next`. Son los mismos métodos, y es el vocabulario de C++, Rust, Java,
+Zig y C#.
+
+| Qué | Métodos |
+| :-- | :------ |
+| Leer / escribir / intercambiar | `load()`, `store(v)`, `exchange(v)` |
+| Compare-and-swap | `compare_swap(esperado, nuevo)` → el valor que había · `compare_exchange(esperado, nuevo)` → si triunfó |
+| Read-modify-write (devuelven el **anterior**) | `fetch_add`, `fetch_sub`, `fetch_or`, `fetch_and`, `fetch_xor`, `fetch_max`, `fetch_min` |
+| Genéricos | `fetch_update(f)` → el anterior · `update(f)` → el nuevo |
+
+**Los `fetch_*` devuelven el valor anterior**, y eso es lo que las hace útiles,
+no un detalle. Dos hilos que suman 1 a la vez obtienen el mismo valor *nuevo*,
+pero un *anterior* distinto cada uno — y eso es lo que reparte las casillas de
+un ring buffer sin bloquear a nadie:
+
+```vx
+i64 idx = tail.fetch_add(1);    // reservo ESTA casilla, no otra
+buffer[idx] = x;
+```
+
+`+=` se construye sobre ellos (`fetch_add(d) + d`), no al revés.
+
+### `compare_swap`, `compare_exchange` y los bucles CAS
+
+`compare_swap(esperado, nuevo)` escribe sólo si el valor es el esperado, y
+devuelve el que había: si coincide con el esperado, triunfó. Que falle no es un
+error — significa que otro hilo cambió el valor entre tu lectura y tu escritura.
+Se reintenta con el valor nuevo.
+
+`compare_exchange` es lo mismo pero devuelve si triunfó, que es lo que se quiere
+saber casi siempre (evita repetir `if (a.compare_swap(v, n) == v)`).
+
+Con ellos se construye cualquier read-modify-write que no tenga instrucción
+propia. `fetch_update` es ese bucle ya escrito:
+
+```vx
+// Duplicar atomicamente, sin monitor:
+contador.fetch_update((x) => x * 2);
+```
+
+La lambda debe ser **pura y barata**. Pura porque se ejecuta una vez por
+reintento: si tiene efectos, ocurrirán varias veces. Y barata porque cuanto más
+tarda, más fácil es que otro hilo se adelante y haya que repetirla — con un
+cálculo caro y contención, el bucle puede no avanzar. Si el cálculo es caro, el
+bucle se escribe a mano y se decide qué hacer en cada reintento:
+
+```vx
+while (true) {
+    i64 viejo = a.load();
+    i64 nuevo = calculo_caro(viejo);      // aqui decides tu
+    if (a.compare_exchange(viejo, nuevo)) { break; }
+}
+```
+
+`update(f)` es como `fetch_update` pero devuelve el valor nuevo:
+`nuevo = contador.update((x) => x + 1);`
+
+### Qué tipos admiten un atómico
+
+Los que la CPU sabe leer, escribir e intercambiar de una pieza: enteros,
+punteros y floats. Un struct o una clase no — caben en la celda, pero un
+`lock cmpxchg` sobre ellos no significa nada.
+
+Del ancho decide la introspección, en tiempo de compilación. Hoy sólo hay
+primitiva de 64 bits, así que `atomic<i32>` da un error que lo dice; cuando
+lleguen los anchos de 1/2/4 se abrirán sin tocar el tipo.
+
+`atomic<f64>` funciona con los mismos operadores. La suma no puede ser un
+`lock xadd` (sumar dos patrones IEEE 754 como enteros no da la suma de los
+números), así que va por bucle CAS — lo elige el compilador, y en el binario
+sólo queda la rama que toca. Las operaciones de bits sí valen sobre un float, y
+eso es útil: `fetch_xor(0x8000000000000000)` invierte el signo atómicamente.
+
+### Cuándo cada cosa
+
+| Necesitas | Usa |
+| :-------- | :-- |
+| Un contador, un flag, un puntero compartido | `atomic<T>` |
+| Varias operaciones que deben ocurrir juntas | `synchronized (obj) { ... }` |
+| Esperar a que se cumpla una condición | `wait` / `notify` sobre un monitor |
+| No compartir nada | mensajes ([[Async]]) |
+
+La celda es siempre de 64 bits, así que `T` puede ser cualquier entero de hasta
+ese ancho (un `atomic<i32>` ocupa 8 bytes).
+
+Ejemplo completo: `318_atomic_tipo.vx`.
+
+---
+
 Ver también: [[Async]] (spawn / msgsend / msgrecv para comunicación entre
 procesos sin shared memory), [[OOP]] (objetos GC son owner natural del monitor),
-[[Excepciones]] (try/catch interactúa correctamente con synchronized cleanup).
+[[Excepciones]] (try/catch interactúa correctamente con synchronized cleanup),
+[[Operadores]] (sobrecarga y fusión read-modify-write).
