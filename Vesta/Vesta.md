@@ -616,12 +616,36 @@ Los contratos son anotaciones en minuscula:
 | `@nothrow` | No hay ningun `throw` alcanzable |
 | `@nopanic` | No hay ningun `panic` alcanzable |
 | `@alloc(N)` | A lo sumo `N` sitios de allocacion en heap (GC / raw / `new` / closure) |
-| `@stack(N)` | A lo sumo `N` bytes de marco de pila propio |
+| `@stack(N)` | A lo sumo `N` bytes de pila (ver dimensiones abajo) |
 | `@complexity(O(...))` | Contrato de coste asintotico (Big-O); ver mas abajo |
 
 Se declaran sobre funciones libres y sobre los **metodos** de un struct o una
 clase, y admiten un `when:` para condicionarlos a la arquitectura, al sistema o
 al parametro de tipo (ver mas abajo).
+
+**`@alloc` y `@stack` tienen dos dimensiones**, como `@complexity`: **parcial**
+(lo que la funcion hace por si misma) y **total** (incluyendo lo que llama).
+
+- `@stack` parcial = el marco de pila PROPIO de la funcion; total = la
+  profundidad de pila PEOR CASO del arbol de llamadas (el propio marco mas el
+  camino de llamadas mas hondo, no la suma de todos).
+- `@alloc` parcial = los sitios de allocacion PROPIOS; total = los del cierre
+  transitivo alcanzable.
+
+La forma corta `@stack(N)` / `@alloc(N)` fija el **total** (el peor caso que
+importa desde fuera, como `@complexity(O(..))` es azucar de `total_post`).  La
+forma nombrada declara cualquiera de las dos, o ambas:
+
+```java
+@stack(0)                       // total 0 (no usa pila ni la de sus callees)
+@stack(partial: 32, total: 160) // 32 propio, 160 con la cadena de llamadas
+@alloc(partial: 0, total: 2)    // no aloca propio, 2 en lo que llama
+```
+
+El parcial es EXACTO (siempre verificable).  El total de `@stack` puede quedar
+**inverificable** (`?`) si la profundidad no es acotable -- hay recursion en el
+callgraph o un callee externo cuyo marco no se ve -- y entonces no se afirma
+ninguna cota (nunca un falso VIOLATED).
 
 ### Verificacion: OK, VIOLATED, UNVERIFIABLE
 
@@ -798,6 +822,15 @@ error con la lista de los validos, no un contrato descartado en silencio. Sin
 
 `when:` sirve en todas: `@alloc(0, when: ...)`, `@nothrow(when: ...)`, etc.
 
+**Varios `when:` que casan a la vez.** Se evaluan TODAS las condiciones y se
+aplican todas las que casan. Si dos escriben el mismo campo (p.ej. dos
+`@complexity` con `total_post`), gana la **mas especifica**: A es mas especifica
+que B si A implica B y B no implica A (se comprueba por tabla de verdad sobre la
+union de sus atomos). Si el compilador no puede decidir cual es mas especifica,
+es un **error de ambiguedad**, no una eleccion arbitraria. Asi un
+`when: arch:x86_64 && is_float<T>()` gana sobre un `when: arch:x86_64` para la
+instancia `f64` en x86-64, sin que haga falta ordenarlos a mano.
+
 ### Inspeccion: modo analisis
 
 Estos contratos y la huella inferida se muestran con el modo de analisis, sin
@@ -806,6 +839,7 @@ generar codigo, y estan pensados tambien para el hover de un editor:
 ```bash
 vm --analyze fichero.vx          # salida legible: huella + estado de cada contrato
 vm --analyze fichero.vx --analyze-json   # el mismo analisis como JSON
+vm --analyze fichero.vx --analyze-write  # escribe las anotaciones sugeridas al fichero
 ```
 
 Por cada funcion imprime una linea `Huella:` con las propiedades exactas
@@ -813,6 +847,28 @@ Por cada funcion imprime una linea `Huella:` con las propiedades exactas
 estado de cada contrato declarado (`OK` / `FALLA` / `?`). Al compilar de verdad
 (`vm --vesta fichero.vx -o ...`), un contrato en estado `VIOLATED` aborta el
 build. El ejemplo completo esta en `examples_codes_vx/analyze/contracts.vx`.
+
+**`--analyze` genera las anotaciones.** Ademas de verificar, el analisis emite
+el bloque de contratos que cada funcion deberia llevar, medido, para copiar y
+pegar. El valor ES lo que se mide (no una suposicion): mide en TODAS las
+arquitecturas soportadas y, si una instancia generica cambia con `T`, en todas
+las clases de tipo, y agrupa las instancias bajo su plantilla
+(`atomic<T>::fetch_add`). Donde el valor coincide en todo, sale una linea sin
+`when:`; donde difiere, el analisis pone el `when:` MiNIMO que lo describe
+(`arch:x86_64`, `is_float<T>()`, o los dos), sin perder la informacion por-arch
+ni por-tipo. Las cuatro dimensiones de `@complexity` se miden por separado:
+
+- `partial` = **el cuerpo escrito**, contando cada llamada como O(1). Es una
+  propiedad de la funcion: el inline NO lo altera (si lo hiciera, dependeria del
+  optimizador y `-O0` daria un valor distinto de `-O3`).
+- `total` = interprocedural: el coste propio mas el de lo que llama.
+- `pre` = el fuente tal cual; `post` = el codigo final (tras optimizar).
+
+Con `--analyze-write` esas anotaciones se escriben **en el propio fichero**,
+sustituyendo las de contrato que ya tuviera cada funcion o metodo definido ahi
+(respeta `@Target`/`@Override`/comentarios). Las funciones que vienen de un
+`import` no se tocan: se anotan analizando su propio fichero. El reescritor se
+aplica sobre su salida antes de guardar y, si no es estable, no toca el fichero.
 
 ---
 
