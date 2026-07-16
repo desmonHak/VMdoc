@@ -211,6 +211,44 @@ string r = "prefix " + dynamic_name; // literal se promociona a StringObject
 - **Auto-coerce**: si un lado es `StringLitExpr` (sin interpolación) y el otro es
  `string`, el literal se promociona automáticamente vía `STRMAKE` inline.
 
+### Lo que se conoce al compilar no cuesta nada al ejecutar
+
+Un `+` entre cadenas que el compilador ya conoce **no llega a ejecutarse**: se
+resuelve al compilar y queda un literal.
+
+```vx
+string saludo = "hola" + " " + "mundo";   // un literal, 0 STRCAT
+
+string a = "aaa";
+string b = "bbb";
+string c = a + b;                          // tambien: "aaabbb" al compilar
+```
+
+El segundo caso importa porque es el que se escribe sin pensar. Funciona aunque
+las partes lleguen por variables, o desde otra función que se haya inlineado, y
+encadena solo (`a + b + c`).
+
+Además, la parte que **sólo existía para el concat** deja de construirse: arriba,
+`b` no llega a crearse en tiempo de ejecución. Si se usa en algún otro sitio, se
+queda. (Sus bytes siguen en la sección de datos: hoy no se podan los literales
+que nadie referencia. No cuesta un ciclo, sólo unos bytes.)
+
+Y para partir un mensaje largo, dos literales pegados son uno solo, como en C —
+sin operadores:
+
+```vx
+string aviso = "esto es una sola cadena, "
+               "aunque este escrita en dos lineas";
+```
+
+En cuanto una parte se conoce sólo al ejecutar, el `STRCAT` es real y debe serlo:
+
+```vx
+string dinamico = "n=" + to_str(n) + "!";   // aqui si hay concatenacion
+```
+
+Ejemplo completo: `321_strings_comptime.vx`.
+
 ---
 
 ## 6. Métodos OO sobre string
