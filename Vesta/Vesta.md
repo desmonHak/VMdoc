@@ -619,6 +619,10 @@ Los contratos son anotaciones en minuscula:
 | `@stack(N)` | A lo sumo `N` bytes de marco de pila propio |
 | `@complexity(O(...))` | Contrato de coste asintotico (Big-O); ver mas abajo |
 
+Se declaran sobre funciones libres y sobre los **metodos** de un struct o una
+clase, y admiten un `when:` para condicionarlos a la arquitectura, al sistema o
+al parametro de tipo (ver mas abajo).
+
 ### Verificacion: OK, VIOLATED, UNVERIFIABLE
 
 Al compilar, cada contrato declarado se resuelve a uno de tres estados:
@@ -707,6 +711,92 @@ i64 suma(i64[] xs) { ... }
 El compilador infiere la clase de coste de la funcion y valida cada dimension
 declarada; si la clase inferida es demostrablemente distinta de la declarada,
 lo reporta como discrepancia.
+
+`O(...)` a secas es azucar de una de las **cuatro** dimensiones, `total_post`.
+Las cuatro salen de cruzar PARCIAL (el cuerpo, contando cada llamada como O(1))
+con TOTAL (interprocedural), y PRE-opt (la complejidad del fuente) con POST-opt
+(la del codigo final, tras inline y demas). Se declaran por separado:
+
+```java
+@complexity(partial_pre: O(1), partial_post: O(n),
+            total_pre: O(n), total_post: O(n))
+i64 f(...) { ... }
+```
+
+Que difieran no es raro ni es un fallo: `partial_post` sale O(n) donde
+`partial_pre` es O(1) cuando el optimizador inlinea un callee que tiene un
+bucle -- post-inline ese bucle esta en el cuerpo, no detras de una llamada.
+
+### Contratos en metodos
+
+Valen igual sobre los metodos de un struct o una clase, que es donde mas falta
+hacen: la API de un tipo son sus metodos, y sus propiedades ("no aloca", "no
+lanza", "es O(1)") son justo lo que decide si se puede usar desde un ISR, un
+allocator o codigo freestanding.
+
+```java
+struct Contador {
+    i64 n;
+
+    @pure
+    @nothrow
+    @nopanic
+    @alloc(0)
+    @stack(0)
+    @complexity(partial_pre: O(1), partial_post: O(1),
+                total_pre: O(1), total_post: O(1))
+    public i64 leer() { return this.n; }
+}
+```
+
+En un tipo generico, el contrato de la plantilla es una promesa para **cada**
+instanciacion: se verifica una vez por cada una, y el error nombra la culpable
+(`contrato @alloc incumplido en 'Caja_i64__desc'`).
+
+### `when:` -- el contrato que depende del target o del tipo
+
+Un mismo codigo no siempre cuesta lo mismo:
+
+- El coste **total** cambia con la arquitectura si algun callee tiene cuerpos
+  por-arch distintos. `atomic<T>::swap` de la stdlib llama a
+  `vx_atomic_swap64`, que en x86-64 es un bucle CAS escrito en Vesta (no hay
+  instruccion de exchange) y en arm64 el LL/SC nativo: O(n) contra O(1).
+- El coste de un metodo generico cambia con el **parametro de tipo** si el
+  cuerpo tiene un `if` que la introspeccion resuelve en comptime.
+  `atomic<i64>::fetch_add` es un `lock xadd` (O(1)) y `atomic<f64>::fetch_add`
+  un bucle CAS (O(n)), del mismo fuente.
+
+Con un solo contrato no se puede decir la verdad de los dos casos a la vez.
+`when:` condiciona la anotacion:
+
+```java
+// Por arquitectura.
+@complexity(total_post: O(n), when: arch:x86_64)
+@complexity(total_post: O(1), when: arch:arm64)
+public T swap(T v) { ... }
+
+// Por el parametro de tipo.
+@complexity(total_post: O(1), when: is_integer<T>())
+@complexity(total_post: O(n), when: is_float<T>())
+public T fetch_add(T d) { ... }
+
+// Los dos ejes se combinan: es una sola expresion.
+@complexity(total_post: O(n), when: arch:x86_64 && is_float<T>())
+```
+
+La expresion es la de `@Target` (`os:` / `arch:` / `cpu:` / `mode:` /
+`compiler OP M.m` / `vm OP M.m`, con `&&`, `||`, `!` y parentesis) mas los
+predicados sobre los type params: `is_float<T>()`, `is_integer<T>()`,
+`is_pointer<T>()`, `is_signed<T>()` y `sizeof<T>() OP N`. Va **sin comillas**:
+asi un editor la ve como una expresion y puede completarla y validarla, no como
+una cadena opaca.
+
+Cada atomo se resuelve donde tiene respuesta: los del target al compilar, los
+que hablan de `T` al instanciar el generico. Un atomo que no se entienda es un
+error con la lista de los validos, no un contrato descartado en silencio. Sin
+`when:`, el contrato aplica siempre.
+
+`when:` sirve en todas: `@alloc(0, when: ...)`, `@nothrow(when: ...)`, etc.
 
 ### Inspeccion: modo analisis
 
