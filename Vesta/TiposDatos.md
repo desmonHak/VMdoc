@@ -651,6 +651,58 @@ que su underlying; el cast explicito baja al mismo BITCAST que cualquier
 otra conversion entre tipos del mismo ancho. Toda la distincion vive
 en el type checker.
 
+#### Sobre tipos propios: struct, clase y enum
+
+El underlying no tiene que ser un primitivo. Un newtype sobre un tipo propio
+conserva **todo** lo suyo — campos, métodos, variantes, tamaño — y sólo añade la
+identidad:
+
+```vx
+struct Punto { i64 x; i64 y; public i64 suma() { return this.x + this.y; } }
+
+typedef Punto Coord new;
+typedef Punto Pixel new;      // misma forma, otro significado
+
+i64 distancia(Coord c) { return c.suma(); }   // solo acepta Coord
+
+Coord c;
+c.x = 1;  c.y = 2;            // los campos, como en Punto
+distancia(c);                  // OK
+
+Pixel p;
+distancia(p);                  // error: Pixel no es Coord
+```
+
+Ese último error es el motivo de todo: dos cosas con la misma representación
+pero distinto significado (metros y pies, un id de sesión y uno de cuenta) dejan
+de poder confundirse, y se dice en compilación en vez de en producción.
+
+Funciona igual con clases y enums:
+
+```vx
+class Caja { public i64 v = 0; public i64 leer() { return this.v; } }
+typedef Caja Sesion new;
+
+Sesion s = new Sesion();      // construye la Caja de debajo
+s.v = 7;
+s.leer();                      // sus metodos
+
+enum Color { Rojo, Verde, Azul }
+typedef Color Tinta new;
+
+Tinta t = Tinta.Verde;         // sus variantes
+match t {
+    case Verde => ...;
+    case _     => ...;
+}
+```
+
+Un newtype no declara nada propio: no genera constructor, ni layout, ni copia
+del código. `new Sesion()` construye la `Caja`, y sus métodos son los de `Caja`.
+Lo único que no comparte es la identidad.
+
+Ejemplo completo: `320_newtype_tipos_usuario.vx`.
+
 ### Newtypes opacos (`@opaque`)
 
 Para handles cuya representacion interna no debe leer el cliente:
