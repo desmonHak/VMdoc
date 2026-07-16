@@ -25,6 +25,7 @@ asignación, unarios, postfix y conversiones.
  - [12. Sobrecarga de operadores](#12-sobrecarga-de-operadores)
  - [Tabla completa de métodos](#tabla-completa-de-métodos)
  - [`+=` no es `a = a + b`](#-no-es-a--a--b)
+ - [...y `a = a + b` sí es `a += b`](#y-a--a--b-sí-es-a--b)
  - [`==` da `!=` gratis; `__bool__` conserva el cortocircuito](#-da--gratis-__bool__-conserva-el-cortocircuito)
  - [Operadores de acceso: `*x`, `x = v`, `x(...)`, `x{...}`](#operadores-de-acceso-x-x--v-x-x-1)
  - [Qué NO se puede sobrecargar](#qué-no-se-puede-sobrecargar)
@@ -460,6 +461,39 @@ un `+=`, y el error de tipos lo dice.
 
 `++a` y `a++` usan la misma resolución con `1`. Como en C, el prefijo evalúa al
 valor ya modificado y el sufijo al anterior.
+
+### ...y `a = a + b` sí es `a += b`
+
+La regla también funciona al revés. Cuando el compilador ve que las dos `a` son
+la **misma posición**, funde los tres pasos (leer, operar, escribir) en la
+operación in-place del tipo: una sola, sin el load suelto de por medio.
+
+Esto existe por los tipos atómicos. `g = g + 1` son tres pasos y otro hilo cabe
+en medio — en C++ eso compila y es una carrera silenciosa. Aquí la fusión lo
+convierte en el incremento atómico indivisible del tipo, así que **las tres
+formas son igual de correctas** y bajan a la misma instrucción:
+
+```vx
+g++;             // las tres emiten UN solo incremento atomico
+g += 1;
+g = g + 1;
+```
+
+No hay que prohibir la forma larga ni recordar cuál es la buena.
+
+La fusión es estricta a propósito — ante la duda, no funde:
+
+- El destino es un identificador simple: releerlo no tiene efectos.
+  `arr[f()] = arr[f()] + 1` llamaría a `f()` dos veces, así que no se toca.
+- El operando izquierdo es **ese** identificador, no otro.
+- El derecho no lo menciona: `g = g + g` son dos lecturas y `g += g` solo sería
+  una, así que tampoco se funde.
+- El tipo declara el método in-place. Sin esto no se toca nada: los primitivos
+  (`i64 g; g = g + 1`) siguen su camino de siempre.
+
+Cubre los diez operadores con forma compuesta: `+ - * / %` y `& | ^ << >>`.
+
+Ejemplo completo: `317_rmw_fusion.vx`.
 
 ### `==` da `!=` gratis; `__bool__` conserva el cortocircuito
 
