@@ -132,9 +132,15 @@ register("rax") u64 cuenta;          // salida: se escribe desde rax
 - El tipo debe ser **primitivo** (enteros `i8..i64`/`u8..u64`, `bool`, `char`
   o un puntero `T*`).
 - El nombre del registro es una cadena.  Se aceptan los registros de proposito
-  general de 64 bits (`rax`, `rbx`, `rcx`, `rdx`, `rsi`, `rdi`, `rbp`, `rsp`,
-  `r8`..`r15`) y sus alias de menor ancho (`eax`/`ax`/`al`, `r8d`/`r8w`/`r8b`,
-  etc.), que se resuelven al registro fisico correspondiente.
+  general de 64 bits (`rax`, `rbx`, `rcx`, `rdx`, `rsi`, `rdi`, `r8`..`r15`) y sus
+  alias de menor ancho (`eax`/`ax`/`al`, `r8d`/`r8w`/`r8b`, etc.), que se
+  resuelven al registro fisico correspondiente.
+- **No se puede ligar una variable a `rsp` ni `rbp`** (el puntero de pila/marco):
+  un valor Vesta no puede vivir ahi sin romper la pila, asi que el compilador lo
+  rechaza con un error (VXA008) que te remite a manipular la pila en el **cuerpo**
+  del `asm` (`push`/`pop`, `sub rsp`, `mov rax, rsp`) -- ver *Manipular la pila*
+  mas abajo.  Ligar a `rbx` avisa (VXA009): en modo VM lo reserva el runtime, asi
+  que ese bloque corre en el interprete (no en el JIT).
 
 ### Entrada, salida e inout
 
@@ -487,6 +493,50 @@ entrada y rutinas con convencion de llamada manual:
 
 Una funcion `@Naked` puede llamar a otra funcion del modulo por su nombre
 (`call add`), como se vio en la seccion de simbolos.
+
+### Manipular la pila: corrutinas y fibras en asm
+
+Ahora que el compilador **entiende** el asm (no es una caja negra), manipular la
+pila desde el ensamblador esta permitido, y el compilador lo respeta **donde es
+seguro**:
+
+- **En el cuerpo de cualquier `asm`** puedes usar la pila libremente: `push`/`pop`,
+  reservar con `sub rsp, N` / liberar con `add rsp, N`, o leer el puntero de pila
+  (`mov rax, rsp`).  Funciona igual en el interprete, el JIT y el AOT; el
+  compilador sabe que `rsp`/`rbp` estan siempre vivos (leerlos no es "sin
+  inicializar").
+
+- **Reasignar la pila (`mov rsp, nueva_pila`)** -- el *stack switch* que necesita
+  una corrutina o fibra escrita a mano -- **solo es seguro en una funcion
+  `@Naked`**: al no haber prologo/epilogo ni spills, no hay marco que un `rsp`
+  corrupto pueda romper, y **tu** eres dueno de la pila.  En una funcion `@Naked`
+  el JIT compila el `mov rsp` **de forma nativa** (igual que el AOT); ya no cae al
+  interprete.  En una funcion NORMAL, en cambio, un asm que reasigna `rsp` se
+  ejecuta en el interprete por seguridad (ahi el epilogo del compilador **usa**
+  `rsp`, y corromperlo seria un error): usa `@Naked` para el switch.
+
+```vesta
+// Primitivo de context-switch de una fibra stackful: guarda RSP de la fibra
+// saliente y carga el de la entrante.  @Naked -> el JIT lo compila nativo.
+@Naked void fiber_switch(u64 from_ctx, u64 to_ctx) {
+    asm volatile noinfer {
+        // ... push de los callee-saved en la pila ACTUAL ...
+        mov [rdi], rsp      // *from = RSP saliente   (SysV: rdi=from, rsi=to)
+        mov rsp, [rsi]      // RSP = pila entrante     (el STACK SWITCH)
+        // ... pop de los callee-saved de la pila NUEVA ...
+        ret                 // salta a la retaddr de la pila entrante
+    }
+}
+```
+
+> **No pinees un valor a `rsp`/`rbp`.** `register("rsp") u64 x` intenta meter un
+> valor Vesta en el puntero de pila, lo que rompe la pila; el compilador lo
+> rechaza (VXA008) y te remite a manipular la pila en el cuerpo del `asm`, que es
+> la forma correcta.
+
+La biblioteca estandar usa esto en `std/fiber` (`fiber_switch`) para las fibras
+nativas stackful; escribir tus propias corrutinas en asm ya no esta limitado al
+AOT.
 
 ### Recibir N argumentos crudos: `...`
 
