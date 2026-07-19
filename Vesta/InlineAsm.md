@@ -507,13 +507,16 @@ seguro**:
   inicializar").
 
 - **Reasignar la pila (`mov rsp, nueva_pila`)** -- el *stack switch* que necesita
-  una corrutina o fibra escrita a mano -- **solo es seguro en una funcion
-  `@Naked`**: al no haber prologo/epilogo ni spills, no hay marco que un `rsp`
-  corrupto pueda romper, y **tu** eres dueno de la pila.  En una funcion `@Naked`
-  el JIT compila el `mov rsp` **de forma nativa** (igual que el AOT); ya no cae al
-  interprete.  En una funcion NORMAL, en cambio, un asm que reasigna `rsp` se
-  ejecuta en el interprete por seguridad (ahi el epilogo del compilador **usa**
-  `rsp`, y corromperlo seria un error): usa `@Naked` para el switch.
+  una corrutina o fibra escrita a mano -- se compila **de forma nativa en el JIT
+  y el AOT** (no cae al interprete).  Donde vive de forma segura es en una funcion
+  `@Naked`: al no haber prologo/epilogo ni spills, no hay marco que un `rsp`
+  reasignado pueda romper, y **tu** eres dueno de la pila.  En una funcion NORMAL
+  tambien se compila, pero el compilador **avisa** (VXA010): su epilogo gestiona
+  la pila, asi que un cambio de pila **persistente** (el que necesita un stack
+  switch de corrutina) no sobrevive al retorno.  El aviso te remite a dos salidas:
+  marca la funcion `@Naked` para ser dueno de la pila, o **equilibra** el cambio
+  (restaura `rsp`) antes de cerrar el bloque.  Un uso local balanceado (`sub rsp,
+  N` ... `add rsp, N`, `push`/`pop`) no dispara el aviso.
 
 ```vesta
 // Primitivo de context-switch de una fibra stackful: guarda RSP de la fibra
