@@ -78,7 +78,7 @@ Recomendamos descargarla para una correcta lectura.
 
 ----
 
-## Lenguaje Vesta (Phase A)
+## Lenguaje Vesta ( A)
 
 Documentacion del lenguaje de alto nivel Vesta que compila a VestaVM bytecode.
 

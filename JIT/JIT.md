@@ -306,7 +306,7 @@ size_t chunk_count() const;
 
 ### Modo W^X
 
-Reservado para Phase E. Hoy es RWX permanente; futuras versiones haran
+Reservado para  E. Hoy es RWX permanente; futuras versiones haran
 `mprotect` para alternar RW (durante emit) <-> RX (durante ejecucion) por
 chunk para cumplir con politicas de seguridad endurecidas (macOS, Linux
 hardened).
@@ -390,7 +390,7 @@ inline uint64_t enter_jit(JitFn fn, vrt_proc* proc) {
 }
 
 uint64_t return_from_jit(vrt_proc* proc, uint64_t pc);
-// Stub para OSR / deopt al interprete (Phase D.5).
+// Stub para OSR / deopt al interprete ( D.5).
 ```
 
 ### Convencion VM_ABI
@@ -551,7 +551,7 @@ exitosamente, 0 fallaron por IR no soportada, 0 por falta de IR en el `.velb`.
 
 7. **`vrt_safepoint_handler` es skeleton**: solo limpia el flag y retorna.
  No implementa la coordinacion completa GC-thread-pause-stack-walk-resume
- (Phase E.full).
+ ( E.full).
 
 ---
 

@@ -147,7 +147,7 @@ da garbage en vez de 999).
 
 - **AOT**: identico.  AOT no tiene interp -> obligatoriamente usa in-JIT
   catch.  Este mecanismo ES el modelo de excepciones de AOT (mas simple que
-  `.pdata`/`.xdata` PE o `.eh_frame`/DWARF ELF de la Phase G).
+  `.pdata`/`.xdata` PE o `.eh_frame`/DWARF ELF de la  G).
 - **Multi-arch**: todo es MachineIR arch-neutral (MOV/CALL/jmp + loads + el
   force-spill) salvo el stub `vrt_resume_jit` (~3 instr/arch).  ARM64 = escribir
   esas 3 instrucciones.

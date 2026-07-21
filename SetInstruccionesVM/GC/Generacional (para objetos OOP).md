@@ -55,7 +55,7 @@ objeto que siga en uso (falso negativo critico). Los falsos positivos son extrem
 raros en la practica (~N/2^64 por slot).
 
 El escaneo preciso (stackmaps por safepoint, estilo HotSpot) requiere tablas de tipos por
-instruccion y se reserva para Phase E (JIT con stackmaps). El escaneo conservativo es
+instruccion y se reserva para  E (JIT con stackmaps). El escaneo conservativo es
 compatible con codigo interpretado y JIT-eado a la vez.
 
 ### Tracking del rango de pila
@@ -388,8 +388,8 @@ pendientes.
 // Nursery antes del minor GC:
 // [A vivo] [B solo referenciado por A] [C muerto - nadie lo referencia]
 //
-// Fase 1: evacua A (tiene handle vivo)
-// Fase 2: escanea payload de A, encuentra handle B --> evacua B tambien
+//   evacua A (tiene handle vivo)
+//   escanea payload de A, encuentra handle B --> evacua B tambien
 // Reset: toda la Nursery queda libre; C es basura recuperada en O(1)
 ```
 

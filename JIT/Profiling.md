@@ -6,7 +6,7 @@ sobre el comportamiento dinamico del programa.  Esta informacion se vuelca
 a un fichero binario `.vprof` consumible posteriormente por:
 
 - El **JIT** para warm-start de funciones hot en ejecuciones sucesivas
-  del mismo programa (Phase D.10).
+  del mismo programa ( D.10).
 - El **compilador AOT** futuro para tomar decisiones especulativas
   hard-coded en el ejecutable nativo (devirtualizacion monomorfica,
   hot/cold splitting, loop unrolling agresivo en hot paths, branch
@@ -135,7 +135,7 @@ emite codigo nativo que internamente sigue llamando a los runtime hooks
 a traves del bridge.  Esto significa que **el perfil es valido sea cual
 sea el modo de ejecucion** (interpretado, JIT-compilado, o mixto).
 
-## Interaccion con el JIT C2 (Phase D.8 futuro)
+## Interaccion con el JIT C2 ( D.8 futuro)
 
 El C2 consumira el `.vprof` para tomar decisiones especulativas:
 
@@ -156,7 +156,7 @@ Si un guard falla en runtime, el JIT hace **deopt** al interprete
 (reconstruye el estado del frame interp via stackmap) y continua
 ahi.  Sin perdida de correctness.
 
-## Interaccion con el compilador AOT (Phase AOT.6 futuro)
+## Interaccion con el compilador AOT ( AOT.6 futuro)
 
 Mismo `.vprof`, mismas decisiones, pero el binario nativo NO puede
 deoptar al interprete (no hay interp en el `.exe`).  Solucion:

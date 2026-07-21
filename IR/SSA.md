@@ -868,7 +868,7 @@ clasico:
  a traves de barreras.
 
 Solo aplica @ O2. Wash neto en el interprete (el dispatch domina), pero
-infraestructura clave para Phase D JIT donde el host CPU ejecuta codigo
+infraestructura clave para  D JIT donde el host CPU ejecuta codigo
 directo y se beneficia de la paralelizacion entre cadenas independientes.
 
 ---
