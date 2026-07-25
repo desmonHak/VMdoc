@@ -387,9 +387,48 @@ T elegir<T>(T a, T b) where T: Numeric + Comparable {
 Los bounds se admiten en funciones libres, structs, clases, enums y metodos
 genericos.
 
+### Disponibilidad condicional de metodos (`where` por metodo)
+
+Un metodo de un struct/clase generico puede llevar su propia clausula `where`
+sobre el type-param del CONTENEDOR.  Entonces el metodo **solo existe** en las
+instanciaciones cuyo type-arg satisface el concepto -- modelo Rust
+(`impl<T: Bound>`) / Swift (`extension where`).  Si no lo satisface, el metodo
+no se genera (ni se type-checkea su cuerpo): es como si no estuviera declarado
+para ese `T`, y llamarlo da un error claro ("no disponible para este tipo:
+requiere ...") en vez de un muro de errores de instanciacion.
+
+```java
+struct atomic<T: Scalar> {
+    T cell;
+    public T load()  { ... }                          // todo Scalar
+    public T store(T v) { ... }                        // todo Scalar
+    public T fetch_add(T d) where T: Numeric { ... }   // solo int/float
+    public T fetch_or(T m)  where T: Integer { ... }   // solo enteros
+    public T fetch_max(T v) where T: Comparable { ... } // solo comparables
+}
+
+atomic<i32> a;  a.fetch_or(1);     // ok
+atomic<f32> b;  b.fetch_add(0.5);  // ok
+                b.fetch_or(1);     // error: 'fetch_or' requiere T: Integer, f32 no
+atomic<bool> c; c.store(true);     // ok (load/store/cas/swap existen para bool)
+```
+
+Esto es lo que permite UN solo tipo generico con metodos que dependen de
+capacidades distintas de `T`, sin partirlo en variantes.  Es la solucion a que
+Vesta instancia los metodos de forma **eager** (type-checkea todos al
+monomorphizar): sin el `where`, un metodo que usa `|` reventaria la
+instanciacion de `atomic<f32>` aunque nunca se llame.
+
+**Limite:** el `where` de disponibilidad se evalua ANTES de construir los
+layouts, asi que solo son fiables los conceptos evaluables sin ellos: los
+kind-based (`Integer`, `Numeric`, `Float`, `Scalar`, `Comparable`, ...) y los
+predicados `is_x` / `sizeof` sobre primitivos.  Un concepto ESTRUCTURAL
+(`has_method`) no debe usarse para filtrar existencia de un metodo.
+
 ### Conceptos built-in
 
 `Numeric/Integer/Float`, `Signed/Unsigned`, `Bool/Char/String/Pointer`,
+`Scalar` (entero|float|bool|puntero: lo que la CPU mueve de una pieza),
 `Comparable/Ordered/Eq`, `Sized/Copyable`, `Hashable/Stringable`,
 `Default/Callable/Destructible/Iterable/Shareable`, `Primitive/Class/Struct`,
 `Enum/ValuedEnum` (ver [[Enums]]).
@@ -397,6 +436,15 @@ genericos.
 Cualquier concepto se puede usar como **bound** (`<T: Concepto>`) o invocar como
 **predicado** booleano compile-time: `if (Numeric<T>()) { ... }`,
 `bool b = Enum<T>();`. Se dobla a una constante -- cero runtime.
+
+> **Los conceptos built-in son vocabulario del LENGUAJE, no de una libreria.**
+> Viven en el compilador (`src/vx/generics/concepts.cpp`), estan disponibles en
+> CUALQUIER `.vx` sin `import` (como si fueran del prelude) y los ve todo el
+> ecosistema.  **No los redefinas en una libreria** (`concept Integer<T> = ...`
+> en un modulo tuyo): sombrearias el built-in y afectarias a todo lo que lo use.
+> Si necesitas un concepto de dominio, dale un nombre propio y componlo de los
+> built-in (p.ej. `AtomicBuiltin` en `vx_atomic.vx` es `Scalar`).  Anyadir un
+> built-in nuevo se hace en `concepts.cpp` (una sola lista) y se documenta aqui.
 
 ### Conceptos de usuario (tres formas)
 
