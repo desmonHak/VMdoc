@@ -106,15 +106,17 @@ bool dist = a != b; // true
 string d = "inicio_" + a; // el literal se promueve a StringObject
 ```
 
-### Encodings
+### Codificacion
+
+Un `string` es siempre una secuencia de code points (UTF-8 por dentro); no
+lleva etiqueta de codificacion. La codificacion se elige al cruzar a codigo
+nativo, pidiendo el buffer en la forma que espera esa API:
 
 ```java
-// Constantes de encoding (para str_convert):
-// ENC_ASCII = 0, ENC_ANSI = 1, ENC_UTF8 = 2, ENC_UTF16 = 3, ENC_UTF32 = 4
+string s = str_make(buffer_ptr, len);
 
-string utf8 = str_make(buffer_ptr, len);
-string utf16 = str_convert(utf8, ENC_UTF16);
-char* wptr = utf16.wstr(); // listo para Win32 *W API
+char* aptr = s.cstr(); // UTF-8  NUL-terminado -> APIs *A / const char*
+char* wptr = s.wstr(); // UTF-16 NUL-terminado -> APIs *W / wchar_t*
 ```
 
 ---
@@ -125,7 +127,7 @@ Vesta tiene dos tipos de puntero con semantica bien diferenciada:
 
 | Tipo | Apunta a | Acceso en bytecode | Uso tipico |
 | :-------------- | :------------- | :----------------- | :---------------------- |
-| `T*` | Memoria HOST | `movh` | malloc, FFI, str_cstr() |
+| `T*` | Memoria HOST | `movh` | malloc, FFI, `s.cstr()` |
 | `VirtualPtr<T>` | Memoria VM | `mov` | variables locales, `&x` |
 
 ### Puntero host (`T*`)
@@ -835,7 +837,7 @@ typedef u64 fd new @opaque {
 
 // Esto compila en fs.vx pero NO en otro fichero:
 fd open_file(string path) {
-    u64 raw = native_open(str_cstr(path)); // FFI
+    u64 raw = native_open(path.cstr()); // FFI
     return (fd) raw; // OK aqui (mismo fichero)
 }
 

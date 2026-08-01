@@ -23,7 +23,7 @@ multi-paradigma estaticamente tipado disenado con tres principios:
 | [[Matematicas]] | Funciones integradas: sqrt/pow/trig/log/abs/min/max/clamp + bit ops + rotaciones |
 | [[Vectorizacion]] | Auto-vectorizacion SSE2/AVX2/AVX512: patrones, tipos, como exprimir el SIMD |
 | [[ControlFlow]] | if/while/do-while/for/foreach, break/continue/goto, match |
-| [[Strings]] | Tipo string, interpolacion `${expr:fmt}`, triple-quoted, FFI |
+| [[Strings]] | Tipo string y sus METODOS (`length`/`cstr`/`wstr`/...), interpolacion `${expr:fmt}`, triple-quoted, codificacion solo en la frontera nativa |
 | [[OptionalResult]] | `Optional<T>`, `Result<V,E>`, `!!`, `nonnull`, `T !!name` |
 | [[Closures]] | Lambdas, captura lexica, HOF, top-level fn promotion |
 
@@ -53,6 +53,7 @@ multi-paradigma estaticamente tipado disenado con tres principios:
 | [[Sincronizacion]] | `synchronized (obj)`, monitores, wait/notify/notifyAll |
 | [[FFI]] | extern declarativo, ffi_open/sym/call, plugins nativos |
 | [[CallbacksNativos]] | `as_native_callback`, thunks x86-64, WndProc, qsort, audio |
+| [[SyscallsWindows]] | Capa NT de Windows: memoria, ficheros, `NTSTATUS`, rutas `\??\`, resolucion y puntos de extension |
 
 ### Sistema de modulos
 

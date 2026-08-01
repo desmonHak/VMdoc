@@ -81,7 +81,7 @@ bool ne = (s != "default"); // comparación string (byte-a-byte)
 ```
 
 **Comparación de strings**: `==` y `!=` comparan contenido (no identidad), via opcode
-bytecode `strcmp`. Equivalente a `str_equals(a, b)`.
+bytecode `strcmp`. Equivalente a `a.equals(b)`.
 
 **Comparación de referencias** (clases): `obj == null`, `obj != null`, `obj1 == obj2`
 comparan punteros (identidad).

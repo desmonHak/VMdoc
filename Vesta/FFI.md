@@ -149,7 +149,7 @@ ffi_call(sym_Sleep, 500); // Sleep(500ms)
 // Otro ejemplo: MessageBoxA de user32:
 i64 user32 = ffi_open("user32.dll");
 i64 msgbox = ffi_sym(user32, "MessageBoxA");
-ffi_call(msgbox, 0, str_cstr("Texto"), str_cstr("Titulo"), 0);
+ffi_call(msgbox, 0, "Texto".cstr(), "Titulo".cstr(), 0);
 ```
 
 ### Tabla de instrucciones FFI runtime
@@ -198,8 +198,7 @@ extern "kernel32.dll" {
 }
 
 string ruta = "directorio\archivo.txt";
-string utf16 = str_convert(ruta, ENC_UTF16); // convertir a UTF-16LE
-char* wptr = utf16.wstr(); // host pointer a wchar_t*
+char* wptr = ruta.wstr();   // buffer UTF-16LE NUL-terminado (wchar_t*)
 
 u32 attrs = GetFileAttributesW(wptr);
 ```

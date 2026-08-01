@@ -23,15 +23,16 @@ tres modos de VestaVM (por defecto, `-m jit` y `-m vm`), se puede portar a C
 3. [El bloque `asm { ... }`](#el-bloque-asm----)
 4. [Ligar variables a registros: `register("reg")`](#ligar-variables-a-registros-registerreg)
 5. [Operandos con la lista `( ... )` (el compilador elige el registro)](#operandos-con-la-lista----el-compilador-elige-el-registro)
-6. [Calificadores (qualifiers)](#calificadores-qualifiers)
-7. [La clausula `clobbers(...)`](#la-clausula-clobbers)
-8. [Sustitucion de constantes `comptime`](#sustitucion-de-constantes-comptime)
-9. [Modos de ejecucion y backends](#modos-de-ejecucion-y-backends)
-10. [Referenciar simbolos propios](#referenciar-simbolos-propios)
-11. [Funciones sin marco: `@Naked`](#funciones-sin-marco-naked)
-12. [Bloques `asm` a nivel de modulo (16/32/64 bits)](#bloques-asm-a-nivel-de-modulo-163264-bits)
-13. [Mas ejemplos](#mas-ejemplos)
-14. [Limitaciones actuales](#limitaciones-actuales)
+6. [ABI a medida: `register("reg")` en los parametros](#abi-a-medida-registerreg-en-los-parametros)
+7. [Calificadores (qualifiers)](#calificadores-qualifiers)
+8. [La clausula `clobbers(...)`](#la-clausula-clobbers)
+9. [Sustitucion de constantes `comptime`](#sustitucion-de-constantes-comptime)
+10. [Modos de ejecucion y backends](#modos-de-ejecucion-y-backends)
+11. [Referenciar simbolos propios](#referenciar-simbolos-propios)
+12. [Funciones sin marco: `@Naked`](#funciones-sin-marco-naked)
+13. [Bloques `asm` a nivel de modulo (16/32/64 bits)](#bloques-asm-a-nivel-de-modulo-163264-bits)
+14. [Mas ejemplos](#mas-ejemplos)
+15. [Limitaciones actuales](#limitaciones-actuales)
 
 
 ## Un primer ejemplo
@@ -184,9 +185,10 @@ fijarlo tu.
 ```vesta
 i64 cas(i64* addr, i64 expected, i64 desired) {
     asm volatile (
-        reg p = addr,             // in: 'reg' = el COMPILADOR elige el registro
-        reg d = desired,          // in
-        rax a = expected,         // rax (lo exige cmpxchg); tras el bloque 'a' = resultado
+        reg p = addr,         // in: 'reg' = el COMPILADOR elige el registro
+        reg d = desired,      // in
+        rax a = expected,     // rax (lo exige cmpxchg); 
+						      // tras el bloque 'a' = resultado
     ) clobber(flags, memory) {
         lock cmpxchg [p], d       // aqui SOLO asm; 'p','d','a' son los operandos
     }
@@ -218,7 +220,11 @@ Ejemplos por combinacion (ver `examples_codes_vesta/asm/10..13`):
 
 ```vesta
 // 'reg' auto + scratch + read-back
-asm volatile ( reg x = 15, reg y = 27, reg s, ) clobber(flags) {
+asm volatile ( 
+	reg x = 15, 
+	reg y = 27, 
+	reg s, 
+) clobber(flags) {
     mov s, x
     add s, y
 }
@@ -237,6 +243,120 @@ del registro**, evitando gestionar registros a mano y los errores de portar
 codigo entre convenciones de llamada (un registro que es *callee-saved* en una
 ABI y *caller-saved* en otra).  Funciona en los cuatro modos: interprete, JIT y
 AOT (PE/ELF).
+
+
+## ABI a medida: `register("reg")` en los parametros
+
+Puedes fijar en que **registro fisico** llega cada parametro poniendo
+`register("reg")` delante de su tipo en la firma.  El *call site* coloca cada
+argumento **directamente** en ese registro -- **cero movimientos de barajado**
+(shift) -- y el cuerpo `asm { ... }` los usa tal cual.  Es la forma optima de
+escribir envoltorios de **syscall** o de **FFI con convenciones raras**, donde el
+numero de servicio y los argumentos deben ir en registros concretos:
+
+```vesta
+// syscall Linux x86-64: id en rax; args en rdi/rsi/rdx/r10/r8/r9.  El caller
+// coloca cada valor directo en su registro; el cuerpo solo hace `syscall`.
+i64 syscall6(register("rax") i64 id, register("rdi") i64 a1, register("rsi") i64 a2,
+             register("rdx") i64 a3, register("r10") i64 a4, register("r8") i64 a5,
+             register("r9") i64 a6) {
+    asm volatile { syscall }
+    return id;      // read-back: `id` (rax) contiene el RESULTADO tras el syscall
+}
+
+i32 main() {
+    char[4] msg = { 'H','I','\n', 0 };
+    // write(1, msg, 3) -> __NR_write=1
+    return (i32) syscall6(1, 1, (i64)&msg, 3, 0, 0, 0);   // imprime "HI", devuelve 3
+}
+```
+
+Puntos clave:
+
+- **Read-back del resultado.**  Un parametro `register("rXX")` es una **variable
+  mutable** ligada a ese registro (no un valor de solo-entrada): el `asm` que lo
+  escribe (p.ej. `syscall` deja el resultado en `rax`) lo actualiza, y leerlo
+  despues (`return id`) devuelve el valor **posterior** al `asm`, no el de
+  entrada.
+- **Multi-plataforma.**  La ABI es *generica*: tu declaras los registros.  Para
+  Windows x64 (NT) usas la convencion NT (`register("rax")` + `register("r10")`
+  ...); para Linux x86-32 (`int 0x80`) usas `register("eax")`, `register("ecx")`,
+  ...  La misma instruccion `syscall` cubre Linux y Windows x64.
+- **La ABI forma parte del TIPO de la funcion.**  Un `cfn` puede declararla, y
+  **dos `cfn` con ABIs distintas son tipos incompatibles** (como `sysv_abi` vs
+  `ms_abi` en C).  Asi una llamada indirecta conoce la ABI en tiempo de
+  compilacion desde el *tipo* del puntero, aunque el *valor* del puntero cambie en
+  ejecucion:
+
+  ```vesta
+  typedef cfn(register("rax") i64, register("rdi") i64) -> i64 op_fn;
+
+  i64 add_impl(register("rax") i64 a, register("rdi") i64 b) {
+      asm volatile { add rax, rdi }
+      return a;
+  }
+
+  i32 main() {
+      op_fn f = add_impl;        // OK: el tipo lleva la misma ABI
+      i64 r = f(40, 2);          // llamada indirecta: cada arg va directo a su reg
+      // op_fn g = una_fn_normal;  // ERROR de tipos: ABI incompatible
+      return (i32) r;            // 42
+  }
+  ```
+
+- **Registros validados.**  Un nombre no reconocido (`register("rxyz")`) es un
+  error de compilacion claro.
+- **Sin inline.**  Una funcion con ABI a medida no se expande en linea (su cuerpo
+  asume que los argumentos llegan en registros fisicos concretos): siempre se
+  llama de verdad.
+- **Solo en los backends nativos (JIT / AOT).**  La ABI a medida coloca los
+  argumentos en registros **fisicos** de la maquina; el interprete puro (`-m vm`)
+  trabaja sobre registros de la VM y **no** aplica esta convencion.  Usa `-m jit`
+  o compila con `-m aot` (que es donde tienen sentido los syscalls / FFI).
+
+### Una unica funcion generica + cast (firma polimorfica)
+
+Como la ABI vive en el **tipo**, no necesitas una funcion por aridad
+(`syscall1`, `syscall2`, ...).  Basta **una** funcion generica minima y un `cfn`
+por cada firma concreta; el **cast** le dice al compilador que registros usar:
+
+```vesta
+// Nucleo generico: solo la instruccion.  Sin parametros nombrados.
+@Naked i64 invoke() {
+    asm volatile {
+        syscall
+        ret
+    }
+}
+
+// Una firma por syscall, con sus registros:
+typedef cfn(register("rax") i64, register("rdi") i64,
+            register("rsi") i64, register("rdx") i64) -> i64 write_fn;
+
+i64 sys_write(i64 fd, i64 buf, i64 count) {
+    // El cast acomoda (1, fd, buf, count) en rax/rdi/rsi/rdx y llama a `invoke`.
+    return ((write_fn) invoke)(1, fd, buf, count);
+}
+```
+
+El mismo `invoke` sirve para todas las syscalls: cada envoltorio lo castea al
+`cfn` con los registros que esa syscall necesita.  Tambien puedes guardar la
+direccion y castearla en el momento de llamar -- util para elegir la
+implementacion en **tiempo de ejecucion** (Linux / BSD / NT) manteniendo la misma
+convencion:
+
+```vesta
+i64 impl = (i64) invoke;              // (o el que toque en runtime)
+i64 r = ((write_fn) impl)(1, fd, buf, count);
+```
+
+> Nota: castear un **nombre** directo (`((write_fn) invoke)(...)`) o un **valor**
+> (`((write_fn) impl)(...)`) funciona.  Asignar el cast a una variable y luego
+> llamarla (`write_fn w = (write_fn) invoke; w(...)`) todavia no propaga la ABI
+> del cast en ese caso concreto; usa una de las dos formas de arriba.
+- **Limite actual (x86-32).**  Los registros `ebx`/`ebp`/`esp` estan reservados
+  por el backend, asi que un `int 0x80` que use `ebx` (arg 1) o `ebp` (arg 6) aun
+  no compila; los demas (`eax`/`ecx`/`edx`/`esi`/`edi`) si.
 
 
 ## Calificadores (qualifiers)
@@ -461,7 +581,14 @@ Garantias del codegen:
 
 - Sin `push rbp` / `mov rbp, rsp` / `sub rsp` (nada de prologo).
 - Sin epilogo (nada de restaurar el marco).
-- Sin el `ret` implicito de cierre.
+- Sin el `ret` **implicito** de cierre (el que el compilador anade al caer al
+  final de una funcion sin `return` explicito) -- para no pisar el `iretq`/`ret`
+  que tu propio asm provee en un ISR.
+- **Pero un `return <valor>` EXPLICITO si se materializa**: emite el read-back a
+  RAX (si hace falta) + un `ret` simple, **sin** el epilogo de marco.  Asi puedes
+  mezclar codigo Vesta antes/despues del bloque `asm` y cerrar con `return x;`
+  aunque la funcion sea `@Naked`.  Un `ret` escrito a mano dentro del `asm`
+  tambien funciona (los dos caminos son validos).
 - La funcion **no se elimina** aunque ninguna llamada la referencie (un ISR se
   referencia desde la tabla de interrupciones, invisible al compilador): siempre
   se emite, con simbolo global.
@@ -583,7 +710,11 @@ Como los registros dependen del ABI, un wrapper portable selecciona el cuerpo co
 @Target("os:windows")
 @Naked
 u64 add_raw(u64 a, ...) {
-    asm { mov rax, rcx; add rax, rdx; ret }   // a=rcx, vararg0=rdx
+    asm { 
+	    mov rax, rcx; 
+	    add rax, rdx; 
+	    ret
+	}   // a=rcx, vararg0=rdx
 }
 
 @Target("!os:windows")
@@ -758,3 +889,8 @@ u64 main() {
   de forma segura (el propio envoltorio usa la pila), asi que se rechaza.
 - **Referenciar simbolos propios** (`call sym`, `mov r64, sym`, etc.) solo
   funciona en los backends nativos (JIT/AOT), no al portar a C.
+- **ABI a medida en x86-32 con `ebx`/`ebp`/`esp`**: esos registros estan
+  reservados por el asignador, asi que un `register("ebx")` (o `ebp`/`esp`) en un
+  parametro aun no compila en modo 32 bits.  Afecta a `int 0x80`, que usa `ebx`
+  para el argumento 1 y `ebp` para el 6.  El resto (`eax`/`ecx`/`edx`/`esi`/`edi`)
+  si funciona; en x86-64 no hay esta restriccion.

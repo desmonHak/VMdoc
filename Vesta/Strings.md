@@ -22,10 +22,12 @@ Vesta tiene tres maneras de manejar texto:
  - [Format kinds disponibles](#format-kinds-disponibles)
  - [Format alignment](#format-alignment)
  - [5. Operadores `+`, `==`, `!=`](#5-operadores---)
- - [6. Métodos OO sobre string](#6-métodos-oo-sobre-string)
- - [7. Builtins libres](#7-builtins-libres)
+ - [6. Métodos sobre string](#6-métodos-sobre-string)
+ - [Las funciones libres `str_*` están retiradas](#las-funciones-libres-str_-están-retiradas)
+ - [7. Indexado por byte y slices](#7-indexado-por-byte-y-slices)
  - [8. Cstring (`char*`) para FFI](#8-cstring-char-para-ffi)
- - [9. Encodings y conversion UTF-8 / UTF-16](#9-encodings-y-conversion-utf-8--utf-16)
+ - [9. Codificación: sólo en la frontera nativa](#9-codificación-sólo-en-la-frontera-nativa)
+ - [Por qué no existe `str_convert`](#por-qué-no-existe-str_convert)
  - [Limitaciones conocidas](#limitaciones-conocidas)
 
 ---
@@ -50,7 +52,9 @@ StringObject (40 bytes header + data[]):
 - **ROPE**: nodo + dos hijos (resultado de concatenaciones O(1)).
 - **SLICE**: vista (offset, len) sobre otro StringObject.
 
-`str_flat(s)` materializa ROPE/SLICE a FLAT (identidad si ya es FLAT).
+Los tres kinds son un detalle interno: la materialización de ROPE/SLICE a FLAT
+la hace el runtime cuando hace falta (por ejemplo al pedir `cstr()`), y no se
+expone como operación del lenguaje.
 
 ---
 
@@ -185,10 +189,13 @@ Múltiples specs se separan con `:`: `${n:hex:>20=}` = hex + right-align + width
 + fill `=`.
 
 **Limitaciones**:
-- `width` se cuenta en **bytes** UTF-8 emitidos, no en columnas visuales (los
- caracteres CJK/emoji multi-byte pueden dar columnas erróneas).
+
 - El fill char debe ser ASCII 1-byte (multi-byte fill no soportado).
 - Format kind `string` no soportado (ignora el spec y usa el camino normal).
+
+`width` se mide en **columnas de terminal**, no en bytes: el texto de doble
+ancho (CJK, hangul, emoji) cuenta 2 y las marcas combinantes 0, así que las
+tablas alinean bien con texto no latino.
 
 ---
 
@@ -251,44 +258,64 @@ Ejemplo completo: `321_strings_comptime.vx`.
 
 ---
 
-## 6. Métodos OO sobre string
+## 6. Métodos sobre string
 
-Sintaxis natural `s.method()` (azúcar para builtins libres):
+Las operaciones de cadena son **métodos**. Hay una sola forma de escribir cada
+cosa:
+
+| Método | Devuelve | Descripción |
+| :------------- | :------- | :------------------------------------------------- |
+| `s.length()` | `i64` | número de code points |
+| `s.bytes()` | `i64` | número de bytes |
+| `s.cstr()` | `u8*` | buffer UTF-8 NUL-terminado (APIs `*A` / `const char*`) |
+| `s.wstr()` | `u8*` | buffer UTF-16 NUL-terminado (APIs `*W` / `wchar_t*`) |
+| `s.hash()` | `u64` | FNV-1a, cacheado en el objeto |
+| `s.intern()` | `string` | representante canónico del pool de internados |
+| `s.concat(o)` | `string` | igual que `s + o` (ROPE, O(1)) |
+| `s.equals(o)` | `bool` | igual que `s == o` (compara contenido) |
 
 ```vx
 string s = "Hello World";
 
-i32 len = s.length(); // 11 - code-point count
-i32 bytes = s.bytes(); // 11 - byte count
-u8* ptr = s.cstr(); // host_ptr a buffer NUL-terminated
-u32 hash = s.hash(); // FNV-1a cached
-string canon = s.intern(); // canonical (intern pool)
+i64 len   = s.length();      // 11
+i64 nb    = s.bytes();       // 11
+u8* ptr   = s.cstr();        // host_ptr, NUL-terminado
+u64 h     = s.hash();
+string cn = s.intern();
 
-string g = s.concat(" Foo"); // = s + " Foo"
-bool eq = s.equals(t); // = (s == t)
+string g  = s.concat(" Foo");  // = s + " Foo"
+bool   eq = s.equals(t);       // = (s == t)
 ```
 
-Internamente, los métodos despachan a builtins libres (`str_length(s)`,
-`str_concat(s, t)`, etc.) — mismo bytecode emitido, sólo cambia la sintaxis.
+Los métodos funcionan también sobre un literal, que se promociona solo:
+
+```vx
+i64 n = "hola".length();     // 4
+```
+
+### Las funciones libres `str_*` están retiradas
+
+Escribir `str_length(s)`, `str_cstr(s)`, `str_concat(a, b)`… es un **error de
+compilación** que sugiere el método equivalente:
+
+```
+str_cstr no existe como funcion libre: las operaciones de cadena son metodos.
+Usa `s.cstr(...)` sobre la propia cadena
+```
+
+El motivo es que existían las dos formas para lo mismo, y no eran
+intercambiables: dependiendo de cuál se escribiera, el código bajaba distinto en
+intérprete y en compilación nativa. Los nombres siguen existiendo *dentro* del
+compilador —el despacho de métodos reescribe `s.length()` a `str_length(s)` al
+bajar a IR— pero eso ocurre después del chequeo de tipos, así que el usuario
+nunca los ve.
+
+`str_make(ptr, len)` **no** se retiró: construye una cadena a partir de un
+buffer crudo, no es una operación *sobre* una cadena ya existente.
 
 ---
 
-## 7. Builtins libres
-
-| Builtin | Equivalente método | Descripción |
-| :------------------- | :----------------- | :--------------------------------------- |
-| `str_length(s)` | `s.length()` | code-point count |
-| `str_bytes(s)` | `s.bytes()` | byte count |
-| `str_cstr(s)` | `s.cstr()` | host_ptr al buffer NUL-terminated |
-| `str_wstr(s)` | `s.wstr()` | convierte a UTF-16, devuelve host_ptr a `wchar_t*` (Win32 *W) |
-| `str_hash(s)` | `s.hash()` | FNV-1a cacheado |
-| `str_intern(s)` | `s.intern()` | canonical pool (dedup runtime) |
-| `str_concat(a, b)` | `a.concat(b)` | concatenación (ROPE) |
-| `str_equals(a, b)` | `a.equals(b)` | comparación contenido |
-| `str_make(ptr, len)` | | crea StringObject desde buffer raw |
-| `str_convert(s, enc)`| | convierte a otro encoding |
-
-### Indexado por byte `s[i]`
+## 7. Indexado por byte y slices
 
 `s[i]` devuelve el **byte i-esimo** del `string` como `char` (funciona en
 interp, JIT y AOT, y tambien en compile-time dentro de un `comptime fn` /
@@ -307,29 +334,12 @@ Para texto multi-byte, `s[i]` es el byte crudo (no el codepoint completo); usa
 `s[a..b]` de momento solo esta en compilacion nativa (AOT); usa
 `substr(s, start, len)` en interp/JIT.
 
-Constantes de encoding registradas globalmente:
-
-```vx
-ENC_ASCII = 0
-ENC_ANSI = 1
-ENC_UTF8 = 2
-ENC_UTF16 = 3
-ENC_UTF32 = 4
-```
-
-Uso:
-
-```vx
-string utf16 = str_convert(s, ENC_UTF16);
-u8* w_ptr = str_cstr(utf16); // wchar_t* listo para Win32 *W APIs
-```
-
 ---
 
 ## 8. Cstring (`char*`) para FFI
 
-Para llamar APIs nativas C que esperan `const char*`, usar `str_cstr()` que devuelve
-un `host_ptr` al buffer NUL-terminated:
+Para llamar APIs nativas C que esperan `const char*`, usar `s.cstr()`, que
+devuelve un `host_ptr` al buffer NUL-terminado:
 
 ```vx
 extern "kernel32.dll" {
@@ -337,7 +347,7 @@ extern "kernel32.dll" {
 }
 
 string path = "C:\\file.txt";
-u32 attrs = GetFileAttributesA(str_cstr(path));
+u32 attrs = GetFileAttributesA(path.cstr());
 ```
 
 **Alias `cstring`**: es equivalente a `char*`, útil para legibilidad
@@ -351,25 +361,56 @@ extern fn fopen(cstring path, cstring mode) -> i64;
 
 ---
 
-## 9. Encodings y conversion UTF-8 / UTF-16
+## 9. Codificación: sólo en la frontera nativa
 
-El runtime de strings (`stdlib/native/string` + bytecode 0x46-0x54) soporta los
-5 encodings listados arriba. El default al crear strings (literales sin sufijo,
-`str_make` sin encoding explícito) es **UTF-8**.
+Un `string` es **siempre una secuencia de code points**, guardada internamente
+como UTF-8. No lleva etiqueta de codificación observable: *"una cadena en
+UTF-16"* no es un valor del lenguaje.
+
+La codificación aparece únicamente al **cruzar a código nativo**, donde sí hay
+que decidir en qué bytes se entrega el texto:
 
 ```vx
-string utf8_s = "Hola µndo"; // UTF-8 default
-string utf16 = str_convert(utf8_s, ENC_UTF16);
-// utf16.bytes() != utf8_s.bytes() (UTF-16 usa 2-4 bytes/char vs 1-4 UTF-8)
+extern "kernel32.dll" {
+    fn GetFileAttributesA(u8* path) -> u32;    // API *A  -> UTF-8 / ANSI
+    fn GetFileAttributesW(u8* path) -> u32;    // API *W  -> UTF-16
+}
+
+string ruta = "C:\\datos\\informe.txt";
+
+u32 a = GetFileAttributesA(ruta.cstr());   // buffer UTF-8,  NUL-terminado
+u32 w = GetFileAttributesW(ruta.wstr());   // buffer UTF-16, NUL-terminado
 ```
 
-**HotSpot-style compaction**: el runtime puede detectar que un string UTF-8 es
-puramente ASCII (<= 0x7F) y mantenerlo como ASCII interno (no expande a UTF-16
-automaticamente). Para FORZAR un encoding específico, usar `str_convert`
-explícito.
+### Por qué no existe `str_convert`
 
-**Round-trips**: `str_convert(str_convert(s, UTF16), UTF8)` produce el mismo string
-si todos los caracteres están en ambos encodings (Unicode BMP).
+Antes había `str_convert(s, ENC_*)`, que devolvía otro `string` con una etiqueta
+de codificación distinta. Escribirlo hoy da un error explícito:
+
+```
+str_convert no existe: un `string` es siempre una secuencia de code points.
+La codificacion se elige al cruzar a codigo nativo: usa `s.cstr()` para UTF-8
+o `s.wstr()` para UTF-16
+```
+
+Se retiró por dos razones:
+
+1. **No significaba nada dentro del lenguaje.** `s.length()` cuenta code points
+   y `s == t` compara contenido, así que dos cadenas con el mismo texto y
+   distinta etiqueta eran indistinguibles… salvo por `bytes()`, que devolvía un
+   número distinto sin que nada más cambiara.
+2. **Divergía entre modos.** En compilación nativa la etiqueta era meramente
+   informativa, así que el mismo programa daba resultados distintos en
+   intérprete y en AOT, en silencio.
+
+El transcodificador sigue existiendo por debajo: el opcode `strconv` decodifica
+a code points y recodifica, cubriendo ASCII, ANSI (Latin-1), UTF-8, UTF-16 (con
+pares suplentes) y UTF-32 en cualquier combinación. Es lo que usan `cstr()` y
+`wstr()`. Lo que desapareció es la posibilidad de dejar una cadena "a medio
+convertir" dentro del lenguaje.
+
+Si necesitas los bytes en una codificación concreta distinta de UTF-8/UTF-16,
+pide el buffer y trátalo como memoria nativa (`u8*`), que es lo que es.
 
 ---
 
@@ -386,12 +427,9 @@ si todos los caracteres están en ambos encodings (Unicode BMP).
 2. **Interpolación `${...}` dentro de triple-quoted**: SI soportada, incluido con
  format specifiers `${expr:fmt}`.
 
-3. **Format spec en STRING**: `${str_var:hex}` ignora el spec (sólo aplica a tipos
- numéricos). Para alinear strings, medir con `str_length(s)` y usar
- `print_pad(' ', N - len)` manualmente.
-
-4. **Width en columnas vs bytes**: `${expr:>N}` mide N bytes UTF-8, no columnas
- terminal. Texto multi-byte (CJK, emoji) puede dar alineación incorrecta.
+3. **Format kind en STRING**: `${str_var:hex}` ignora el *kind* (sólo aplica a
+ tipos numéricos). La **alineación** sí funciona sobre cadenas:
+ `${nombre:<10.}` alinea a la izquierda en ancho 10 rellenando con `.`.
 
 ---
 
