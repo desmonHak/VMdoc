@@ -95,6 +95,7 @@ Documentacion del lenguaje de alto nivel Vesta que compila a VestaVM bytecode.
 | :------------------------------------ | :-------------------------------------------------------------------- |
 | [OOP](./Vesta/OOP.md) | Clases, herencia, interfaces, properties, constructores, RAII |
 | [ReflexionAOP](./Vesta/ReflexionAOP.md) | forName, getClass, getField, getMethod, invoke, @Aspect, proceed() |
+| [ConstructorComptime](./Vesta/ConstructorComptime.md) | Constructor que se ejecuta al compilar y recibe la expresion sin evaluar |
 | [Generics](./Vesta/Generics.md) | Monomorphizacion compile-time, name mangling, especialize (0x3A) |
 
 ### Concurrencia y distribucion
