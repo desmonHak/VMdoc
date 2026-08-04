@@ -200,10 +200,28 @@ Segunda linea
 
 ```java
 i32 main(string[] args) {
-    // args[0] es el nombre del ejecutable
     return 0;
 }
 ```
+
+**El parametro `args` no se rellena.** Se declara por compatibilidad de firma,
+pero indexarlo devuelve cadena vacia. Los argumentos del programa se leen con
+los builtins:
+
+```java
+i32 main(string[] args) {
+    i64 n = args_count();          // cuantos argumentos hay
+    if (n > 0) {
+        string primero = args_get(0);   // el PRIMER argumento del usuario,
+        println("${primero}");          // no el nombre del ejecutable
+    }
+    return 0;
+}
+```
+
+`args_get(0)` es el primer argumento que pasa el usuario; el nombre del
+ejecutable no aparece en esa lista. Ninguno de los dos builtins compila todavia
+a AOT nativo.
 
 `main` es opcional: los archivos sin `main` son importables como modulos pero no son
 ejecutables directamente.
@@ -229,6 +247,12 @@ const f64 PI = 3.14159; // constante (error de compilacion si se reasigna)
 i32 y; // valor indefinido (solo tipos primitivos)
 ```
 
+> **Limitacion conocida.** Una `const` de coma flotante **a nivel superior**
+> compila, pero su nombre no se resuelve al usarla: el lowering falla con
+> *"nombre no resuelto"*. Afecta a `f32` y `f64`; `const` de entero, cadena y
+> booleano funcionan con normalidad, y dentro de una funcion no hay problema.
+> Mientras tanto, declararlas dentro de la funcion que las usa.
+
 La inferencia de tipos se aplica en la mayoria de contextos donde el tipo se puede deducir
 del inicializador. El tipo se escribe explicitamente cuando es ambiguo.
 
@@ -249,8 +273,18 @@ Result<i32, string> dividir(i32 a, i32 b) {
     return Ok(a / b);
 }
 
-// Expresion bodied (shorthand para funciones de una linea)
-i32 doble(i32 x) => x * 2;
+```
+
+El cuerpo de expresion `=>` **solo vale para miembros de una clase o struct**,
+no para funciones libres. En una funcion de nivel superior el parser lo rechaza
+con *"se esperaba '{' para abrir el cuerpo de la funcion"*:
+
+```java
+class Matematica {
+    public i32 doble(i32 x) => x * 2;   // OK: equivale a { return x * 2; }
+}
+
+i32 doble(i32 x) => x * 2;              // ERROR: no vale fuera de un tipo
 ```
 
 ---

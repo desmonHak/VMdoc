@@ -147,11 +147,11 @@ register("rax") u64 cuenta;          // salida: se escribe desde rax
 
 El papel de cada variable ligada lo determina su uso, no una palabra clave:
 
-| Patron | Papel |
-|:-------|:------|
-| `register("rdi") u64 x = expr;` y el asm la **lee** | Entrada. |
-| `register("rax") u64 y;` (sin init) y el asm la **escribe** | Salida. |
-| `register("rax") u64 z = expr;` y el asm la **lee y reescribe** | Inout. |
+| Patron                                                          | Papel    |
+| :-------------------------------------------------------------- | :------- |
+| `register("rdi") u64 x = expr;` y el asm la **lee**             | Entrada. |
+| `register("rax") u64 y;` (sin init) y el asm la **escribe**     | Salida.  |
+| `register("rax") u64 z = expr;` y el asm la **lee y reescribe** | Inout.   |
 
 Ejemplo de inout con `bswap`, que invierte los bytes de `rax` in-place:
 
