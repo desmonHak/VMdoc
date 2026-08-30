@@ -44,8 +44,9 @@ if (isPresent(result)) {
 }
 ```
 
-**T puede ser cualquier tipo**: primitivo, puntero, struct, clase. El layout es
-fijo (16 bytes) independiente del tipo de T.
+**T puede ser cualquier tipo**: primitivo, puntero, struct, clase. Lo que ocupa
+**depende de T** — ver «Layout en memoria» al final: dieciséis con un escalar,
+más si envuelve un struct por valor, y **ocho** cuando T no puede valer cero.
 
 ---
 
@@ -71,7 +72,8 @@ if (isOk(r)) {
 ```
 
 **E puede ser**: primitivo (i32/i64 código de error), puntero (a string descripción),
-struct (info del error), clase. Layout fijo (24 bytes).
+struct (info del error), clase. Lo que ocupa **depende de V y de E**: veinticuatro
+cuando los dos son escalares, más cuando alguno es un struct por valor.
 
 ---
 
@@ -105,7 +107,10 @@ declarado de la variable destino, signature de la función que retorna, etc.).
 | Builtin | Retorno | Descripción |
 | :---------------- | :-----: | :------------------------------------------- |
 | `isPresent(opt)` | `bool` | true si tiene valor (Some) |
-| `unwrap(opt)` | `T` | extrae valor; FATAL si None |
+| `unwrap(opt)` | `T` | extrae el valor; **mata el proceso** si no hay |
+| `unwrap_or(opt, def)` | `T` | el valor si lo hay, y si no `def`. **No puede fallar** |
+| `expect(opt, "msg")` | `T` | como `unwrap`, pero deja dicho qué se dio por hecho |
+| `unwrap_unchecked(opt)` | `T` | sin comprobar nada. Leer algo que no está da basura |
 
 ### Result
 
@@ -129,8 +134,44 @@ if (isOk(r)) {
 }
 ```
 
-**FATAL en unwrap**: si haces `unwrap(None())` o `value(Err(...))` el runtime lanza
-`FatalError(FATAL_NULL_POINTER)` que es capturable con `try/catch (FatalError e)`.
+### Fallar una afirmación mata el proceso, y no se captura
+
+`unwrap(x)`, `!!x` y asignar a un `nonnull` son **la misma operación**: afirmar
+que hay algo. Si no lo hay, el que se equivocó fue quien lo afirmó — es un bug
+del programa, no una condición que el programa se encuentre —, y capturarlo sólo
+serviría para seguir corriendo con la suposición ya rota. Es lo que hacen Swift
+(trampa) y Rust (pánico); Kotlin lanza porque vive en una máquina donde siempre
+hay excepciones.
+
+Y hay una razón más fuerte que la teoría: en nativo **no hay desenrollado de
+excepciones**, así que allí siempre fue fatal. Mientras el intérprete lo dejaba
+capturar, el mismo programa hacía una cosa al interpretarlo y otra al
+compilarlo, que es peor que cualquiera de las dos.
+
+Se sigue imprimiendo el mensaje del catálogo (`VX7001`) y la cadena de llamadas;
+lo único que cambia es que ningún `catch` lo intercepta.
+
+```vx
+try {
+    i32 v = unwrap(vacio);      // el catch NO corre: el proceso muere aqui
+} catch (FatalError e) { }
+```
+
+### La forma recuperable
+
+Preguntar antes de afirmar. Es la única, y por eso está a mano:
+
+```vx
+const i32 v = unwrap_or(opt, 0);            // sin comprobar nada a mano
+if (isPresent(opt) != 0) { ... }            // preguntar y decidir
+match (opt) { case Some(x) => ..., case None => ... }
+const i32 w = parse(s)?;                    // Result: propagar el error
+```
+
+`expect(opt, "el limite venia de la configuracion")` sí afirma, pero deja
+escrito **qué** se dio por hecho: cuando falla, es lo único que queda. El mensaje
+se emite sólo en la rama de que no hay nada, así que el camino bueno no paga, y
+tiene que ser una cadena escrita en el sitio (se resuelve al compilar).
 
 ---
 
@@ -181,20 +222,45 @@ caso de error explícitamente. Evita silently ignored errors.
 
 ## 7. Operador `!!` (unwrap-or-fail)
 
-Sintaxis postfix azúcar para `unwrap()`:
+`!!x` **es** `unwrap(x)`: la misma operación, la misma semántica y el mismo
+fallo. Sólo cambia dónde se escribe.
 
 ```vx
 Optional<i32> opt = Some(42);
 i32 v = !!opt; // = unwrap(opt) = 42
 
 i32? maybe = nullable_call();
-i32 v = !!maybe; // unwrap nullable reference (lanza FATAL si null)
+i32 v = !!maybe; // afirma que no es nulo; si lo es, muere
 ```
 
-Funciona sobre:
-- `Optional<T>` -> equivalente a `unwrap(opt)`.
-- Referencias `T?` (nullable) -> equivalente al opcode `unwrap` runtime (lanza
- `FATAL_NULL_POINTER` si null).
+Funciona sobre `Optional<T>` y sobre referencias nulables, que son dos formas de
+guardar la misma pregunta.
+
+### `nonnull` y `!!` son las dos mitades de una cosa
+
+| | `nonnull T` | `!!x` |
+| :-- | :-- | :-- |
+| Qué es | un **calificador de tipo** | un **operador de expresión** |
+| Dónde va | en una declaración: variable, parámetro, campo | en cualquier expresión |
+| Qué dice | «esta ranura nunca guarda nulo» | «este valor de aquí no es nulo» |
+| Qué deja detrás | el tipo lleva la promesa a donde vaya | nada: el resultado es `T` a secas |
+
+`nonnull` **enuncia** la promesa y se comprueba en **cada** asignación; `!!` es
+el **acto** de comprobarla, y la garantía se gasta ahí. De ahí que escribir `!!`
+al asignar a un `nonnull` sea **redundante**: la asignación ya comprueba. Y no
+cuesta nada escribirlo, porque la comprobación de más la borra el optimizador —
+el resultado de una comprobación es demostrablemente no nulo.
+
+Donde `!!` gana su sitio es donde no hay declaración `nonnull` de por medio:
+`f(!!p)`, `*!!q`, `(!!obj).campo`.
+
+### Lo que cuesta
+
+Un `test` y un salto que el predictor acierta siempre. Y a menudo ni eso: el
+optimizador borra la comprobación cuando puede demostrar que el valor no es
+nulo — la dirección de algo, un objeto recién creado, una constante — y también
+usa **análisis de flujo**, así que dentro de un `if (p != null) { ... }` no queda
+ninguna.
 
 ---
 
@@ -312,8 +378,32 @@ Person? owner = item.owner; // referencia opcional, mejor nullable
     1=Some
 ```
 
-Total: 16 bytes en stack. El payload se promueve a i64 (cualquier T <= 8 bytes
-cabe directo; tipos más grandes están restringidos por el ABI actual).
+Dieciséis bytes cuando T es un escalar. **No es un número fijo**: el hueco del
+valor es una palabra para un escalar y el tamaño real redondeado a palabra para
+un struct por valor, así que un `Optional<StructDeTreintaYDos>` mide cuarenta.
+
+### Cuando la marca sobra: ocho bytes
+
+Si el valor **no puede valer cero**, el cero sobra como valor y sirve de marca
+por sí solo: no hace falta la palabra aparte y el conjunto se queda en **ocho**.
+
+Se aplica sólo donde el tipo lo **promete**. Un préstamo (`borrow<T>`) es la
+dirección de algo vivo — sólo se obtiene prestando algo que existe —, así que
+nunca es cero:
+
+```vx
+Optional<borrow<i64>>  ->  8 bytes   (el valor es su propia marca)
+Optional<i64>          -> 16 bytes
+Optional<i64*>         -> 16 bytes
+```
+
+Un `T*` crudo **sí** puede ser nulo, y ahí `Some(nulo)` y «no hay nada» pasarían
+a ser el mismo valor: por eso queda fuera. Es la misma idea que la *niche
+optimization* de Rust, que por el mismo motivo la aplica a `&T` y no a `*const T`.
+
+Nada de esto se nota desde fuera: construir, preguntar, sacar el valor y el
+`match` funcionan igual, porque todos preguntan la disposición en vez de darla
+por sabida.
 
 ### Result<V, E>
 
@@ -326,7 +416,14 @@ cabe directo; tipos más grandes están restringidos por el ABI actual).
     1=Ok
 ```
 
-Total: 24 bytes en stack. Tanto V como E se promueven a i64.
+Veinticuatro bytes cuando V y E son escalares. **Tampoco es un número fijo**: la
+marca en el cero, el valor detrás y el error detrás del valor, y cada payload
+ocupa una palabra si es escalar o su tamaño real redondeado a palabra si es un
+struct por valor. Así que un `Result<StructDeTreintaYDos, i64>` mide cuarenta y
+ocho, con el error en el desplazamiento cuarenta.
+
+Los dos payloads se guardan **uno al lado del otro** aunque sólo uno esté vivo
+cada vez.
 
 ### ABI SRET
 

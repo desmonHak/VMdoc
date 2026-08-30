@@ -50,10 +50,14 @@ Retornar un `unique<T>` por valor es un *move* (transfiere el ownership al
 llamante, sin coste):
 
 ```vx
-unique<i64> abrir(string ruta) {
+unique<i64, cerrar> abrir(string ruta) {
     return unique_with(fopen(...), cerrar);   // el llamante recibe el ownership
 }
 ```
+
+Fíjate en la firma: dice **quién libera**. Hace falta porque quien recibe el
+puntero es quien lo va a liberar, y tiene que saber a quién llamar. Ver
+«Quién libera va en el tipo» más abajo.
 
 ## `shared<T>` -- ownership compartido (refcount)
 
@@ -87,6 +91,44 @@ void liberar_vmem(i64 p) { VirtualFree(p, 0, 0x8000); }   // wrapper de 1 arg
 
 El deleter por defecto libera la memoria del recurso; uno personalizado puede
 cerrar un fichero, liberar una pagina, cerrar un socket o un handle del SO.
+
+## Quien libera va en el TIPO
+
+`unique<T, liberador>`. Dos `unique<T>` con liberador distinto son **tipos
+distintos** — mezclarlos significaria liberar con el que no es —, igual que
+`unique_ptr<T>` y `unique_ptr<T,D>` en C++, donde el liberador es un parametro
+de la plantilla.
+
+Se escribe donde el tipo esta **fijado de antemano**:
+
+```vx
+// En una FIRMA: quien recibe el puntero tiene que saber a quien llamar.
+unique<i64, cerrar> abrir(string ruta) { ... }
+
+// En un CAMPO: el destructor del contenedor lo mira solo a el.
+struct Recurso { unique<i64, cerrar> handle; }
+```
+
+Y se puede **omitir en una declaracion local**, donde la variable adopta el
+liberador de su inicializador:
+
+```vx
+void usar() {
+    unique<i64> h = unique_with(fopen(...), cerrar);   // adopta `cerrar`
+    ...
+}   // al salir: cerrar(h)
+```
+
+Que este en el tipo es lo que permite que quien limpia sepa **al compilar** a
+quien llamar, y emita una llamada directa. Antes viajaba por dentro del propio
+puntero y habia que leerlo en ejecucion cuando cruzaba una funcion.
+
+Escribir un liberador donde no encaja es un error, y el mensaje lo ensena:
+
+```text
+error: tipo del valor de retorno (unique<i64, cerrar>)
+       incompatible con tipo declarado (unique<i64>)
+```
 
 ## Acceso e inspeccion
 
