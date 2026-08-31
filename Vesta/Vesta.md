@@ -44,6 +44,7 @@ multi-paradigma estaticamente tipado disenado con tres principios:
 | :------------------------------ | :----------------------------------------------------------- |
 | [[SmartPointers]] | `unique<T>`/`shared<T>`, `move`, RAII, deleters custom |
 | [[BorrowChecker]] | `borrow<T>`/`borrow_mut<T>`, 4 reglas + F1-F4 (NLL/reborrow) |
+| [[DireccionParametros]] | `in`/`out`/`inout`: parametro de salida, permisos por puntero, la misma regla que el borrow checker, y la marca dentro del TIPO |
 
 ### Concurrencia y FFI
 
