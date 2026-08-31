@@ -60,6 +60,190 @@ declarados en la firma.
 | `T*` | `T*` | 8B |
 | `void` | `void` | - |
 
+### Los EFECTOS de una externa
+
+Una externa es codigo que no esta en el programa: no hay cuerpo que leer. Sin
+decir nada, lo unico honesto es suponer que hace **cualquier cosa**, y eso
+tumba todas las propiedades de quien la llame. El `extern` es la frontera donde
+el lenguaje deja de ser nuestro, y por eso es donde se **definen**.
+
+Definir no es **contratar**, aunque se escriba igual. En una funcion Vesta
+`@nopanic` es un contrato que el compilador comprueba contra el codigo; aqui no
+hay codigo, asi que es la palabra de quien lo escribe. Una palabra, dos sitios;
+cambia quien responde por ella.
+
+Y es una descripcion **completa**: lo que no se escribe, no ocurre. De ahi que
+haya formas positivas, que un contrato no necesita -- un contrato acota y le
+bastan las negativas --.
+
+#### Lo que puede hacer
+
+| Palabra | Que dice | Que le quita a quien llama |
+| :------ | :------- | :------------------------- |
+| `@io` | E/S observable: consola, fichero, puerto | `pure` `mem_free` `deterministic` `freestanding` |
+| `@throws` | lanza. Admite **de quien** | `pure` `mem_free` `nothrow` |
+| `@panics` | **aborta**, que no es lanzar. Tambien admite de quien | `pure` `nopanic` |
+| `@alloc` | reserva memoria del monton | `pure` `mem_free` `heap_free` `gc_free` |
+| `@allocator` | es un **asignador**: lo que devuelve es **fresco** | lo de `@alloc`, y ADEMAS da una garantia |
+| `@maps` | **mapea** espacio de direcciones; puede aliasar el mundo | lo de `@alloc`, mas `readonly` `deterministic` |
+| `@frees(n)` | **libera** el argumento n; despues ya no vale | `pure` `mem_free` `readonly` |
+| `@nondet` | dos llamadas iguales pueden dar cosas distintas | `deterministic` |
+| `@keeps_state` | tiene estado **suyo**: `strtok` recuerda, `errno` queda escrito | `pure` `mem_free` `readonly` `deterministic` |
+| `@reads_env(..)` | lee el mundo de fuera. Admite **que parte** | `mem_free`, y `deterministic` solo si lo que lee cambia |
+| `@writes_env(..)` | lo cambia. Tambien admite que parte | `pure` `mem_free` `readonly` `deterministic` `freestanding` |
+| `@blocks` | puede quedarse **esperando** | `pure` `mem_free` |
+| `@traps` | puede fallar en el **procesador**. Admite **cual** | `pure` `mem_free` |
+
+Lo **nuestro** no esta en la tabla, y no es un olvido: a nuestros datos una
+externa solo llega por un puntero que le pasamos, y eso se dice en el
+**parametro** con `in`/`out`/`inout` -- con su localizacion concreta, que es
+mucho mas de lo que un booleano podria decir --. Ver [[DireccionParametros]].
+
+#### Las seis que no encienden nada, y como se relacionan
+
+    @pure  @nothrow  @nopanic  @noblock  @notrap  @det
+
+Ninguna pone nada, y esto hay que entenderlo antes de usarlas porque no
+funcionan como se espera de un conjunto de opciones.
+
+**Lo que cambia el juego es escribir la PRIMERA palabra, cualquiera.** Hay dos
+estados y solo dos:
+
+| Lo que hay escrito | Como se lee |
+| :----------------- | :---------- |
+| nada | nadie dijo nada -> se supone que hace **cualquier cosa** |
+| una palabra o mas | descripcion **completa** -> lo que no se escribe, no ocurre |
+
+De ahi se sigue todo lo demas. Las seis negativas no se diferencian entre si en
+lo que PRODUCEN -- las seis producen lo mismo: nada --, y no se acumulan ni se
+refuerzan: `@nothrow @nopanic` no dice mas que `@nothrow` a solas, porque la
+segunda ya estaba dicha por el silencio.
+
+Y `@pure` no es "la suma de las otras cinco": no hay suma. Es la que se lee
+mejor cuando la respuesta es "no hace **nada**", igual que las otras cinco se
+leen mejor cuando lo que se quiere subrayar es una en concreto.
+
+**La trampa, y es la razon de contar todo esto.** Escribir una sola negativa
+describe la funcion ENTERA, no solo ese eje:
+
+    extern "kernel32.dll" {
+        @nothrow                    // "solo digo que no lanza"...
+        fn Sleep(u32 ms) -> void;   // ...pero tambien dijo que no bloquea,
+    }                               //    que no hace E/S y que es pura
+
+Lo correcto ahi es `@blocks`, y anadir `@nothrow` si ademas se quiere dejar
+dicho que se miro. La regla de fondo -- lo que no se escribe, no ocurre -- es lo
+que hace util este sistema, y es tambien lo que lo vuelve peligroso a medio
+escribir: **una descripcion incompleta no es una descripcion conservadora, es
+una descripcion equivocada**.
+
+Por eso las negativas existen: escribirlas dice que **se penso** en ello, y
+dejar la linea en blanco no lo dice. Son la diferencia entre "revise que no
+bloquea" y "no me acorde de mirarlo" -- pero solo para quien LEE, porque el
+compilador ya daba por supuestas las dos. `@det` es el opuesto de `@nondet`.
+
+#### De quien es lo que sale
+
+    @throws(vesta)    lo lanza NUESTRO runtime: un `catch` lo recoge.
+    @throws(native)   lo lanza el OTRO LADO -- una excepcion de C++, un SEH --.
+                      Nuestro `catch` NO lo recoge, y desenrollar a traves de
+                      nuestros marcos no esta garantizado.
+    @panics(vesta)    nuestro gancho de panico.
+    @panics(native)   un `abort()` de la libreria.
+
+Sin argumento se supone lo peor. La distincion importa porque **no son el mismo
+mecanismo**: modelar solo lo que el lenguaje lanza deja fuera justo la frontera
+donde el lenguaje se acaba, que es donde vive el FFI.
+
+#### Que falla, y que parte del mundo
+
+    @traps(div0, access, align, illegal, stack_overflow, fp)
+    @reads_env(file, net, clock, random, env, config, process, console, device)
+    @writes_env(...)
+
+Desnudas valen por todo. Partir estos dos sacos no es cosmetica:
+
+- dos llamadas que tocan partes **disjuntas** no se estorban -- se pueden
+  reordenar, y una que no se usa se puede quitar --; con una sola palabra
+  cualquier par choca con cualquier par;
+- leer el **reloj** o la **entropia** no da lo mismo dos veces y leer la
+  **configuracion** si:
+
+      @reads_env(clock)    -> pierde `deterministic`
+      @reads_env(config)   -> lo conserva
+
+  Con un unico "lee el mundo" habia que suponer lo primero siempre, o sea
+  tratar a la mayoria por el peor caso.
+
+**Multi-ISA**: cual de esos fallos existe de verdad depende del juego de
+instrucciones -- en x86-64 una division entera entre cero atrapa, y en aarch64
+**no**: devuelve cero --. Por eso no se deduce de la arquitectura, se declara.
+
+#### Reservar, mapear y liberar NO son lo mismo
+
+Se parecen y confundirlos cuesta caro en las dos direcciones.
+
+- **`@alloc`** dice un **coste**: puede reservar. Con eso se cae `heap_free`, y
+  nada mas.
+- **`@allocator`** dice una **garantia**: lo que devuelve es memoria **fresca**,
+  nadie mas la apunta y quien llama se queda con ella. Eso es lo que permite
+  tratar el resultado como una localizacion **propia** -- igual que la de un
+  `malloc` nuestro -- en vez de como "puede apuntar a cualquier cosa". Sin esta
+  palabra, describir un `HeapAlloc` no servia de nada: se sabia lo que costaba
+  y no lo que daba.
+- **`@maps`** reserva **espacio de direcciones**, que es otro recurso. Un `mmap`
+  o un `MapViewOfFile` pueden mapear algo que **ya existe y esta compartido** --
+  un fichero, un dispositivo, la memoria de otro proceso --, asi que lo que
+  devuelven **puede aliasar el mundo de fuera**. Decir `@allocator` de un `mmap`
+  seria prometer que no, y eso no da un error: da otro resultado en cuanto el
+  optimizador se lo crea.
+- **`@frees(n)`** dice que libera el argumento `n`. Se modela como una
+  **escritura** de lo apuntado -- para que los pases que ya miran eso no tengan
+  que aprender nada nuevo -- y ademas queda apuntado CUAL, que es lo que hace
+  falta para poder avisar de un uso despues de liberar.
+
+El mismo `mmap` **es** un asignador si se le pasa anonimo y privado. Eso se
+decide en la **llamada** y no en la declaracion, asi que lo que se declara es lo
+conservador y quien conozca su caso envuelve. Y `realloc` es las dos cosas a la
+vez, lo que se dice con las dos palabras:
+
+    @allocator
+    @frees(0)
+    fn reallocarray(inout u8* p, u64 n, u64 sz) -> u64;
+
+#### Lo que le hace a NUESTRA memoria no es un efecto
+
+Un efecto habla de la **funcion entera**. Lo que la funcion le hace a la memoria
+que le pasamos se dice en el **parametro**, con `in`/`out`/`inout`, y ahi se
+puede decir mucho mas: el analisis lo resuelve a la **localizacion concreta** del
+sitio de llamada.
+
+    @blocks
+    @traps(access)
+    fn read(i32 fd, out u8* buf, u64 n) -> i64;   // escribe ESE buffer
+
+Ver [[DireccionParametros]]. Un booleano "escribe memoria" no distingue cual, y
+por eso las dos mitades hacen falta.
+
+#### `when:`: lo que varia con el objetivo
+
+Cualquiera de las palabras admite un `when:`, que se resuelve **al compilar**:
+
+    @blocks(when: os == "linux")
+    @traps(div0, when: arch == "x86-64")
+
+Es lo que distingue esto de repetir la declaracion con `@Target`: alli lo que
+cambia es **que simbolo existe**; aqui la funcion es una sola y lo que varia es
+lo que hace. Lo escrito sin `when:` vale en todos los objetivos, y lo
+condicionado se suma donde case.
+
+#### Ejemplo completo
+
+`examples_codes_vx/530_efectos_ffi.vx` declara las tres capas de FFI que hay de
+verdad -- nuestro plugin, la API del sistema (NT/Win32) y las llamadas al
+nucleo de Linux -- con una palabra por linea, y el test comprueba que cada una
+quita **exactamente** lo que esta tabla dice.
+
 ---
 
 ## 2. Plugins VestaPluginAPI
