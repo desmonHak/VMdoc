@@ -4,9 +4,9 @@ La instruccion **HLT** (halt = detener) finaliza la ejecucion del proceso actual
 limpia. Es el equivalente a llegar al final de un programa: el proceso termina, libera sus
 recursos y el scheduler registra su finalizacion.
 
-| Instruccion | opcode | Tamaño | Descripcion |
-| :---------: | :----: | :-----: | :------------------------ |
-| `hlt` | 0x01 | 1 byte | Detener el proceso actual |
+| Instruccion | prefijo | opcode | Tamaño | Descripcion |
+| :---------: | :-----: | :----: | :-----: | :------------------------ |
+| `hlt` | 0x00 | 0x03 | 2 bytes | Detener el proceso actual |
 
 Implementacion: `src/runtime/exec_instruction.cpp`
 

@@ -10,6 +10,17 @@ por un `ManageVM`. Esta instruccion expone los datos globales del gestor.
 | :-------------: | :-----: | :-----: | :-----: | :----------------------------------------------------- |
 | `vminfomanager` | 0x00 | 0x02 | 4 bytes | Puntero host a VmInfoManagerData en R0 |
 
+> **Estado: SIN IMPLEMENTAR.**  En `decode_table.cpp` el nombre esta reservado en
+> la tabla **primaria** (0x02) con `exec` y `decode` a `nullptr`, no en la
+> extendida como dice la tabla de arriba.  Una entrada sin `decode` la descarta
+> `select_metadata`, asi que hoy la VM trata este opcode como invalido y lo que
+> describe esta pagina no lo ejecuta nadie.
+>
+> Queda por decidir cual de las dos es la buena: si la pagina (extendida, con
+> comportamiento) o la tabla (primaria, reservada).  Detectado con
+> `python tools/doc_vs_tabla.py`.
+
+
 > **Permiso requerido:** `permissions.VmInfoMgr` debe ser 1 en la instancia actual. Si no,
 > la instruccion puede ser un no-op o lanzar un error de permiso.
 

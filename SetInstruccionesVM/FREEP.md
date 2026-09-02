@@ -8,6 +8,15 @@ cualquier intento de leer o escribir en ellas produce un error de acceso a memor
 | :---------: | :-----: | :-----: | :-----: | :--------------------------------------- |
 | `freep` | 0x00 | 0x0B | 2 bytes | Liberar la pagina cuya dir esta en R0 |
 
+> **Estado: NO ESTA EN LA TABLA.**  El nombre `freep` no aparece en
+> `src/runtime/decode_table.cpp`, asi que hoy la VM no puede ejecutar esta
+> instruccion: o se quito, o se renombro, o nunca llego a implementarse.
+> Candidato a sucesor, SIN confirmar: `free`.
+>
+> Detectado con `python tools/doc_vs_tabla.py`.  Al reconciliar, esta pagina se
+> borra o se reescribe sobre la instruccion que la sustituyo.
+
+
 ---
 
 ## Uso

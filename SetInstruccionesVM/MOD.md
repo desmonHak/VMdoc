@@ -9,6 +9,15 @@ Son la operacion complementaria a la division (`divs`/`divu`): si divides A entr
 | `mods` | 0x00 | 0x40 | REG | 4 bytes | r_dst = r_dst % r_src (con signo, semantica C) |
 | `modu` | 0x00 | 0x40 | REG | 4 bytes | r_dst = r_dst % r_src (sin signo) |
 
+> **Estado: NO ESTA EN LA TABLA.**  El nombre `mods` no aparece en
+> `src/runtime/decode_table.cpp`, asi que hoy la VM no puede ejecutar esta
+> instruccion: o se quito, o se renombro, o nunca llego a implementarse.
+> Candidato a sucesor, SIN confirmar: `mod` (el signo paso a ser un bit del byte de control, como en `adds`/`addu`).
+>
+> Detectado con `python tools/doc_vs_tabla.py`.  Al reconciliar, esta pagina se
+> borra o se reescribe sobre la instruccion que la sustituyo.
+
+
 Mismo opcode2 (0x40); el bit `_signed_instruct` del byte de control distingue
 el modo con signo del sin signo.
 

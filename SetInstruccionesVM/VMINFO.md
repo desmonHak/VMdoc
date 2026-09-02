@@ -11,6 +11,17 @@ dentro del bytecode de la propia VM.
 | :---------: | :-----: | :-----: | :-----: | :--------------------------------------------------- |
 | `vminfo` | 0x00 | 0x01 | 2 bytes | Escribe la estructura VmInstanceInfoData en R0 |
 
+> **Estado: SIN IMPLEMENTAR.**  En `decode_table.cpp` el nombre esta reservado en
+> la tabla **primaria** (0x01) con `exec` y `decode` a `nullptr`, no en la
+> extendida como dice la tabla de arriba.  Una entrada sin `decode` la descarta
+> `select_metadata`, asi que hoy la VM trata este opcode como invalido y lo que
+> describe esta pagina no lo ejecuta nadie.
+>
+> Queda por decidir cual de las dos es la buena: si la pagina (extendida, con
+> comportamiento) o la tabla (primaria, reservada).  Detectado con
+> `python tools/doc_vs_tabla.py`.
+
+
 > **Permiso requerido:** `permissions.VmInfo` debe ser 1 en la instancia. Si no, la
 > instruccion puede ser un no-op o lanzar un error de permiso.
 

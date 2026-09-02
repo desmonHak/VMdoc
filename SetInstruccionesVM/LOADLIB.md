@@ -10,6 +10,15 @@ Esto es equivalente a `LoadLibrary()` en Windows o `dlopen()` en Linux.
 | :---------: | :-----: | :-----: | :--: | :-----: | :--------------------------------------------------- |
 | `loadlib` | 0x00 | 0x56 | REG | 4 bytes | Carga DLL/so; R0 = base address (0 si falla) |
 
+> **Estado: NO ESTA EN LA TABLA.**  El nombre `loadlib` no aparece en
+> `src/runtime/decode_table.cpp`, asi que hoy la VM no puede ejecutar esta
+> instruccion: o se quito, o se renombro, o nunca llego a implementarse.
+> Candidato a sucesor, SIN confirmar: `dlopen` (FFI en runtime) o `loadmod` (carga de modulo).
+>
+> Detectado con `python tools/doc_vs_tabla.py`.  Al reconciliar, esta pagina se
+> borra o se reescribe sobre la instruccion que la sustituyo.
+
+
 ---
 
 ## Sintaxis

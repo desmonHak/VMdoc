@@ -15,6 +15,15 @@ nivel del sistema: salta a codigo maquina real sin pasar por el interprete de by
 | :---------: | :-----: | :-----: | :-----: | :-------------------------------------------------- |
 | `enc` | 0x00 | 0x0C | 4 bytes | Ejecutar codigo nativo en la dir host apuntada por R0 |
 
+> **Estado: NO ESTA EN LA TABLA.**  El nombre `enc` no aparece en
+> `src/runtime/decode_table.cpp`, asi que hoy la VM no puede ejecutar esta
+> instruccion: o se quito, o se renombro, o nunca llego a implementarse.
+> Candidato a sucesor, SIN confirmar: `calln` / `callni` (llamada a codigo nativo).
+>
+> Detectado con `python tools/doc_vs_tabla.py`.  Al reconciliar, esta pagina se
+> borra o se reescribe sobre la instruccion que la sustituyo.
+
+
 ---
 
 ## Como funciona

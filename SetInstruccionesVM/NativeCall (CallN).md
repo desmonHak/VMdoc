@@ -16,6 +16,7 @@ exterior.
 | `calln` | 0x00 | 0x55 | 10 bytes | Llamada a funcion nativa por indice (con @Method) |
 | `callnr` | 0x55 | --- | 1 byte | Llamada a funcion nativa cuya dir esta en R14 |
 
+
 ---
 
 ## Convencion de llamada
