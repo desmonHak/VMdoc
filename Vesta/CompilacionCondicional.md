@@ -55,6 +55,35 @@ expr ::= and ("||" and)*
 | `debug` | Build sin `-DNDEBUG`. |
 | `release` | Build con `-DNDEBUG`. |
 
+### Qué hay debajo del binario nativo
+
+Los mismos nombres que toma `--target`, y responden a lo mismo: qué acompaña
+al código generado.
+
+| Tag | Significado |
+|:---|:---|
+| `tier:full` | El runtime completo: planificador, async, distribución, reflexión. |
+| `tier:embed` | Ningún runtime; solo la stdlib escrita en Vesta que el propio AOT fusiona en el objeto (cadenas, excepciones, monitores, I/O, reserva de memoria). |
+| `tier:bare` | Solo código nativo.  Núcleos, drivers, empotrados.  Es el valor por defecto. |
+| `tier:sin_libc` | `--freestanding`: reservar memoria y el panic pasan a exigir ganchos del usuario (`@AllocatorOverride`, `@PanicHandler`) en vez de resolverse solos.  Es un eje aparte del tier, aunque se pregunte con la misma clave. |
+
+El recolector de basura no está en esta escala: en nativo es **siempre**
+opcional y se pide enlazando su librería, valga el tier que valga.  De serie
+van RAII y el ownership del lenguaje.
+
+Ninguno de estos tags vale en la ruta de bytecode: allí no hay binario nativo
+del que hablar, así que `tier:` es falso — y eso es lo correcto, porque una
+variante marcada para un tier no debe colarse donde ese tier no existe.
+
+```vesta
+// Contarlo requiere que haya a quién; sin sistema, solo se puede parar.
+@Target("!tier:sin_libc")
+void al_fallar() { println("se acabo"); exit(134); }
+
+@Target("tier:sin_libc")
+void al_fallar() { while (true) { asm volatile { hlt }; } }
+```
+
 ### CPU features (autodetección)
 
 En x86/x86_64 se detectan automáticamente vía `__cpuid` / `__cpuid_count`
