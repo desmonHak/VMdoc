@@ -165,6 +165,41 @@ unsafe = true
 poner `trust_unsafe = true` explicito en su `[dependencies]` para
 aceptar la lib.
 
+### Ajustar las caches del proyecto
+
+```toml
+[cache]
+analysis_unused_runs = 30
+```
+
+El compilador guarda entre compilaciones no solo lo que CONCLUYE de un
+programa, sino el **razonamiento** con el que lo concluye -- def-use,
+rangos, points-to --, para no rehacerlo cada vez. Ese almacen va por
+funcion: si tocas una, se recalcula la suya y las demas se leen de disco.
+
+Una entrada guardada no cae al primer descuido. Aguanta varias
+compilaciones seguidas sin que nadie la pida, porque **que un analisis no
+haga falta hoy no significa que sobre**: es normal que un consumidor no
+llegue a correr en una compilacion concreta, y tirarlo por eso obliga a
+recomputarlo la proxima. `analysis_unused_runs` es cuantas aguanta.
+
+Por defecto **12**, que va bien para casi todo. Se toca cuando el proyecto
+tiene un ritmo distinto:
+
+- **Subirlo** en algo que se compila a rachas -- se trabaja una tarde y no
+  se toca en semanas --: conserva mas trabajo hecho a cambio de sitio en
+  disco.
+- **Bajarlo** en algo que cambia constantemente y donde el espacio importa:
+  libera antes, a cambio de recomputar mas.
+
+En la duda, subirlo: perder trabajo ya hecho cuesta mas que guardarlo de
+mas, que es justo por lo que existe este almacen.
+
+Es del **paquete** y no de quien compila, a proposito: quien sabe a que
+ritmo cambia una libreria es la libreria, no la maquina que la construye.
+Cada paquete lleva el suyo, y compilar uno no le impone su ajuste al
+siguiente.
+
 ### Verificar antes de distribuir
 
 ```bash
