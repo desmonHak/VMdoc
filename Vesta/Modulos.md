@@ -194,15 +194,50 @@ módulos cuyo source no haya cambiado. Activa por defecto.
 
 ### Qué se cachea
 
+Todo vive dentro de un único directorio `.cache/`, repartido en un cajón por
+tipo de artefacto. Nada se escribe junto al fuente: el árbol de fuentes sólo
+contiene fuentes, y limpiar la caché entera es borrar ese directorio.
+
 Por cada módulo (excepto el root):
 
-- **`<source>.vxi`** — interfaz binaria del módulo (tipos y firmas públicas).
-- **`<source>.vxir`** — IR SSA serializado para reutilizar al hacer el merge.
-- **`<source>.vel`** — bytecode standalone del módulo (formato distribuible).
+- **`.cache/ir/<huella>_<módulo>.vxi`** — interfaz binaria del módulo (tipos y firmas públicas).
+- **`.cache/ir/<huella>_<módulo>.vxir`** — IR SSA serializado para reutilizar al hacer el merge.
+- **`.cache/vel/<huella>_<módulo>.vel`** — bytecode standalone del módulo (formato distribuible).
+- **`.cache/facts/`** y **`.cache/analysis/`** — lo que el ASA supo del módulo y los análisis ya calculados.
+
+La huella delante del nombre es la de la ruta canónica del fuente: es lo que
+permite que dos módulos homónimos de carpetas distintas compartan cajón sin
+pisarse.
 
 Adicionalmente:
 
-- **`.vx_cache/projects/<root_hash>.vpc`** — el `.velb` final completo. Si todos los módulos del proyecto coinciden por source_hash, el `.velb` se copia directamente (omite compile y link, hit instantáneo).
+- **`.cache/projects/<root_hash>.vpc`** — el `.velb` final completo. Si todos los módulos del proyecto coinciden por source_hash, el `.velb` se copia directamente (omite compile y link, hit instantáneo).
+
+### Dónde vive la caché, y qué se puede llevar uno
+
+La raíz sale de subir desde el directorio de trabajo hasta la primera marca:
+`VX_CACHE_DIR` si está definida gana siempre; si no, el manifiesto de un paquete
+(`vx.toml` / `vx.json`) o la raíz de la copia de trabajo (`.git`), lo que
+aparezca antes; y sin ninguna, el propio directorio de trabajo. Con la variable
+puesta, varios proyectos comparten la caché de las librerías comunes.
+
+Que `.git` cuente como marca es lo que hace que un árbol no se llene de cachés:
+la mayoría de los directorios desde los que se invoca al compilador no son un
+paquete —una carpeta de pruebas, de herramientas, de ejemplos—, y sin ella cada
+uno estrenaría la suya.
+
+Cada cajón declara además su **alcance**, que dice si lo que guarda sirve en
+otra máquina:
+
+| cajón | alcance | por qué |
+| :---- | :------ | :------ |
+| `ir/`, `facts/`, `analysis/`, `vel/`, `ctpe/`, `pkg/` | **portable** | se deriva del fuente, de la versión del compilador y del objetivo, y los tres entran en la clave |
+| `vxdbg/` | mixto | `packs/` va direccionado por contenido y viaja; `roots/` son apuntadores con rutas absolutas y no |
+| `projects/` | **local** | sus entradas apuntan a los artefactos de este árbol por dónde están |
+| `work/`, `tmp/` | transitorio | trabajo a medias; se puede borrar en cualquier momento |
+
+Publicar una librería precompilada es, por tanto, copiar el `.vx` con su cajón
+`ir/`; y archivar o compartir una caché es quedarse con la mitad portable.
 
 ### Invalidación
 
