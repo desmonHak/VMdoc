@@ -173,6 +173,22 @@ bytes) y el backend lo descompone al ancho del host:
 Un chunk de 64 bytes (AVX512) se ejecuta como 1 operacion ZMM en AVX512, 2 YMM
 en AVX2, o 4 XMM en SSE2 -> el mismo binario corre optimo en cualquier x86-64.
 
+### Preguntarlo desde el programa: `cpu_features()`
+
+El mismo dato que usa el backend esta disponible como builtin, para el codigo
+que quiera decidir por su cuenta:
+
+```vesta
+import std.memory.x86_64 only BIT_AVX2, BIT_AVX512F;
+
+u64  rasgos = cpu_features();
+bool avx512 = (rasgos & BIT_AVX512F) != 0;
+```
+
+Devuelve un bitmask; las constantes `BIT_*` viven en `std.memory.x86_64`
+(`BIT_AVX2`, `BIT_AVX512F`, `BIT_ERMS`, ...). Sirve para elegir una ruta a mano
+-- o para que un test sepa si puede esperar la instruccion que va a ejecutar.
+
 ### Variables de entorno (control y diagnostico)
 
 | Variable | Efecto |

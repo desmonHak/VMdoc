@@ -254,9 +254,43 @@ i64 fibra_a = spawn {
     }
 };
 
-// swapctx: switch cooperativo entre dos fibras SIN pasar por el scheduler
-// (ver instruccion swapctx 0xEF en la documentacion de bytecode)
 ```
+
+### `fiber_swapctx` / `fiber_entry`: cambiar de fibra sin el planificador
+
+`yield` devuelve el control al planificador. **Un cambio de fibra no pasa por
+el**: `fiber_swapctx(desde, hasta)` guarda el contexto actual en `desde` y salta
+al de `hasta`, y `fiber_entry(cuerpo)` da el punto de arranque de un cuerpo de
+fibra.
+
+Un contexto es un bloque de 19 palabras -- `PC`, `SP`, `BP` y `R0..R15` -- que
+el programa reserva; los tres primeros se rellenan a mano antes del primer
+salto:
+
+```vesta
+// ctx[0] = PC, ctx[1] = SP, ctx[2] = BP; el resto arranca a cero.
+__ctx_a[0] = (i64)fiber_entry(fiber_a);
+__ctx_a[1] = top_a;   // cima de SU pila (crece hacia abajo)
+__ctx_a[2] = top_a;
+
+// Y a partir de ahi, el cambio es una instruccion:
+fiber_swapctx(__h_a, __h_sched);   // cede al planificador de fibras
+```
+
+Lo interesante es que es un **primitivo semantico, no de la maquina virtual**:
+el mismo fuente corre en los tres modos y da el mismo resultado, aunque el
+modelo de memoria del contexto y de la pila cambie en cada uno.
+
+| Modo | Donde vive el contexto | Que es `fiber_entry` |
+| :--------- | :--------------------- | :------------------- |
+| interprete | arrays en memoria VM | direccion de bytecode |
+| JIT | pila del anfitrion | codigo nativo compilado del cuerpo |
+| nativo | arrays nativos (`.bss`) | direccion nativa |
+
+Como el `.velb` es el mismo para interprete y JIT, el programa elige en
+EJECUCION con el extern `vrt:jit_active`.
+
+Ejemplos: `examples_codes_vx/235_fiber_swapctx.vx` y `236_fiber_stackful.vx`.
 
 ---
 

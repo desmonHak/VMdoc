@@ -188,6 +188,27 @@ println("${n:hex:>20}"); // " 0x00000000000000FF" (combina kind + align)
 Múltiples specs se separan con `:`: `${n:hex:>20=}` = hex + right-align + width 20
 + fill `=`.
 
+### Los builtins sueltos
+
+Lo mismo que hace un especificador dentro de `${...}` esta tambien como builtin,
+para cuando se imprime un solo valor y no se quiere construir una cadena:
+
+| Builtin | Equivale a |
+| :----------------------- | :--------- |
+| `print_bin(n)` | `${n:bin}` -- `0b11111111` |
+| `print_oct(n)` | `${n:oct}` -- `0o377` |
+| `print_ptr(p)` | `${p:ptr}` |
+| `print_gchandle(h)` | `${h:gc}` |
+| `print_pad(relleno, n)` | n veces ese caracter (por punto de codigo) |
+
+```vesta
+print_bin(255);      // 0b11111111
+print_oct(255);      // 0o377
+print_pad(46, 6);    // "......"  (46 = '.')
+```
+
+Cada uno tiene su variante `println_*` con el salto de linea al final.
+
 **Limitaciones**:
 
 - El fill char debe ser ASCII 1-byte (multi-byte fill no soportado).
@@ -416,11 +437,14 @@ pide el buffer y trátalo como memoria nativa (`u8*`), que es lo que es.
 
 ## Limitaciones conocidas
 
-1. **Interpolación de un `struct` o de una variante de `enum`** en contexto
- STRING (construir un `string` con `${expr}`): todavía no soportada, y emite
- error. Faltan los dos agregados, y por motivos distintos: un `struct` no tiene
- método virtual donde colgar la conversión, y un `enum` necesita una tabla de
- nombres por variante (y recursión si la variante lleva carga).
+1. **Interpolación de un agregado** en contexto STRING (construir un `string`
+ con `${expr}`): `struct`, `enum`, `Optional` y `Result` se rechazan al
+ compilar, con el mensaje *"interpolacion `${expr}` en contexto string: tipo no
+ soportado todavia (struct/enum/optional/result)"*. Los motivos son distintos:
+ un `struct` no tiene método virtual donde colgar la conversión, y un `enum`
+ necesita una tabla de nombres por variante (y recursión si la variante lleva
+ carga); `Optional`/`Result` son enums con carga, así que dependen de lo
+ segundo.
 
  Todo lo demás **sí** funciona, incluido dentro de una cadena construida:
  `string`, `i8`..`i64`, `u8`..`u64`, `bool`, `char`, `ptr`/`array`, `f32`/`f64`

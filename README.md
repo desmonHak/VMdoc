@@ -78,43 +78,102 @@ Recomendamos descargarla para una correcta lectura.
 
 ----
 
-## Lenguaje Vesta ( A)
+## Lenguaje Vesta
 
 Documentacion del lenguaje de alto nivel Vesta que compila a VestaVM bytecode.
 
 ### Vision general y tipos
 
 | Documento | Contenido |
-| :------------------------------------------- | :----------------------------------------------------------- |
-| [Vesta](./Vesta/Vesta.md) | Vision general, pipeline, anotaciones, inline asm, fases A-H |
+| :-------- | :-------- |
+| [Vesta](./Vesta/Vesta.md) | Vision general, pipeline, anotaciones |
 | [TiposDatos](./Vesta/TiposDatos.md) | Primitivos, string, punteros, structs, arrays, Optional, Result |
+| [Enums](./Vesta/Enums.md) | Uniones etiquetadas y enums con valor |
+| [OptionalResult](./Vesta/OptionalResult.md) | `Optional<T>`, `Result<T,E>`, `?`, `!!` y la afirmacion de no-nulo |
+| [Operadores](./Vesta/Operadores.md) | Precedencia, semantica y sobrecarga |
+| [ControlFlow](./Vesta/ControlFlow.md) | `if`/`while`/`for`, `match`, `break`/`continue`, `goto` |
+| [Strings](./Vesta/Strings.md) | Metodos, interpolacion `${expr}`, especificadores de formato, codificaciones |
+| [Matematicas](./Vesta/Matematicas.md) | Las 18 funciones de `vesta_math` |
+| [EstiloYFormato](./Vesta/EstiloYFormato.md) | Lo que `vm fmt` garantiza, y por que |
+
+### Funciones y parametros
+
+| Documento | Contenido |
+| :-------- | :-------- |
+| [Parametros](./Vesta/Parametros.md) | Las doce formas de parametro por los siete contextos |
+| [DireccionParametros](./Vesta/DireccionParametros.md) | `in` / `out` / `inout` |
+| [LlamadaUniforme](./Vesta/LlamadaUniforme.md) | `x.f(a)` == `f(x, a)`, el hueco `_`, argumentos con nombre, sobrecarga |
+| [Closures](./Vesta/Closures.md) | Lambdas, capturas, `fn(...)` frente a `cfn(...)` |
+| [ClosuresEnCampos](./Vesta/ClosuresEnCampos.md) | Guardar una lambda en un campo y quien libera su entorno |
 
 ### Programacion orientada a objetos
 
 | Documento | Contenido |
-| :------------------------------------ | :-------------------------------------------------------------------- |
+| :-------- | :-------- |
 | [OOP](./Vesta/OOP.md) | Clases, herencia, interfaces, properties, constructores, RAII |
 | [ReflexionAOP](./Vesta/ReflexionAOP.md) | forName, getClass, getField, getMethod, invoke, @Aspect, proceed() |
-| [ConstructorComptime](./Vesta/ConstructorComptime.md) | Constructor que se ejecuta al compilar y recibe la expresion sin evaluar |
-| [Generics](./Vesta/Generics.md) | Monomorphizacion compile-time, name mangling, especialize (0x3A) |
+| [Generics](./Vesta/Generics.md) | Monomorfizacion al compilar, conceptos, especializacion |
+
+### Memoria y ownership
+
+| Documento | Contenido |
+| :-------- | :-------- |
+| [SmartPointers](./Vesta/SmartPointers.md) | `unique<T>`, `shared<T>`, `move`, deleters propios |
+| [BorrowChecker](./Vesta/BorrowChecker.md) | `borrow<T>` / `borrow_mut<T>`, las cuatro reglas, NLL, reborrow |
+| [Overlays](./Vesta/Overlays.md) | Vistas tipadas sobre memoria binaria |
+| [DisposicionSecciones](./Vesta/DisposicionSecciones.md) | `place_section`, datos crudos y consultar las secciones desde el programa |
 
 ### Concurrencia y distribucion
 
 | Documento | Contenido |
-| :-------------------------------- | :--------------------------------------------------------------------------------- |
-| [Async](./Vesta/Async.md) | @Async, await, spawn, spawn here/on(N), rspawn, Future, msgsend, msgrecv, synchronized |
+| :-------- | :-------- |
+| [Async](./Vesta/Async.md) | @Async, await, spawn, rspawn, Future, msgsend/msgrecv, fibras |
+| [Sincronizacion](./Vesta/Sincronizacion.md) | `synchronized`, monitores, `wait`/`notify` |
 
 ### Gestion de errores
 
 | Documento | Contenido |
-| :-------------------------------------- | :------------------------------------------------------------- |
+| :-------- | :-------- |
 | [Excepciones](./Vesta/Excepciones.md) | try/catch/finally, FatalError, panic(), stack trace, RAII |
+| [RuntimeHooks](./Vesta/RuntimeHooks.md) | `@AllocatorOverride`, `@PanicHandler`, `@UnwindImpl` y los demas ganchos |
+
+### Metaprogramacion
+
+| Documento | Contenido |
+| :-------- | :-------- |
+| [Metaprogramacion](./Vesta/Metaprogramacion.md) | `comptime`, introspeccion, macros |
+| [ConstructorComptime](./Vesta/ConstructorComptime.md) | Constructor que se ejecuta al compilar y recibe la expresion sin evaluar |
+| [CompilacionCondicional](./Vesta/CompilacionCondicional.md) | `@Target` y las ramas por objetivo |
+| [Instrumentacion](./Vesta/Instrumentacion.md) | `@Hook(enter/exit/unwind)`, selectores y `@NoInstrument` |
+
+### Modulos y paquetes
+
+| Documento | Contenido |
+| :-------- | :-------- |
+| [Namespaces](./Vesta/Namespaces.md) | `namespace`, visibilidad, `import`, `impl` |
+| [Modulos](./Vesta/Modulos.md) | `.vxi`, cache incremental, compilacion paralela |
+| [CargaDinamica](./Vesta/CargaDinamica.md) | `loadmodule` / `unloadmodule` y hot-reload |
+| [PackageManager](./Vesta/PackageManager.md) | `vm pkg`: manifiesto, lockfile, firmas, auditoria |
+| [Sandbox](./Vesta/Sandbox.md) | Capabilities sobre modulos cargados |
 
 ### Colecciones y FFI
 
 | Documento | Contenido |
-| :-------------------------------------- | :------------------------------------------------------------------------ |
+| :-------- | :-------- |
 | [Colecciones](./Vesta/Colecciones.md) | ArrayList/HashMap/HashSet/Queue/Deque/TreeMap/TreeSet/Stack como keywords |
 | [FFI](./Vesta/FFI.md) | extern declarativo, ffi_open/sym/call, plugins, vesta_io, vesta_math |
+| [InteropC](./Vesta/InteropC.md) | Interop con C y ownership de structs |
+| [CallbacksNativos](./Vesta/CallbacksNativos.md) | `as_native_callback`: pasar una funcion Vesta a una libreria nativa |
+| [SyscallsWindows](./Vesta/SyscallsWindows.md) | La capa NT de `std.syscall.windows` |
+
+### Compilacion nativa y bajo nivel
+
+| Documento | Contenido |
+| :-------- | :-------- |
+| [CompilacionNativa](./Vesta/CompilacionNativa.md) | `-m aot`, objetivos, `gc<T>` opt-in, sin runtime obligatorio |
+| [InlineAsm](./Vesta/InlineAsm.md) | `asm { }`, `register("reg")`, lista de operandos, `@Naked` |
+| [Vectorizacion](./Vesta/Vectorizacion.md) | Auto-vectorizacion SSE2/AVX2/AVX512 y `cpu_features()` |
+| [Enlazador](./Vesta/Enlazador.md) | `vm --link` y `vm --ar` |
+| [Terminal](./Vesta/Terminal.md) | Color de 24 bits, cursor y pantalla |
 
 ----

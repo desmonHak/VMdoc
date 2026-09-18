@@ -55,7 +55,7 @@ convention que el thunk emite.
 | Enteros 8-64 bits  | `i8`, `i16`, `i32`, `i64`, `u8`, `u16`, `u32`, `u64` | Registro entero completo (zero/sign-extended) |
 | Booleano           | `bool`                                          | Registro entero, 0 o 1                   |
 | Punteros           | `T*`, `u8*`, ...                                | Registro entero (8 bytes)                |
-| Float              | `f32`, `f64`                                    | XMM register (no soportado todavia)      |
+| Float              | `f32`, `f64`                                    | **rechazado al compilar** (`VX2082`): la convencion nativa los pasa por registro vectorial y el thunk solo lleva el banco entero.  Recibe los bits como `u64` y conviertelos dentro |
 
 Hasta **12 argumentos** por callback (mismo limite que la calling convention
 interna VM_ABI usada por las funciones Vesta regulares).  El thunk maneja
@@ -262,21 +262,23 @@ re-leer el TLS.
 
 ### Limitaciones conocidas
 
-1. **Sin argumentos float**: si la calling convention nativa pasa floats en
-   XMM (caso de SysV o cuando un arg es `f64`), el thunk no marshalla
-   correctamente.  Workaround: usar `u64` para los bits y bitcast en el
-   callee.
+1. **Sin argumentos ni retorno float.**  La convencion nativa los pasa por
+   registro vectorial y el thunk solo lleva el banco entero.  Es un **error de
+   compilacion** (`VX2082`) que dice cual de los parametros lo rompe y por donde
+   salir: recibir los BITS como `u64` y convertirlos dentro.
+   Ver `examples_codes_vx/561_callback_float_err.vx`.
 
-2. **No soporta lambdas con captura**: solo identificadores de funciones
-   top-level pueden ser pasados a `as_native_callback`.  Para casos con
-   estado, usar variables globales o una struct host-allocada que viva
-   mas alla del callback.
+2. **Solo el NOMBRE de una funcion**, no una expresion: una lambda -- capture o
+   no -- se rechaza al compilar (*"`as_native_callback` requiere un
+   identificador de funcion (no expresion)"*).  Para llevar estado, una global
+   o un struct reservado en el anfitrion que viva mas que el callback.
 
-3. **Thread-local del proceso VM**: el thunk asume que el thread que
-   ejecuta el callback es el mismo que tiene `set_current_executing_process`
-   seteado.  Para librerias que invocan callbacks en threads propios
-   (algunos game engines, signal handlers), el TLS slot puede no estar
-   inicializado -- comportamiento indefinido.
+3. **Thread-local del proceso VM**: el thunk asume que el hilo que ejecuta el
+   callback es el mismo que tiene puesto `set_current_executing_process`.  Una
+   libreria que invoque callbacks en hilos PROPIOS (algunos motores de juego,
+   manejadores de senyal) puede encontrarse la ranura sin inicializar.  Es la
+   unica de las tres que **no se comprueba**: depende de lo que la libreria haga
+   en ejecucion, asi que no hay nada que mirar al compilar.
 
 ### Re-entrancia del callback
 

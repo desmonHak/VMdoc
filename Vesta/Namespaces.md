@@ -419,11 +419,9 @@ Swift / C#. El *dispatch* es **estatico** (llamada directa, *inline*-able, coste
 cero), y funciona **cross-modulo**: puedes extender un tipo importado y el
 consumidor ve los metodos anadidos.
 
-> **`extension Tipo { }` esta RETIRADA.** Hacia exactamente lo mismo que
-> `impl Tipo { }`, y dos formas de escribir lo mismo parten en dos todo lo que
-> hay detras: una de las mitades se queda corta sin que nadie lo note -- la de
-> `extension` ya perdia `static`, `final` y varias marcas mas al construir la
-> ficha del metodo --. Escribir `extension` hoy es un error de sintaxis.
+> **No existe `extension Tipo { }`.** Para anadir metodos a un tipo hay una
+> sola forma, `impl`, en sus dos variantes. Escribir `extension` es un error de
+> sintaxis.
 
 ### 8.1. `impl Tipo { ... }`
 

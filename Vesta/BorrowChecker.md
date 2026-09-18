@@ -310,26 +310,83 @@ con líneas + columnas + sugerencias contextuales. Inspirado en rustc.
 
 ---
 
-## 10. Limitaciones
+## 10. Lo que el comprobador NO demuestra
 
-1. **Lifetimes anotadas (`&'a T`) no soportadas**: borrows a través de
- fronteras de función con múltiples input-borrows requieren restricciones
- estáticas no implementadas (la regla 1 del elision-set cubre 1-input;
- reglas 2 y 3 no implementadas).
+### 10.1. `lend` solo toma el NOMBRE de una variable
 
-2. **Escape via field/slot/deref**: detectado solo via escape_detection (A.27),
- no via borrow_checker directo. Algunos casos podrían pasar (ej. `this.f =
- borrow_local` con `this` de tipo Class).
+```vesta
+borrow<i64> b = lend(c.owner);   // error: lend: el argumento debe ser un
+borrow<i64> b = lend(this.u);    //        identificador de variable
+```
 
-3. **Owner Global/Field tracking**: el OwnerKind soporta Global/Field pero los
- call sites no los marcan automáticamente todavía (default a Local,
- conservador).
+Un campo, por tanto, **no puede ser owner**: no hay conflicto posible por
+mutarlo ni por un setter que lo sustituya, porque nunca hay un préstamo suyo que
+proteger. Un owner es una variable local, un parámetro o un global, y los tres
+se comprueban igual:
 
-4. **Mutaciones via setter**: `obj.prop = v` con borrow activo no se intercepta
- (requeriría tracking del receiver kind).
+```vesta
+unique<i64> g_owner = unique_box(5);       // owner GLOBAL
 
-5. **Multi-input-borrows con elision regla 2 (`&self`)**: no implementada (la
- regla 1 con 1 input cubre la mayoría de casos comunes en práctica).
+i32 main() {
+	borrow_mut<i64> m  = lend_mut(g_owner);
+	borrow_mut<i64> m2 = lend_mut(g_owner); // error VX2026, como en un local
+	return 0;
+}
+```
+
+Para prestar algo que vive en un campo hay que sacarlo antes a una variable.
+
+### 10.2. Con DOS borrows de entrada no se sabe de cuál sale el de salida
+
+La elisión de vidas cubre una entrada: si solo hay un `borrow` en los
+parámetros, el de salida sale de él y no hay nada que elegir. Con dos o más el
+compilador **no lo deduce, y lo dice** (`VXW921`):
+
+```vesta
+borrow<i64> pick(borrow<i64> a, borrow<i64> b, i64 which) {
+	if (which == 0) { return a; }
+	return b;
+}
+```
+
+> warning: `'pick'` toma 2 parámetros borrow, así que no se puede deducir de
+> cuál sale el borrow que devuelve [...] El borrow devuelto no se comprueba
+> contra NINGÚN owner, así que nada impide que sobreviva a aquel al que de
+> verdad apunta.
+
+Callar aquí y quedarse con el primero sería peor que no saberlo: un borrow atado
+al owner equivocado no da un error, da otro valor cuando el owner de verdad ya
+murió. Mientras no haya anotaciones explícitas (`&'a T`), lo que hay es el
+aviso; la salida es partir la función en una por entrada.
+
+### 10.3. Guardar un borrow en un campo lo saca del alcance del análisis
+
+Es la única de las tres que deja pasar un programa **incorrecto sin decir
+nada**:
+
+```vesta
+class Holder {
+	public borrow<i64> b;
+	public Holder() { }
+}
+
+i32 main() {
+	Holder h = new Holder();
+	{
+		unique<i64> y = unique_box(7);
+		h.b           = lend(y);   // el borrow escapa al campo
+	}                              // y muere aqui: el campo queda colgando
+	println("b=${read_borrow(h.b)}");   // lee memoria ya liberada
+	return 0;
+}
+```
+
+Compila sin un solo diagnóstico e imprime `b=7`: el valor sigue ahí porque el
+asignador aún no ha reutilizado el bloque, que es justo lo que hace que el fallo
+no se note. El alcance del comprobador termina en el scope de la función, y un
+campo vive fuera de él, así que nadie ata su vida a la del owner. **No guardes
+un `borrow<T>` en un campo**: para que un objeto conserve un acceso, dale un
+`shared<T>`, que sí lleva la cuenta.
 
 ---
 
@@ -342,6 +399,7 @@ con líneas + columnas + sugerencias contextuales. Inspirado en rustc.
 | `read_borrow(b)` | borrow no dropeado por NLL |
 | `write_borrow(m, v)` | `m` es `borrow_mut` no dropeado |
 | `move(owner)` | NO hay borrows activos del owner |
+| `owner = otro` (reasignar) | NO hay borrows activos del owner |
 | `return borrow<T>` | owner es Param/Global/Field (R4 + F2) |
 | `lend(borrow_mut)` (reborrow) | suspend del mut + registrar shared |
 | `lend_mut(borrow_mut)` (reborrow) | suspend del mut + registrar nuevo mut |

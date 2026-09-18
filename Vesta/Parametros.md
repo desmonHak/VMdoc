@@ -5,17 +5,11 @@ declara.** Una funcion suelta, un metodo, un constructor, un metodo de
 interfaz, una funcion `comptime` y una lambda leen sus parametros con la MISMA
 gramatica: las doce formas valen en los siete sitios.
 
-Esto no es un detalle de implementacion, es una promesa del lenguaje, y existe
-porque se rompio dos veces: el bucle que lee los parametros estaba copiado --
-cinco veces para los metodos y una mas para las lambdas -- y las copias eran
-versiones pobres que solo aceptaban `tipo nombre`. Un parametro no-nulo o un
-puntero a funcion valian en una funcion y no en un metodo, **sin ninguna razon
-de diseno**.
-
-Un fallo asi no se nota: nadie escribe la combinacion rara hasta que le hace
-falta, y entonces parece una limitacion del lenguaje. Por eso la matriz entera
-se EJECUTA en `examples_codes_vx/482_matriz_parametros.vx` -- que compile no
-basta, un parametro puede declararse bien y llegar mal.
+Es una promesa del lenguaje, no una coincidencia de la implementacion: no hay
+ninguna forma de parametro que valga en una funcion y no en un metodo, ni al
+reves. La matriz completa -- las doce formas por los siete contextos -- se
+**ejecuta** en `examples_codes_vx/482_matriz_parametros.vx`, porque que compile
+no basta: un parametro puede declararse bien y llegar mal.
 
 ---
 
@@ -53,10 +47,10 @@ Vale con parametros fijos delante -- `i64 desde(i64 base, i64... xs)`, donde los
 de delante son obligatorios y de ahi en adelante cualquier cantidad -- y en los
 siete contextos, no solo en una funcion suelta.
 
-Cinco cosas que el variadico arrastra y que antes estaban escritas una vez por
-contexto: el array que nadie escribio, que la aridad tiene un MINIMO y no un
-numero exacto, que los argumentos de mas se comprueban contra el tipo del
-ELEMENTO, y que al llamar hay que meterlos en un array. Hoy se dicen una vez.
+Lo que un variadico implica, y vale igual en los siete contextos: la aridad
+declarada es un **minimo**, no un numero exacto; los argumentos de mas se
+comprueban contra el tipo del **elemento**; y el array que los recoge lo
+construye el sitio de llamada, no quien escribe la funcion.
 
 Se prueba en `examples_codes_vx/481_variadicos_todos.vx`.
 
@@ -94,8 +88,8 @@ mas rapido para un interprete, y por eso se queda; el JIT usa el mismo banco --.
 | variadico | se lleva 2 (la direccion del array y cuantos son) |
 | **binario nativo** | **sin limite**: la convencion del procesador derrama en la pila lo que no cabe |
 
-Pasarse en la maquina virtual es un **error de compilacion** que apunta al modo
-nativo. Antes era un argumento con basura que compilaba y arrancaba.
+Pasarse en la maquina virtual es un **error de compilacion**, y el mensaje
+apunta al modo nativo, que no tiene el limite.
 
 `examples_codes_vx/483_params_limite_por_modo.vx` usa `@Target` para cubrir las
 dos ramas.

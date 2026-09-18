@@ -24,11 +24,14 @@ El `env` de una lambda no es un objeto del recolector: sale de un allocator que
 devuelve memoria cruda del host.  En lugar de hacerlo rastreable por el GC, Vesta
 lo modela como un **recurso propiedad del objeto contenedor**:
 
-- El `env` y el par `{codigo, env}` se alocan en el heap del host cuando la
-  lambda se guarda en un campo de clase.
-- El objeto contenedor es su dueno, como si fuera un campo `unique<env>`.
+- **El par `{codigo, env}` vive INLINE en el campo**, que por eso mide 16 bytes:
+  no es un puntero a otro sitio, es el par mismo.  Guardar una lambda en un
+  campo copia los dos qwords.
+- Lo unico reservado aparte es el **`env`**, y de eso el objeto contenedor es
+  dueno, como si fuera un campo `unique<env>`.
 - El destructor del contenedor libera el `env` (y reasignar el campo libera el
-  anterior antes de guardar el nuevo).
+  anterior antes de guardar el nuevo).  El par no se libera: no es una reserva
+  propia, vive dentro del contenedor.
 
 Esto reutiliza el mismo mecanismo de RAII que libera los campos `unique<T>` y los
 campos struct gestionados: un contenedor con un campo lambda se vuelve
@@ -42,21 +45,36 @@ destructible y gana la liberacion automatica.
 | Struct local que no escapa (`s.f = lambda`) | stack, en el scope del struct | implicita: muere con el frame, sin coste |
 | Struct que se retorna por valor | heap del host, transferido por move | el consumidor (quien recibe el struct) lo libera al salir de su scope |
 
-**Clase.**  El campo guarda un puntero a un bloque heap que no cuelga aunque el
-objeto escape el scope donde se creo.  Al destruirse el objeto, su destructor
-libera el bloque; al reasignar el campo, se libera el bloque anterior antes de
-guardar el nuevo.
+**Clase.**  El par vive en el campo y el `env` en un bloque del heap que no
+cuelga aunque el objeto escape el scope donde se creo.  Al destruirse el objeto,
+su destructor libera ese bloque; al reasignar el campo, se libera el anterior
+antes de guardar el nuevo.
 
 **Struct.**  Un struct es value-type y se mueve por valor (SRET).  Para el caso
 comun de un callback usado localmente, su `env` se queda en stack y muere con el
 scope, sin coste.  Cuando el struct **se retorna por valor**, el compilador
 detecta el escape y aloca su `env` en heap: el struct se mueve al llamante (sus
-bytes, incluido el puntero al `env`, se copian al buffer de retorno) y el
+bytes, el par `{codigo, env}` incluido, se copian al buffer de retorno) y el
 ownership del `env` se transfiere — el productor no lo libera y el consumidor que
 recibe el struct lo libera al salir de su scope.  Un unico free, sin GC.
-Almacenar un struct con un closure capturador en un **campo** que le sobrevive
-todavia no esta soportado y se rechaza en compilacion (usa una clase para ese
-caso).
+Almacenar ese struct en un **campo** de otro que le sobrevive sigue la misma
+regla: el ownership del `env` viaja con la copia, asi que quien acabe teniendo
+el valor es quien lo libera.
+
+```vesta
+struct Holder { fn(i64) -> i64 f; }
+struct Outer  { Holder h; }
+
+Holder make(i64 base) {
+	Holder h = { .f = (i64 x) => x + base };
+	return h;                       // el env se va con el valor devuelto
+}
+
+i32 main() {
+	Outer o = { .h = make(10) };     // y sobrevive a `make`
+	return (i32) o.h.f(32);          // -> 42
+}
+```
 
 **Capturas por referencia.**  Una captura por referencia (una variable mutada
 dentro de la lambda) que escapa a un campo de clase es un error de compilacion:
@@ -115,12 +133,10 @@ El comportamiento es identico en los tres backends: interprete, JIT y AOT nativo
 
 ## Limitaciones
 
-- Un struct con un closure capturador en un campo se puede retornar por valor
-  (move-on-return), pero **almacenarlo en un campo** de otro contenedor que le
-  sobrevive todavia no esta soportado; se rechaza en compilacion.  Para ese caso
-  usa una clase.
 - Las capturas por referencia que escapan a un campo se rechazan; usa captura por
-  valor.
+  valor.  El mensaje lo dice entero: *"captura por referencia en un closure que
+  se almacena en un campo: 'acc' se mutaria fuera de su scope.  Captura por
+  valor (no la modifiques dentro del lambda)."*
 - En el caso de clase, el `env` se aloca en heap aunque el holder no escape; la
   promocion a stack de los holders provablemente locales es una optimizacion
   futura del analisis de escape.

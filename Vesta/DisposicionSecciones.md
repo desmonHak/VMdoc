@@ -317,6 +317,46 @@ i32 main() => 0x42;
 
 ---
 
+## Consultar las secciones DESDE el programa
+
+Lo anterior coloca; esto **pregunta**. Tres builtins dan los simbolos que un
+linker de C expondria como `__start_x` / `__stop_x`, y sirven para que el
+programa recorra su propia seccion sin que nadie le pase punteros:
+
+| Builtin | Devuelve |
+| :----------------------- | :------- |
+| `section_start(".x")` | puntero a la base de la seccion |
+| `section_end(".x")` | puntero al final |
+| `section_size(".x")` | su tamano en bytes (`u64`) |
+
+```vesta
+@section(".boot", "rwx")
+i32 boot_a(i32 x) => x + 1;
+
+@section(".boot", "rwx")
+i32 boot_b(i32 x) => x + 2;
+
+i32 main() {
+	u64 start = (u64)section_start(".boot");
+	u64 end   = (u64)section_end(".boot");
+	u64 size  = section_size(".boot");
+
+	if ((end - start) != size) { return 1; }  // tiene que cuadrar
+	return (i32)size;
+}
+```
+
+> **En interprete y JIT devuelven 0**, porque ahi no hay secciones nativas. Es
+> el mismo criterio que el resto de lo que solo existe en el binario: se
+> responde 0, no se inventa un valor.
+
+No confundirlos con `section_bytes(nm)`, que es una funcion del **script de
+enlace** (la siguiente seccion) y corre al enlazar, no al ejecutar.
+
+Ejemplo: `examples_codes_vx/aot/08_section_symbols.vx`.
+
+---
+
 ## El script de enlace escrito en Vesta
 
 Cuando enlazas objetos (`vm --link ...`; ver [Enlazador.md](Enlazador.md)) y

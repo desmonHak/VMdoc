@@ -986,9 +986,10 @@ puntero a esa estructura -- o **0** si el tipo no existe o no lleva
 > mismo que la [reflexion de clases](ReflexionAOP.md), que vive en el
 > `ClassRegistry` y solo existe para las clases.
 
-**Limitacion actual:** `find_type` acepta literales de compilacion, que se
-resuelven a una direccion directa. Buscar por una cadena calculada en ejecucion
-esta pendiente.
+**Limitacion actual:** `find_type` resuelve el tipo **al compilar**, asi que su
+argumento tiene que ser un literal de cadena; pasarle una calculada en ejecucion
+es un error (`VX2085`). Buscar por un nombre de ejecucion pediria un resolutor
+que recorra la tabla, y no lo hay.
 
 Ejemplo: `examples_codes_vx/135_introspect_runtime.vx`.
 

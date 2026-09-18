@@ -98,6 +98,36 @@ i64 main() {
 No hay ninguna llamada de liberacion: el recolector se encarga.  Puedes crear
 millones de objetos en un bucle sin fugas; la memoria se mantiene acotada.
 
+#### `gc<T>` acepta CUALQUIER T, no solo una clase
+
+Con un nombre de clase, el bloque del recolector ES la instancia y se construye
+con `new`.  Para lo demas -- un primitivo, un puntero inteligente, o el
+anidamiento de varios modelos de memoria -- esta `gc_box(valor)`, que aloja el
+valor en un bloque gestionado y devuelve el puntero al box.  El valor interno se
+lee con `*g`:
+
+```vx
+gc<i64> a  = gc_box(40);
+i64     va = *a;          // 40
+
+gc<f64> b  = gc_box(2.0);
+i64     vb = (i64)*b;     // 2
+
+// Y el anidamiento arbitrario de modelos de memoria:
+gc<unique<i64>>         c = gc_box(unique_box(2));
+gc<shared<unique<i64>>> d = gc_box(shared_box(unique_box(0)));
+```
+
+**Cero fuga en los dos ejes**: el recolector libera el box, y si `T` posee un
+recurso con destructor -- un `unique<T>` con su deleter -- el box arrastra su
+limpieza determinista al salir del ambito, por la misma pila de limpieza que
+cualquier otro valor.
+
+`gc_finalize_all()` fuerza la finalizacion pendiente; sirve para comprobar en un
+test que los destructores corrieron, no para el uso normal.
+
+Ejemplo: `examples_codes_vx/245_gc_nested_generic.vx`.
+
 ### Que hay que hacer para activarlo
 
 Nada especial mas alla de usar `gc<T>`.  Al compilar a un ejecutable, si el
@@ -305,19 +335,15 @@ compilan a `.exe`/`.elf` autonomos.
 
 ### Lo que queda PENDIENTE (trabajo futuro)
 
-- **Fibras (context-switch cooperativo)** — es la pieza que falta para suspender y
-  reanudar tareas: guardar/restaurar `{rsp, rip, registros callee-saved}` y una
-  pila por fibra.  Desbloquea el *ping-pong* y `wait`/`notify`.  Se implementara
-  en Vesta (con inline-asm `@Naked` + reserva de pila via `extern`), sin la VM.
 - **Pool de hilos reales (paralelismo)** — N workers del SO ejecutando las tareas
-  verdes en paralelo (modelo M:N).  Encima de las fibras.
+  verdes en paralelo (modelo M:N).  Va encima de las fibras, que ya estan.
 - **`rspawn` (procesos remotos / distribuido)** — requiere red (TCP); queda
   **fuera del alcance** de un binario standalone.
 
-> En resumen: la **asincronia de una sola via** (lanzar tareas, esperar
-> resultados, mensajes, secciones criticas) funciona en nativo hoy.  La
-> **coordinacion con bloqueo mutuo** (ping-pong, wait/notify) y el **paralelismo
-> real** estan pendientes de las fibras y el pool de hilos.
+Las **fibras** (`fiber_swapctx` / `fiber_entry`) SI corren en el binario nativo,
+con el mismo resultado que el interprete y el JIT; ver
+[`Async.md`](Async.md).  Lo que queda pendiente es el paralelismo REAL: hoy las
+tareas se turnan en un hilo, no corren a la vez.
 
 ---
 

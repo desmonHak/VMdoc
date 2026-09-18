@@ -136,12 +136,17 @@ register("rax") u64 cuenta;          // salida: se escribe desde rax
   general de 64 bits (`rax`, `rbx`, `rcx`, `rdx`, `rsi`, `rdi`, `r8`..`r15`) y sus
   alias de menor ancho (`eax`/`ax`/`al`, `r8d`/`r8w`/`r8b`, etc.), que se
   resuelven al registro fisico correspondiente.
-- **No se puede ligar una variable a `rsp` ni `rbp`** (el puntero de pila/marco):
-  un valor Vesta no puede vivir ahi sin romper la pila, asi que el compilador lo
-  rechaza con un error (VXA008) que te remite a manipular la pila en el **cuerpo**
-  del `asm` (`push`/`pop`, `sub rsp`, `mov rax, rsp`) -- ver *Manipular la pila*
-  mas abajo.  Ligar a `rbx` avisa (VXA009): en modo VM lo reserva el runtime, asi
-  que ese bloque corre en el interprete (no en el JIT).
+- **Ligar una variable a `rsp` o `rbp` AVISA (`VXA008`), no se rechaza.**  Un
+  valor Vesta ahi rompe la pila si la funcion tiene prologo, pero hay ABIs que
+  lo EXIGEN -- Linux x86-32 pasa el sexto argumento de una syscall en `ebp` --,
+  y un ABI ajeno no se negocia.  Queda bajo la responsabilidad de quien lo
+  escribe, y es seguro donde no hay marco que romper: una funcion `@Naked`.
+  Cuando lo unico que quieres es tocar la pila, hazlo en el **cuerpo** del
+  `asm` (`push`/`pop`, `sub rsp`, `mov rax, rsp`) -- ver *Manipular la pila*
+  mas abajo.  Ejemplo del aviso: `examples_codes_vx/asm_pin_rbp_warn.vx`; del
+  uso real, `stdlib/vx/std/syscall/linux/x86_32.vx`.
+- Ligar a `rbx` avisa (`VXA009`): en modo VM lo reserva el runtime, asi que ese
+  bloque corre en el interprete (no en el JIT).
 
 ### Entrada, salida e inout
 
@@ -280,8 +285,23 @@ Puntos clave:
   entrada.
 - **Multi-plataforma.**  La ABI es *generica*: tu declaras los registros.  Para
   Windows x64 (NT) usas la convencion NT (`register("rax")` + `register("r10")`
-  ...); para Linux x86-32 (`int 0x80`) usas `register("eax")`, `register("ecx")`,
-  ...  La misma instruccion `syscall` cubre Linux y Windows x64.
+  ...).  La misma instruccion `syscall` cubre Linux y Windows x64.  Para Linux
+  x86-32 (`int 0x80`) la firma entera es la del kernel, `ebx` y `ebp`
+  incluidos, que es exactamente lo que declara
+  `stdlib/vx/std/syscall/linux/x86_32.vx`:
+
+  ```vesta
+  public size_t invoke(register("eax") syscall_id id,
+  	register("ebx") size_t a1, register("ecx") size_t a2,
+  	register("edx") size_t a3, register("esi") size_t a4,
+  	register("edi") size_t a5, register("ebp") size_t a6) {
+  	asm { int 0x80 }
+  	return (size_t) id; // EAX tras el int 0x80 = resultado
+  }
+  ```
+
+  El `ebp` del sexto argumento avisa con `VXA008` -- es el puntero de marco --
+  y compila: ver la nota de `register("reg")` mas arriba.
 - **La ABI forma parte del TIPO de la funcion.**  Un `cfn` puede declararla, y
   **dos `cfn` con ABIs distintas son tipos incompatibles** (como `sysv_abi` vs
   `ms_abi` en C).  Asi una llamada indirecta conoce la ABI en tiempo de
@@ -874,25 +894,37 @@ u64 main() {
 
 ## Limitaciones actuales
 
-- **Registros vectoriales como binding**: ligar una variable directamente a un
-  registro vectorial (`register("xmm0") ...`) **no** esta soportado todavia (el
-  asignador solo maneja el banco de proposito general).  Para SIMD, usa el
-  patron de memoria: liga **punteros** con `register()` y usa los registros
-  vectoriales como scratch interno del asm (ejemplos SSE2/AVX2 de arriba).
+- **La clase `mem` de la lista de operandos**: la unica que falta.
+  Se dice al compilar y con la salida: *"asm: la clase 'mem' aun no esta
+  soportada; usa 'reg' o un registro concreto"*.  Un operando en memoria se
+  escribe hoy pasando el **puntero** en un registro y desreferenciandolo en el
+  asm (`mov r, [p]`), que es lo que hace el ejemplo de `cmpxchg`.
 - **Interprete puro (`-m vm`)**: el bloque se ensambla al cargar el `.velb`
   usando el ensamblador integrado en `vm`.  Es portable a plataformas sin JIT,
   pero necesita ese ensamblador en tiempo de ejecucion.  Ademas, los bytes
   generados son especificos de **x86-64**: un `.velb` con inline asm x86 no
   corre en ARM.
-- **Maximo de bindings en `-m vm`**: en el interprete puro, un bloque admite
-  hasta **8** variables `register()` (el ayudante de marshalling las pasa como
-  argumentos).  El backend JIT no tiene este limite.
-- **Pisar `rsp`**: un asm que modifica el puntero de pila no se puede envolver
-  de forma segura (el propio envoltorio usa la pila), asi que se rechaza.
 - **Referenciar simbolos propios** (`call sym`, `mov r64, sym`, etc.) solo
   funciona en los backends nativos (JIT/AOT), no al portar a C.
-- **ABI a medida en x86-32 con `ebx`/`ebp`/`esp`**: esos registros estan
-  reservados por el asignador, asi que un `register("ebx")` (o `ebp`/`esp`) en un
-  parametro aun no compila en modo 32 bits.  Afecta a `int 0x80`, que usa `ebx`
-  para el argumento 1 y `ebp` para el 6.  El resto (`eax`/`ecx`/`edx`/`esi`/`edi`)
-  si funciona; en x86-64 no hay esta restriccion.
+- **El bloque es opaco al optimizador mientras el elevado no llegue a el**
+  (`VXA018`).  No es un limite sino un aviso que dice **en que instruccion
+  exacta** se atasco el elevado y si esa instruccion es de proposito general
+  -- modelable, simplemente aun no hecha -- o especifica de un conjunto (SSE2,
+  MMX), que no llegara a ser IR nunca y esta bien asi.
+
+### Lo que NO es una limitacion
+
+Cuatro cosas que suelen darse por restringidas y no lo estan:
+
+- **Ligar a un registro vectorial** (`register("xmm0")`) vale en una variable
+  local y en un **parametro**, con tipo entero y con `f64`, y da el mismo
+  resultado en los tres modos.  La lista de operandos acepta igualmente
+  `xmm`/`ymm`/`zmm`.
+- **No hay tope de bindings propio del `asm`.**  El limite es el de cualquier
+  funcion de la maquina virtual -- [doce registros de argumento](Parametros.md)
+  --, y los doce funcionan tambien en el interprete puro.
+- **Tocar `rsp` en el cuerpo** del bloque esta permitido.  Lo que avisa
+  (`VXA008`) es ligar un VALOR a `rsp`/`rbp`, y aun asi compila.
+- **`ebx`, `ebp` y `esp` se pueden ligar en x86-32.**  Hace falta: la
+  convencion de `int 0x80` pasa el primer argumento en `ebx` y el sexto en
+  `ebp`.

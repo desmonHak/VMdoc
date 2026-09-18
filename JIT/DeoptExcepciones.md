@@ -1,10 +1,9 @@
-# Excepciones en JIT/AOT: in-JIT catch (Opcion B) — diseno y estado
+# Excepciones en JIT/AOT: in-JIT catch (Opcion B)
 
-> Estado: IMPLEMENTADO y validado (2026-06-25).  cross-function throw
-> (fd7457f) + same-function in-JIT catch (este sprint).  El catch de
-> excepciones de TIPO-USUARIO corre EN JIT; los catch que pueden capturar un
-> AV de OS (catch-all o FatalError) bailan a interp (ver "Limitacion AV").
-> Foundation: MBlock.extra_succs + force_spill + LEA_LABEL + vrt_resume_jit.
+> El catch de excepciones de TIPO-USUARIO corre EN JIT; los catch que pueden
+> capturar un AV del sistema (catch-all o `FatalError`) bajan al interprete
+> (ver "Limitacion AV").  Se apoya en `MBlock.extra_succs`, `force_spill`,
+> `LEA_LABEL` y `vrt_resume_jit`.
 
 ## Resumen de lo implementado
 
@@ -122,8 +121,8 @@ catch).
 **memory-resident (spilled a un slot host)** a traves del edge anormal del
 throw.  Con la maquinaria de spill existente (`ra.spilled`/`slot_of`):
 - (a) Asegurar que el edge fantasma (tryenter-block -> handler-block) este en
-  el CFG de MachineIR que usa la liveness del regalloc.  **CONFIRMADO 2026-06-25
-  que HOY NO lo esta**: `build_intervals` (`src/jit/interval.cpp:431-434`) hace
+  el CFG de MachineIR que usa la liveness del regalloc.  **No lo esta**:
+  `build_intervals` (`src/jit/interval.cpp:431-434`) hace
   `live_out[b] = union(live_in[succ_a], live_in[succ_b])` -- el bloque MachineIR
   solo tiene DOS sucesores (`succ_a`, `succ_b`), poblados desde el terminador
   (BR -> succ_a; BR_COND -> succ_a+succ_b).  El edge al handler NO es un branch
