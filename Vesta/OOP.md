@@ -270,6 +270,48 @@ La forma `=> { ... }` (bloque) es rechazada por el parser.
 
 ---
 
+## Metodos virtuales en STRUCTS: `@Virtual`
+
+Un struct no es una clase: no tiene vtable y sus metodos se llaman directo, con
+coste cero. `@Virtual` da dispatch dinamico a un metodo concreto, con el modelo
+de C++ (y el que usa el AOT):
+
+```vesta
+struct Figura {
+	i64 lado;
+
+	@Virtual
+	public i64 area() => 0;
+}
+
+struct Cuadrado : Figura {
+	@Override
+	@Virtual
+	public i64 area() => this.lado * this.lado;
+}
+
+// El dispatch de area() es DINAMICO: el mismo codigo llama al del tipo real.
+i64 area_de(Figura* f) => f.area();
+```
+
+Como funciona:
+
+- Un struct con **al menos un** metodo `@Virtual` (propio o heredado) es
+  *polimorfico*: lleva un puntero a vtable en el offset 0, y sus campos
+  empiezan en 8.
+- La vtable es **estatica** -- una por tipo, un blob en datos con la direccion
+  de cada metodo virtual por slot --. Coste: una indireccion en la llamada.
+- El dispatch dinamico ocurre a traves de un puntero `Base*`: el objeto real
+  puede ser cualquier derivado.
+- `@Override @Virtual` redefine un virtual heredado en el mismo slot.
+
+Es **opt-in por metodo**: los que no lo llevan siguen con dispatch estatico.
+`@Virtual` es incompatible con `Self`.
+
+Ejemplo: `examples_codes_vx/328_virtual_dispatch.vx`.
+
+---
+
 ## Anotacion @Inline
 
 Expande el cuerpo del metodo en el call site sin emitir CALLVIRT:

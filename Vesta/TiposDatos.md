@@ -869,6 +869,42 @@ fd f2 = (fd) (u64) raw_imported_from_protocol; // OK (from u64 es public)
 
 ---
 
+## Contratos de TIPO: `@pod`, `@no_heap`, `@size(N)`
+
+Ademas de los contratos de funcion (`@pure`, `@alloc`, `@stack`...), se pueden
+declarar contratos sobre un tipo agregado (struct, clase o enum). El compilador
+**infiere la huella real del layout y verifica el contrato**: si no se cumple es
+un error de compilacion, no un aviso.
+
+```vesta
+@pod
+@no_heap
+@size(16)
+struct Punto {
+	f64 x;
+	f64 y;
+}
+```
+
+| Contrato | Lo que afirma |
+| :---------- | :------------ |
+| `@pod` | Plain Old Data: value-type **trivialmente copiable** (bit a bit, se puede `memcpy`) y pasable a C por valor. O sea: sin destructor `~Tipo()` y sin campos gestionados (`string`, `unique<T>`, `shared<T>`, referencias de clase). |
+| `@no_heap` | ningun campo referencia el heap gestionado |
+| `@size(N)` | el tipo mide EXACTAMENTE N bytes -- para estabilidad de ABI |
+
+Los tres son propiedades **exactas** del layout, asi que el contrato es duro: se
+cumple o no, nunca "no verificable". `vm --analyze` reporta la huella de cada
+tipo y el resultado de cada contrato.
+
+> **Tener layout C no se contrata: es universal.** TODO struct de Vesta tiene
+> layout C-compatible siempre -- orden de campos, alineamiento natural y padding
+> al estilo C --, sin necesidad de un `@repr(C)`. Lo que se contrata es lo de
+> arriba, que si puede dejar de cumplirse al anadir un campo.
+
+Ejemplo: `examples_codes_vx/analyze/type_contracts.vx`.
+
+---
+
 ## Resumen de la jerarquia de tipos
 
 ```java

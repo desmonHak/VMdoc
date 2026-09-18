@@ -941,6 +941,63 @@ Notas del ejemplo:
 
 ---
 
+## 8bis. Introspeccion en EJECUCION: `@Introspect` y `type_info_*`
+
+Todo lo anterior es introspeccion **al compilar**: `sizeof<T>()`,
+`field_count<T>()`, `field_name<T>(i)` se resuelven y desaparecen. `@Introspect`
+es la otra mitad: deja la informacion del tipo **en el binario** para poder
+consultarla en ejecucion, cuando el tipo no se conoce en el sitio que pregunta.
+
+```vesta
+@Introspect
+struct Vec3 { f64 x; f64 y; f64 z; }
+
+i32 main() {
+	i64 info = find_type("Vec3");   // 0 si no existe o no esta marcado
+	if (info == 0) { return 1; }
+
+	i32 kind  = type_info_kind(info);         // 2 = struct
+	u32 size  = type_info_size(info);         // 24
+	u32 align = type_info_align(info);        // 8
+	u32 n     = type_info_field_count(info);  // 3
+
+	u32    off = type_info_field_offset(info, 2);  // 16
+	string nom = type_info_field_name(info, 0);    // "x"
+	string t   = type_info_name(info);             // "Vec3"
+	return 0;
+}
+```
+
+Como funciona: el compilador emite una estructura POD en `static_data` por cada
+tipo marcado y registra su nombre en una tabla global. `find_type` devuelve el
+puntero a esa estructura -- o **0** si el tipo no existe o no lleva
+`@Introspect` --, y los `type_info_*` la consultan.
+
+| Builtin | Devuelve |
+| :------------------------------- | :------- |
+| `find_type(nombre)` | `i64`: puntero a la info, o 0 |
+| `type_info_kind(info)` | que es (struct, clase, enum) |
+| `type_info_name(info)` | `string` con el nombre del tipo |
+| `type_info_size(info)` | tamano en bytes |
+| `type_info_align(info)` | alineamiento |
+| `type_info_field_count(info)` | cuantos campos |
+| `type_info_field_name(info, i)` | nombre del campo `i` |
+| `type_info_field_offset(info, i)` | su desplazamiento |
+| `type_info_field_size(info, i)` | su tamano |
+
+> **Es opt-in y cuesta lo que ocupa.** Un tipo sin `@Introspect` no emite nada,
+> y un programa sin ningun `@Introspect` no lleva la tabla. Por eso no es lo
+> mismo que la [reflexion de clases](ReflexionAOP.md), que vive en el
+> `ClassRegistry` y solo existe para las clases.
+
+**Limitacion actual:** `find_type` acepta literales de compilacion, que se
+resuelven a una direccion directa. Buscar por una cadena calculada en ejecucion
+esta pendiente.
+
+Ejemplo: `examples_codes_vx/135_introspect_runtime.vx`.
+
+---
+
 ## 9. Limitaciones y workarounds
 
 ### Estructuras runtime NO disponibles en compile-time

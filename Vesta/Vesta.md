@@ -26,6 +26,7 @@ multi-paradigma estaticamente tipado disenado con tres principios:
 | [[Strings]] | Tipo string y sus METODOS (`length`/`cstr`/`wstr`/...), interpolacion `${expr:fmt}`, triple-quoted, codificacion solo en la frontera nativa |
 | [[OptionalResult]] | `Optional<T>`, `Result<V,E>`, `!!`, `nonnull`, `T !!name` |
 | [[Closures]] | Lambdas, captura lexica, HOF, top-level fn promotion |
+| [[Terminal]] | Control del terminal: truecolor `fg_rgb`/`bg_rgb`, cursor y borrado (`term_*`) |
 
 ### Modelo de programacion
 
@@ -37,6 +38,7 @@ multi-paradigma estaticamente tipado disenado con tres principios:
 | [[Metaprogramacion]] | @Macro, expr capture, introspeccion, FFI compile-time |
 | [[Colecciones]] | ArrayList, HashMap, HashSet, Queue, Deque, TreeMap, Stack |
 | [[Excepciones]] | try/catch/finally, FatalError, panic, throw |
+| [[Instrumentacion]] | `@Hook(enter/exit/unwind)`: instrumentacion tejida al compilar, campos por firma, `@NoInstrument` |
 
 ### Memoria y seguridad
 

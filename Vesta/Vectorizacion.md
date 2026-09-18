@@ -33,6 +33,7 @@ for (i64 i = 0; i < n; i = i + 1) { c[i] = a[i] + b[i]; }
 | **Dot-product / FMA** | `acc = acc + a[i] * b[i]` | multiplica-acumula |
 | **Unario** | `b[i] = OP a[i]` | `-a[i]`, `sqrt(a[i])`, `fabs(a[i])` |
 | **Copia (memcpy)** | `c[i] = a[i]` | `rep movsb` / SIMD |
+| **Relleno (memset)** | `c[i] = k` (k invariante) | `rep stosb` / SIMD |
 
 Todos funcionan en su forma `for` **y** `while`:
 
@@ -49,6 +50,26 @@ c[i] = k + a[i];     // escalar a la izquierda (solo conmutativo: + *)
 c[i] += k;           // compound assignment
 arr[i] *= 3;         // in-place
 ```
+
+---
+
+### Apagarlo en una funcion: `@NoIdiom`
+
+Reconocer un idioma es reescribir un bucle a una llamada (`memcpy`, `memset`),
+y hay un sitio donde eso no puede pasar: **dentro de quien IMPLEMENTA esa
+llamada**, donde seria una llamada a si misma.
+
+```vesta
+@NoIdiom
+public void rellenar(u8* p, u64 n) {
+	// El bucle se queda como bucle: aqui ESTAMOS escribiendo memset.
+	for (u64 i = 0; i < n; i = i + 1) { p[i] = 0; }
+}
+```
+
+Es la razon por la que existe, y por la que la stdlib de memoria la lleva. Sirve
+tambien para medir: con `@NoIdiom` se compara el bucle contra la llamada sin que
+el optimizador los iguale por detras.
 
 ---
 
