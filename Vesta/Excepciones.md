@@ -99,7 +99,13 @@ try {
 
 ### Codigos de FatalKind
 
-| Codigo | Constante | Significado |
+> **En Vesta se compara contra el NUMERO**, no contra el nombre: `if (e.kind ==
+> 7)`.  La columna "Constante" es como se llama en el runtime (C++), y esos
+> nombres **no estan declarados** como identificadores de Vesta -- escribirlos
+> da "nombre no declarado".  Exponerlos como `comptime const` de la stdlib esta
+> por hacer.
+
+| Codigo | Constante en el runtime | Significado |
 | :----- | :------------------------- | :----------------------------------------- |
 | 1 | `FATAL_NULL_POINTER` | Desreferencia de puntero/referencia nula o handle invalido |
 | 2 | `FATAL_DIVISION_BY_ZERO` | Division o modulo entre cero (signed o unsigned) |

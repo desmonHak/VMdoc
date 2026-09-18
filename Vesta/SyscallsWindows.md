@@ -31,8 +31,13 @@ dos métodos de contexto siguen en stub.
 Un solo import trae los envoltorios **y** sus tipos:
 
 ```vx
-import std.syscall.windows;
+import std.syscall.windows only *;
 ```
+
+> El `only *` no es adorno: un `import std.syscall.windows;` a secas registra
+> el NAMESPACE, no sus nombres, asi que habria que escribir
+> `std.syscall.windows.NtCreateFile(...)` en cada llamada.  Es deliberado --
+> quien usa la libreria decide si quiere las syscalls sueltas en su scope --.
 
 El módulo reexporta `std.ntwindows`, donde viven los tipos de la API
 (`NTSTATUS`, `HANDLE`, `UNICODE_STRING`, `OBJECT_ATTRIBUTES`,
@@ -134,7 +139,7 @@ hizo: `Information` contiene los bytes escritos o leídos.
 Sin tocar `kernel32.dll`:
 
 ```vx
-import std.syscall.windows;
+import std.syscall.windows only *;
 
 const u32 GENERIC_READ           = 0x80000000;
 const u32 GENERIC_WRITE          = 0x40000000;

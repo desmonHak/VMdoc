@@ -277,8 +277,11 @@ VESTA_PLUGIN_EXPORT int64_t mi_funcion(void *proc, int64_t vm_addr, int64_t len)
 ### Cargar el plugin desde Vesta
 
 ```java
-// Import estatico via ruta relativa al ejecutable:
-extern import "stdlib/native/io/vesta_io";
+// Declaracion estatica, con la ruta relativa al ejecutable.  Los parametros
+// van en estilo C -- el tipo delante del nombre --, como en el resto de Vesta:
+extern "stdlib/native/io/vesta_io" {
+    fn mi_funcion(void* proc, i64 addr, i64 len) -> i64;
+}
 
 // Usar la funcion del plugin:
 mi_funcion(proc_ptr, buffer_addr, buffer_len);
@@ -407,8 +410,9 @@ free(buf);
 
 ```java
 // En el lado Vesta, pasar el puntero al proceso actual:
-extern import "mi_plugin";
-extern "mi_plugin" { fn leer_datos(proc: void*, vm_addr: i64, len: i64) -> i64; }
+extern "mi_plugin" {
+    fn leer_datos(void* proc, i64 vm_addr, i64 len) -> i64;
+}
 
 // getproc() devuelve el ProcessVM* del proceso actual:
 void* proc = getproc();

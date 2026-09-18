@@ -292,6 +292,8 @@ class Pair<A, B> {
     public A first;
     public B second;
     public Pair(A a, B b) { this.first = a; this.second = b; }
+    public A get_first() => this.first;
+    public B get_second() => this.second;
 }
 
 i32 main() {

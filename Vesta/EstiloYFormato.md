@@ -364,11 +364,11 @@ aunque esten pegados.  Lo mismo una declaracion con `const` y una sin el.
 por el.**  Los anclajes son `=`, `=>` y `//`.
 
 ```vesta
-public  get age  => this.age;
-private get edad => this.edad;
+public  u8 get age  => this.age;
+private u8 get edad => this.edad;
 
-public get age  => this.age;
-public Animal() => this(0);
+public u8 get age  => this.age;
+public    Animal() => this(0);
 ```
 
 **R89.  Las RANURAS NOMBRADAS repartidas se alinean por su `=`.**  Vale igual
@@ -601,13 +601,23 @@ puede tener un motivo.
 namespace app.render;
 
 import std.io;
-import std.collections.{
-	ArrayList,
-	HashMap,
-	TreeMap,
+import std.memory.{
+	memcpy,
+	memset,
+	memmove
 };
-extern import "stdlib/native/io/vesta_io";
+
+extern "stdlib/native/io/vesta_io" {
+	fn vio_print_buf(u8* buf, u64 len) -> i64;
+}
 ```
+
+Dos cosas que el ejemplo anterior de esta regla hacia mal, y no compilaban:
+
+- **La lista NO admite coma final.**  Al reves que una lista de argumentos o de
+  campos, donde el formateador si la deja: aqui el ultimo va sin ella.
+- **`ArrayList`, `HashMap` y las demas colecciones no se importan.**  Son
+  palabras clave del lenguaje y estan disponibles sin escribir nada.
 
 **R25.  Un `namespace` de bloque indenta su contenido un nivel.**
 
@@ -730,11 +740,11 @@ lista, nunca se convierte en bloque.**  Los `=>` consecutivos se alinean, y con
 ellos los modificadores (`R84`).
 
 ```vesta
-public  get age  => this.age;
-private get edad => this.edad;
+public  u8 get age  => this.age;
+private u8 get edad => this.edad;
 
-public get age  => this.age;
-public Animal() => this(0);
+public u8 get age  => this.age;
+public    Animal() => this(0);
 ```
 
 **R39b.  Y al reves: un cuerpo cuya UNICA sentencia es `return <expr>;` se
@@ -792,7 +802,7 @@ class Animal : Nombre, IFoo, IBar {
 
 	public u8 method1() => this.age + 1;
 
-	public get age => this.age;
+	public u8 get age => this.age;
 
 	public set age(u8 v) {
 		this.age = v;
@@ -1561,11 +1571,14 @@ Lleva tabuladores reales y ninguna linea pasa de 80 columnas midiendolos a 4.
 namespace app.catalogo;
 
 import std.io;
-import std.collections.{
-	ArrayList,
-	HashMap
+import std.memory.{
+	memcpy,
+	memset
 };
-extern import "stdlib/native/io/vesta_io";
+
+extern "stdlib/native/io/vesta_io" {
+	fn vio_print_buf(u8* buf, u64 len) -> i64;
+}
 
 
 // R87: typedef y using tienen campos distintos -> son dos bloques.
@@ -1614,9 +1627,9 @@ class Pieza : Articulo, Serializable {
 	}
 
 	// R88: formas distintas, pero comparten el ancla =>.
-	public get ref          => this.ref;
-	public get precio       => this.precio;
-	public Precio con_iva() => this.precio + IVA;
+	public Referencia get ref    => this.ref;
+	public Precio     get precio => this.precio;
+	public Precio     con_iva()  => this.precio + IVA;
 
 	public set precio(Precio v) {
 		if (v < 0) throw new FatalError("precio negativo");

@@ -88,20 +88,22 @@ explícita hay que terminar el proceso entero.
 
 ### Patrón hot-reload
 
-```java
-string PLUGIN = "plugins/hot.velb";
+El path tiene que ser un **literal de cadena**, no una variable: el compilador
+lo resuelve al compilar, asi que `unloadmodule(PLUGIN)` con `string PLUGIN =
+...` no vale y lo dice.
 
+```java
 i32 reload_plugin() {
-    unloadmodule(PLUGIN);
-    i64 r = loadmodule(PLUGIN);
+    unloadmodule("plugins/hot.velb");
+    i64 r = loadmodule("plugins/hot.velb");
     return (r == 0) ? -1 : 0;
 }
 
 i32 main() {
-    loadmodule(PLUGIN);
+    loadmodule("plugins/hot.velb");
     while (true) {
         run_plugin_once();
-        if (file_modified_since_last_check(PLUGIN)) {
+        if (file_modified_since_last_check()) {
             reload_plugin();
         }
         sleep(100);

@@ -178,10 +178,12 @@ i32 main() {
     try {
         println("intentando llamar FFI sin la cap");
     } catch (FatalError e) {
-        if (e.kind == FATAL_ILLEGAL_INSTRUCTION) {
+        if (e.kind == 5) {   // FATAL_ILLEGAL_INSTRUCTION; ver Excepciones.md
             return -1;
         }
-        throw; // otro tipo de error fatal
+        // Re-lanzar con `throw;` a secas NO existe: si hay que propagar,
+        // lanza uno nuevo (`throw new FatalError(...)`) o no lo captures.
+        return (i32)e.kind;
     }
     return 0;
 }

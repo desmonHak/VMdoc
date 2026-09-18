@@ -235,7 +235,9 @@ ejecutables directamente.
 ```java
 import std.io; // modulo Vesta estandar (dot-separated)
 import std.collections.List; // importar tipo especifico
-extern import "stdlib/native/io/vesta_io"; // plugin nativo compilado
+extern "stdlib/native/io/vesta_io" {       // plugin nativo compilado
+    fn vio_print_buf(u8* buf, u64 len) -> i64;
+}
 ```
 
 ---

@@ -147,14 +147,14 @@ values cuando se pasan como argumento a un parametro `fn(...)`:
 i32 add2(i32 a, i32 b) { return a + b; }
 i32 mul2(i32 a, i32 b) { return a * b; }
 
-i32 reduce(fn(i32, i32) -> i32 op, i32 init, i32[] arr) {
+i32 reduce(fn(i32, i32) -> i32 op, i32 init, i32[4] arr) {
     i32 acc = init;
     for (i32 x : arr) { acc = op(acc, x); }
     return acc;
 }
 
 i32 main() {
-    i32[] data = {1, 2, 3, 4};
+    i32[4] data = {1, 2, 3, 4};      // el tamano va en el tipo: T[N], no T[]
     i32 sum = reduce(add2, 0, data); // add2 promovido a fn(i32,i32)->i32
     i32 prod = reduce(mul2, 1, data); // idem mul2
     return sum + prod;
@@ -177,21 +177,23 @@ variable o campo de tipo `fn(...)`/`cfn(...)` (`cfn c = doblar; o.f = triplicar;
 ## 6. HOF: pasar funciones como argumentos
 
 ```vx
-i32 each(i32[] arr, fn(i32) -> void f) {
+void each(i32[5] arr, fn(i32) -> void f) {
     for (i32 x : arr) { f(x); }
-    return arr.length;
 }
 
-i32 map_sum(i32[] arr, fn(i32) -> i32 transform) {
+i32 map_sum(i32[5] arr, fn(i32) -> i32 transform) {
     i32 sum = 0;
     for (i32 x : arr) { sum = sum + transform(x); }
     return sum;
 }
 
 i32 main() {
-    i32[] xs = {1, 2, 3, 4, 5};
-    each(xs, (x) => println("${x}")); // lambda inline
-    i32 doubles_sum = map_sum(xs, (x) => x * 2); // = 30
+    i32[5] xs = {1, 2, 3, 4, 5};
+    // Una lambda `-> void` lleva cuerpo de BLOQUE: con `=>` expresion, el
+    // valor de `println` no cabe en un `void`.
+    each(xs, (i32 x) => { println("${x}"); });
+
+    i32 doubles_sum = map_sum(xs, (i32 x) => x * 2); // = 30
     return doubles_sum;
 }
 ```

@@ -314,7 +314,8 @@ for (i32 i = 0; i < 1000; i++) {
 ## Declaracion extern para variantes _gc
 
 ```java
-extern import "stdlib/native/collections/vesta_collections";
+// Las colecciones son palabras clave del lenguaje: no hay que declarar nada.
+// Esta linea solo hace falta para llamar a un simbolo del plugin por su nombre.
 
 // Declarar las variantes GC-aware que necesites:
 extern "stdlib/native/collections/vesta_collections" {

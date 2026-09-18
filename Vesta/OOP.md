@@ -195,8 +195,9 @@ for (Saludable s : saludadores) {
 class Caja {
     private i32 _valor = 0;
 
-    // Getter con expression body
-    public get valor => this._valor;
+    // Getter con expression body.  El TIPO va delante de `get`, igual que
+    // en cualquier otro miembro: `public <tipo> get <nombre> => <expr>;`
+    public i32 get valor => this._valor;
 
     // Setter con validation
     public set valor(i32 v) {
@@ -205,7 +206,7 @@ class Caja {
     }
 
     // Property de solo lectura (no se define setter)
-    public get doble => this._valor * 2;
+    public i32 get doble => this._valor * 2;
 }
 
 Caja c = new Caja();
