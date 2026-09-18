@@ -228,6 +228,21 @@ empieza diciendo QUE hace, y se leen en columna.
 **R95.  O toda la cadena en una linea, o todos sus eslabones repartidos**
 (`R12`).  Nunca dos arriba y el resto abajo.
 
+> Con UFCS se probo la otra forma -- el primer eslabon arriba y los demas
+> alineados con su punto -- y se descarto, por tres razones que son las del
+> propio estandar:
+>
+> 1. **El diff.**  La columna de continuacion dependeria del largo del
+>    RECEPTOR, asi que renombrar una variable moveria todas las lineas de la
+>    cadena sin que ninguna cambiara.
+> 2. **El ancho (`R16`).**  Gastaria ancho proporcional al receptor: dentro de
+>    un `if` dentro de un `for`, los eslabones pueden no caber en 80 -- y
+>    entonces la cadena se queda sin repartir.
+> 3. **Un mecanismo, no dos.**  Repartir usa NIVELES DE SANGRIA en todo el
+>    formateador; alinear por columnas es de las TABLAS (`R83`-`R88`).  Mezclar
+>    los dos obliga ademas a re-juntar lo que la version anterior partio, o el
+>    mismo programa tendria dos formas validas (`P1`).
+
 **R96.  Una cadena de un solo eslabon no se reparte**: si `x.f(a, b, c)` no
 cabe, lo que se reparte son sus ARGUMENTOS (`R12`), no la cadena.
 
@@ -342,6 +357,28 @@ private get edad => this.edad;
 public get age  => this.age;
 public Animal() => this(0);
 ```
+
+**R89.  Las RANURAS NOMBRADAS repartidas se alinean por su `=`.**  Vale igual
+para un init designado partido en lineas y para una llamada con argumentos con
+nombre: son la MISMA grafia (`.nombre = valor`), asi que son una sola regla --
+alinear una y no la otra seria tener dos criterios para lo mismo.
+
+```vesta
+Punto p = {
+	.x      = 1,
+	.origen = 0
+};
+
+i64 x = medir(
+	.alto      = 1,
+	.ancho     = 2,
+	.profundo  = 3
+);
+```
+
+Es una tabla como cualquier otra: cae bajo `R83` (bloque de lineas consecutivas
+al mismo nivel y con la misma forma) y bajo `R86` (si alinear sacara alguna
+linea de las 80, el bloque no se alinea).
 
 **R92.  Dentro de un tipo se alinea por el `->` y por nada mas.**  El `->` es la
 articulacion visible del tipo funcion y separa dos campos que se leen aparte.
@@ -687,6 +724,32 @@ public get age  => this.age;
 public Animal() => this(0);
 ```
 
+**R39b.  Y al reves: un cuerpo cuya UNICA sentencia es `return <expr>;` se
+escribe con `=>`, si la declaracion entera cabe en una linea.**  Es la otra
+direccion de `R39`, y esta por lo mismo que `R6b`: las dos formas dicen
+exactamente lo mismo, asi que solo puede quedar una (`P1`).
+
+```vesta
+// Se junta: cabe entera.
+i64 add(i64 a, i64 b) => a + b;
+public i64 get_v() => this.v;
+
+// No se junta: no cabe, y repartir un `=>` deja la firma colgando de una
+// linea larga, que se lee peor que el bloque del que venia.
+i32 weighted_sum(borrow<i32> a, borrow<i32> b, borrow<i32> c, i32 weight) {
+	return read_borrow(a) * weight
+		+ read_borrow(b) * weight
+		+ read_borrow(c) * weight;
+}
+```
+
+Dos cuerpos se quedan como estaban aunque quepan, y en los dos casos es porque
+juntarlos PERDERIA algo:
+
+- `return;` a secas -- no hay expresion que poner detras del `=>`;
+- el que lleva un comentario en medio (`{ // nota`, o `return n; // nota`): al
+  juntarse desaparece la linea donde vivia y no hay donde recolocarlo.
+
 ---
 
 ## 9. Clases
@@ -714,9 +777,7 @@ class Animal : Nombre, IFoo, IBar {
 		Animal.counter += 1;
 	}
 
-	public u8 method1() {
-		return this.age + 1;
-	}
+	public u8 method1() => this.age + 1;
 
 	public get age => this.age;
 
@@ -725,9 +786,7 @@ class Animal : Nombre, IFoo, IBar {
 	}
 
 	@Override
-	public string toString() {
-		return "Animal ${age}";
-	}
+	public string toString() => "Animal ${age}";
 
 	public ~Animal() { }
 }
@@ -744,9 +803,7 @@ impl Punto {
 }
 
 impl Comparable for Punto {
-	i32 compare(Punto otro) {
-		return 0;
-	}
+	i32 compare(Punto otro) => 0;
 }
 ```
 
@@ -1013,7 +1070,7 @@ match (valor) {
 ```vesta
 i64 total = (a + b) * c - d / 2;
 bool ok = !fallo && (n > 0 || forzar);
-i32 corto = (i32) largo;
+i32 corto = (i32)largo;
 f64 x = puntos[i].coord;
 i32 signo = n < 0 ? -1 : 1;
 i64* q = &puntos[0];
