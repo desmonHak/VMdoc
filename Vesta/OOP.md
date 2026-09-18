@@ -249,7 +249,9 @@ opcodes `getstatic` (0x60) y `setstatic` (0x61).
 
 ## Expression-bodied members
 
-La sintaxis `=>` introduce un cuerpo de expresion. Solo funciona con `{ return expr; }`:
+La sintaxis `=>` introduce un cuerpo de expresion: es exactamente
+`{ return expr; }` escrito corto. Vale en cualquier funcion -- tambien en una
+libre --, no solo en un miembro.
 
 ```java
 class Matematica {

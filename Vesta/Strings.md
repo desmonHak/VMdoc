@@ -416,13 +416,23 @@ pide el buffer y trátalo como memoria nativa (`u8*`), que es lo que es.
 
 ## Limitaciones conocidas
 
-1. **Interpolación con `float`/`f64`/`struct`/`class`/`enum`** en contexto STRING
- (construir un `string` con `${expr}`): todavía no soportada para esos tipos
- (emite error). Los tipos primitivos soportados en interpolación de string son
- `string`, `i8`..`i64`, `u8`..`u64`, `bool`, `char` y `ptr`/`array`. Workaround
- para float: `print`/`println` directo (que sí soporta floats) o stringify
- explícito. Se planea añadir soporte de float y un mecanismo `toString()` virtual
- para clases.
+1. **Interpolación de un `struct` o de una variante de `enum`** en contexto
+ STRING (construir un `string` con `${expr}`): todavía no soportada, y emite
+ error. Faltan los dos agregados, y por motivos distintos: un `struct` no tiene
+ método virtual donde colgar la conversión, y un `enum` necesita una tabla de
+ nombres por variante (y recursión si la variante lleva carga).
+
+ Todo lo demás **sí** funciona, incluido dentro de una cadena construida:
+ `string`, `i8`..`i64`, `u8`..`u64`, `bool`, `char`, `ptr`/`array`, `f32`/`f64`
+ y las **clases con `toString()`**, que se invoca como cualquier método virtual.
+
+ ```vesta
+ f64 f = 1.5;
+ P   p = new P();          // con `public string toString() => ...`
+ string a = "f=${f} p=${p}";   // "f=1.5 p=P(7)"
+ ```
+
+ Para un struct o un enum, convierte a mano.
 
 2. **Interpolación `${...}` dentro de triple-quoted**: SI soportada, incluido con
  format specifiers `${expr:fmt}`.

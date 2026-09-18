@@ -316,7 +316,7 @@ source `.vx` puede mantenerse privado, distribuyendo solo `.vxi` y
 
 | Kind | Payload |
 |:---|:---|
-| `FUNCTION` | nombre, lib (extern), mangled_label, return_type, param_types[] |
+| `FUNCTION` | nombre, lib (extern), mangled_label, return_type, param_types[], param_names[] |
 | `STRUCT` | nombre, size, align, fields[] (con bit_offset/bit_width) |
 | `CLASS` | nombre, super, interfaces[], size, fields[], methods[] (con vtable_index/flags) |
 | `ENUM` | nombre, variants[] (con payload_types[]) |

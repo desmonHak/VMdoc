@@ -397,34 +397,40 @@ importador ve los simbolos, pero no se propagan a sus propios consumidores.
 
 ---
 
-## 8. `extension` e `impl`
+## 8. `impl`: anadir metodos a un tipo que ya existe
 
-`extension` e `impl` anaden metodos a un tipo **ya existente** (struct o clase),
-posiblemente definido en otro modulo, al estilo de las extensiones de Swift /
-C# o de `impl` en Rust. El *dispatch* es **estatico** (llamada directa,
-*inline*-able, coste cero), y funcionan **cross-modulo**: puedes extender un
-tipo importado y el consumidor ve los metodos anadidos.
+`impl` anade metodos a un tipo **ya existente** (struct o clase), posiblemente
+definido en otro modulo, al estilo de `impl` en Rust o de las extensiones de
+Swift / C#. El *dispatch* es **estatico** (llamada directa, *inline*-able, coste
+cero), y funciona **cross-modulo**: puedes extender un tipo importado y el
+consumidor ve los metodos anadidos.
 
-### 8.1. `extension Tipo { ... }`
+> **`extension Tipo { }` esta RETIRADA.** Hacia exactamente lo mismo que
+> `impl Tipo { }`, y dos formas de escribir lo mismo parten en dos todo lo que
+> hay detras: una de las mitades se queda corta sin que nadie lo note -- la de
+> `extension` ya perdia `static`, `final` y varias marcas mas al construir la
+> ficha del metodo --. Escribir `extension` hoy es un error de sintaxis.
 
-Anade metodos sueltos a un tipo.
+### 8.1. `impl Tipo { ... }`
+
+Anade metodos sueltos a un tipo, sin declarar que cumpla nada.
 
 ```vesta
 struct Punto { i64 x; i64 y; }
 
-extension Punto {
-    i64 suma() { return this.x + this.y; }
-    i64 escala(i64 k) { return (this.x + this.y) * k; }
+impl Punto {
+    i64 suma() => this.x + this.y;
+    i64 escala(i64 k) => (this.x + this.y) * k;
 }
 
 class Contador {
     i64 n;
     Contador(i64 v) { this.n = v; }
-    i64 get() { return this.n; }
+    i64 get() => this.n;
 }
 
-extension Contador {
-    i64 doble() { return this.get() * 2; }
+impl Contador {
+    i64 doble() => this.get() * 2;
 }
 
 i64 main() {
@@ -433,6 +439,12 @@ i64 main() {
     return p.suma() + p.escala(1) + c.doble() - 10;  // 20 + 20 + 12 - 10 = R00 42
 }
 ```
+
+> Para anadir una operacion a un tipo **no hace falta** `impl`: una funcion
+> libre que lo tome de primer parametro ya se llama por el punto (ver
+> [Llamada uniforme](LlamadaUniforme.md)). `impl` es para cuando la operacion
+> pertenece al tipo de verdad -- o para declarar que cumple un concept --, no
+> para poder escribir `x.f()`.
 
 ### 8.2. `impl Concept for Tipo { ... }`
 
@@ -459,9 +471,13 @@ i64 main() {
 
 Vesta es **permisivo** (a diferencia de la *orphan rule* de Rust): puedes
 extender cualquier tipo con cualquier metodo. El unico error duro es la
-**colision real**: dos extensiones visibles que anaden el mismo metodo con la
-misma aridad al mismo tipo. En ese caso el compilador aborta y debes desambiguar
+**colision real**: dos `impl` visibles que anaden el mismo metodo con la misma
+aridad al mismo tipo. En ese caso el compilador aborta y debes desambiguar
 (renombrar el metodo o usar la forma de funcion libre).
+
+Una regla de coherencia al estilo de la *orphan rule* -- prohibir que un tercer
+modulo anada metodos a un tipo que no es suyo para un concept que tampoco lo es
+-- sigue **sin implementarse**.
 
 ---
 
@@ -740,8 +756,33 @@ Otras limitaciones a tener presentes:
 
 ---
 
+## Llamar a lo que esta en otro namespace
+
+Un namespace no derrama sus nombres en los demas: lo que declara `a.b` no esta
+en ambito desde `a.c`, aunque esten en el **mismo fichero**. Eso vale igual para
+la llamada por el punto, porque `x.f()` y `f(x)` son la misma llamada:
+
+```vesta
+namespace geo.metrico { public i64 doble(i64 x) => x * 2; }
+
+namespace app {
+    i64 a = geo.metrico.doble(6);  // cualificada
+    i64 b = 6.doble$geo.metrico(); // la misma, por el punto
+    i64 c = 6.doble();             // no: `doble` no esta en ambito aqui
+}
+```
+
+`$` califica la llamada por el punto sin traer el nombre al ambito. Va **detras**
+del nombre de la funcion, no delante, porque un campo puede llamarse igual que
+un namespace y lo que sigue al punto tiene que ser siempre la funcion. Lo
+detalla [Llamada uniforme](LlamadaUniforme.md).
+
+---
+
 ## Ver tambien
 
+- [Llamada uniforme](LlamadaUniforme.md) - `x.f(a)` == `f(x, a)`, ranuras por
+  nombre, y la calificacion `$`.
 - [Sistema de modulos](Modulos.md) - imports, paquetes, cache, `.vxi`.
 - [Gestor de paquetes](PackageManager.md) - `vx.toml`, PackageId, `vex_modules`.
 - [Genericos](Generics.md) - monomorfizacion, concepts, `impl`.

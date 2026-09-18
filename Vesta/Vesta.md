@@ -61,7 +61,8 @@ multi-paradigma estaticamente tipado disenado con tres principios:
 | Documento | Contenido |
 | :------------------------------ | :----------------------------------------------------------- |
 | [[Modulos]] | `import`, public/private, paquete-dir, reexport, cache, paralelismo M8 |
-| [[Namespaces]] | `namespace a.b.c;`, `import a.b.c;`, alias, `internal`, PackageId `@id`, `extension`/`impl` |
+| [[Namespaces]] | `namespace a.b.c;`, `import a.b.c;`, alias, `internal`, PackageId `@id`, `impl` |
+| [[LlamadaUniforme]] | `x.f(a)` == `f(x, a)`, el hueco `_`, ranuras por nombre `.n = v`, sobrecarga por nombre de ranura, calificacion `$` |
 | [[CompilacionCondicional]] | `@Target(...)` con OS/arch/CPU/semver/mode + AND/OR/NOT/parens + sobre imports |
 | [[CargaDinamica]] | `loadmodule`/`unloadmodule`, hot-reload, transitividad caps |
 | [[Sandbox]] | Capability-based sandbox (10 caps + whitelists), `--vx-caps`, zero overhead |
@@ -276,17 +277,26 @@ Result<i32, string> dividir(i32 a, i32 b) {
 
 ```
 
-El cuerpo de expresion `=>` **solo vale para miembros de una clase o struct**,
-no para funciones libres. En una funcion de nivel superior el parser lo rechaza
-con *"se esperaba '{' para abrir el cuerpo de la funcion"*:
+El cuerpo de expresion `=>` vale en **cualquier** funcion: libre, metodo,
+constructor o propiedad.
 
 ```java
-class Matematica {
-    public i32 doble(i32 x) => x * 2;   // OK: equivale a { return x * 2; }
-}
+i32 doble(i32 x) => x * 2;              // equivale a { return x * 2; }
 
-i32 doble(i32 x) => x * 2;              // ERROR: no vale fuera de un tipo
+class Matematica {
+    public i32 doble(i32 x) => x * 2;
+}
 ```
+
+Hubo una epoca en que solo valia dentro de un tipo, y era la unica restriccion:
+con la [llamada uniforme](LlamadaUniforme.md) una funcion libre ES el metodo de
+alguien -- `x.doble()` y `doble(x)` son la misma llamada --, asi que negarle
+justo a ella la forma corta era quedarse con el ruido de `{ return ...; }` para
+decir lo que ya dice su firma.
+
+El formateador la aplica solo: un cuerpo cuya unica sentencia es `return <expr>;`
+se escribe con `=>` si la declaracion cabe en una linea (`R39b` del
+[estandar de estilo](EstiloYFormato.md)).
 
 ---
 

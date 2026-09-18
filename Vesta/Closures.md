@@ -521,14 +521,11 @@ Ejemplo completo que contrasta metodo / `cfn` / lambda en los tres backends
 
 ## 11. Limitaciones
 
-1. **`++`/`--` dentro de lambdas**: no soportados directamente (Vesta en general).
- Usar `x = x + 1` explicito.
-
-2. **Recursion directa en lambda**: una lambda no puede referenciarse a si misma
+1. **Recursion directa en lambda**: una lambda no puede referenciarse a si misma
  por nombre (no tiene nombre). Workaround: declarar funcion top-level con
  nombre y usar la promocion automatica de la seccion 5.
 
-3. **Function values en colecciones**: tecnicamente se puede `fn(i32)->i32[]`
+2. **Function values en colecciones**: tecnicamente se puede `fn(i32)->i32[]`
  pero el storage es 16 bytes/elemento (no 8). Las APIs de `ArrayList<T>` etc.
  asumen 8 bytes/elemento -- usar wrappers manuales, o `cfn(...)` (8 bytes) cuando
  no se necesita captura.

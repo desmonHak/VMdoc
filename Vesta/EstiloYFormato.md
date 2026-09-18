@@ -246,6 +246,19 @@ empieza diciendo QUE hace, y se leen en columna.
 **R96.  Una cadena de un solo eslabon no se reparte**: si `x.f(a, b, c)` no
 cabe, lo que se reparte son sus ARGUMENTOS (`R12`), no la cadena.
 
+**R96b.  La calificacion `$` de una llamada por el punto va PEGADA por los dos
+lados**, y no se reparte.
+
+```vesta
+i64 a = 6.doble$geo.metrico();
+i64 b = 2.pesa$geo.imperial(.onzas = 5);
+```
+
+Es parte de COMO se nombra la funcion, no un operador entre dos cosas;
+separarla -- `6.doble $ geo.metrico()` -- la hace parecer lo segundo.  Vale
+igual para el `$` del relleno de un bloque `bytes` (`times 510 - ($-$$)`), que
+es el idioma de NASM y tambien va junto.
+
 ```vesta
 // El formateador NO toca estos saltos: los pusiste tu.
 bool valido = tiene_permiso(usuario)
