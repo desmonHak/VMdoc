@@ -507,14 +507,16 @@ en `a && b`, `b.__bool__()` solo se llama si `a` fue verdad.
 
 ```vx
 struct Opcion {
-    i64 v;
-    bool presente;
-    public bool __bool__() { return this.presente; }
+	i64                            v;
+	bool                           presente;
+	public bool __bool__() => this.presente;
 }
 
-Opcion o; o.v = 7; o.presente = true;
-if (o) { println("hay valor: ${o.v}"); }    // o.__bool__()
-if (!o) { println("vacio"); }               // !o.__bool__()
+Opcion o;
+o.v        = 7;
+o.presente = true;
+if (o) { println("hay valor: ${o.v}"); } // o.__bool__()
+if (!o) { println("vacio"); }
 ```
 
 ### Operadores de acceso: `*x`, `x = v`, `x(...)`, `x{...}`
@@ -537,16 +539,19 @@ darles el significado que quiera:
 
 ```vx
 struct Caja {
-    i64 v;
-    public i64 __deref__()        { return this.v; }
-    public i64 __assign__(i64 n)  { this.v = n * 2; return this.v; }
+	i64                            v;
+	public i64 __deref__() => this.v;
+	public i64 __assign__(i64 n) {
+		this.v = n * 2;
+		return this.v;
+	}
 }
 
 Caja c;
 c.v = 5;
-i64 leido = *c;     // 5
-c = 10;             // v = 20  (no es una copia de Caja)
-i64 tras = *c;      // 20
+i64 leido = *c; // 5
+c = 10;         // v = 20  (no es una copia de Caja)
+i64 tras = *c;
 ```
 
 `a{...}` es el postfijo sobre un valor ya construido, y no tiene nada que ver

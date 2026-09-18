@@ -29,8 +29,11 @@ el final (o hasta la siguiente sentencia `namespace`).
 ```vesta
 namespace geo.shapes;
 
-public struct Rect { i64 w; i64 h; }
-public i64 area(i64 w, i64 h) { return w * h; }
+public struct Rect {
+	i64 w;
+	i64 h;
+}
+public i64 area(i64 w, i64 h) => w * h;
 ```
 
 ### 1.2. Forma de bloque
@@ -40,14 +43,15 @@ namespaces en el mismo fichero.
 
 ```vesta
 namespace geo.shapes {
-    public struct Rect { i64 w; i64 h; }
-    public i64 area(i64 w, i64 h) { return w * h; }
+	public struct Rect {
+		i64 w;
+		i64 h;
+	}
+	public i64 area(i64 w, i64 h) => w * h;
 }
 
 namespace geo.color {
-    public i64 rgb(i64 r, i64 g, i64 b) {
-        return (r << 16) | (g << 8) | b;
-    }
+	public i64 rgb(i64 r, i64 g, i64 b) => (r << 16) | (g << 8) | b;
 }
 ```
 
@@ -69,12 +73,12 @@ etc.
 namespace demo.util;
 
 u64 fact(u64 n) { if (n < 2) { return n; } return n * fact(n - 1); }
-i64 doble(i64 x) { return x * 2; }
+i64 doble(i64 x) => x * 2;
 
 i64 main() {
-    // fact() y doble() son hermanos: nombre desnudo, incluso en ${...}.
-    println("fact(5)=${fact(5)} doble(21)=${doble(21)}");
-    return doble(21);   // R00 = 42
+	// fact() y doble() son hermanos: nombre desnudo, incluso en ${...}.
+	println("fact(5)=${fact(5)} doble(21)=${doble(21)}");
+	return doble(21); // R00 = 42
 }
 ```
 
@@ -105,23 +109,30 @@ const/fn, macros, concepts y genericos.
 namespace geo;
 
 public class Box {
-    public i64 v;
-    public Box() { this.v = 0; }
-    public i64 get() { return this.v; }
-    public void set(i64 x) { this.v = x; }
+	public i64 v;
+	public Box() { this.v = 0; }
+	public i64 get() { return this.v; }
+	public void set(i64 x) { this.v = x; }
 }
 
-public struct Vec2 { public i64 x; public i64 y; }
+public struct Vec2 {
+	public i64 x;
+	public i64 y;
+}
 
-public enum Shape { Circle(i64), Square(i64), Point }
+public enum Shape {
+	Circle(i64),
+	Square(i64),
+	Point
+}
 
 public i64 area_hint(geo.Shape s) {
-    match (s) {
-        case Circle(r) => { return r * 3; }
-        case Square(l) => { return l * l; }
-        case Point     => { return 0; }
-    }
-    return -1;
+	match (s) {
+		case Circle(r) => { return r * 3; }
+		case Square(l) => { return l * l; }
+		case Point     => { return 0; }
+	}
+	return -1;
 }
 ```
 
@@ -163,8 +174,11 @@ variable de entorno `VX_PATH`, y la stdlib.
 ```vesta
 // geolib.vx
 namespace geo.shapes;
-public i64 area(i64 w, i64 h) { return w * h; }
-public struct Rect { i64 w; i64 h; }
+public i64 area(i64 w, i64 h) => w * h;
+public struct Rect {
+	i64 w;
+	i64 h;
+}
 ```
 
 ### 4.1. Import simple: acceso cualificado
@@ -258,9 +272,9 @@ ver el simbolo.
 ```vesta
 namespace lib;
 
-public   i64 publica(i64 x) { return x + 1; }   // la ven otros paquetes
-internal i64 interna(i64 x) { return x + 100; } // solo dentro de este paquete
-         i64 privada(i64 x) { return x - 1; }   // solo este fichero
+public i64 publica(i64 x) => x + 1;     // la ven otros paquetes
+internal i64 interna(i64 x) => x + 100; // solo dentro de este paquete
+i64 privada(i64 x) => x - 1;
 ```
 
 ### 5.1. `internal` cruza modulos del mismo paquete
@@ -290,8 +304,8 @@ compilacion.
 ```vesta
 // dep.vx
 namespace pkgdep @id("dep-pkg-v1");
-public   i64 publica(i64 x) { return x + 1; }
-internal i64 interna(i64 x) { return x + 100; }
+public i64 publica(i64 x) => x + 1;
+internal i64 interna(i64 x) => x + 100;
 ```
 
 ```vesta
@@ -331,13 +345,13 @@ principal". Los simbolos de todos ellos se combinan bajo el mismo nombre logico:
 ```vesta
 // part_a.vx
 namespace bag;
-public i64 uno(i64 x) { return x + 1; }
+public i64 uno(i64 x) => x + 1;
 ```
 
 ```vesta
 // part_b.vx
 namespace bag;
-public i64 cien(i64 x) { return x + 100; }
+public i64 cien(i64 x) => x + 100;
 ```
 
 Para que un consumidor vea los simbolos de **todos** los ficheros que forman el
@@ -371,14 +385,14 @@ modulo que hace la fachada.
 ```vesta
 // base.vx
 namespace base;
-public i64 val(i64 x) { return x + 1; }
+public i64 val(i64 x) => x + 1;
 ```
 
 ```vesta
 // facade.vx
 namespace facade;
-public import base;                    // reexporta base
-public i64 own(i64 x) { return x + 2; }
+public import base; // reexporta base
+public i64 own(i64 x) => x + 2;
 ```
 
 ```vesta
@@ -455,15 +469,18 @@ concept exige. Como los concepts de Vesta son predicados estructurales de
 ```vesta
 concept Sumable<T> { i64 suma(); }
 
-struct Par { i64 a; i64 b; }
+struct Par {
+	i64 a;
+	i64 b;
+}
 
 impl Sumable for Par {
-    i64 suma() { return this.a + this.b; }
+	i64 suma() => this.a + this.b;
 }
 
 i64 main() {
-    Par p = { .a = 40, .b = 2 };
-    return p.suma();   // R00 42
+	Par p = {.a = 40, .b = 2 };
+	return p.suma(); // R00 42
 }
 ```
 
@@ -501,7 +518,7 @@ Como se determina:
 ```vesta
 namespace geo.shapes @id("geo-stable-v1");
 
-public i64 area(i64 w, i64 h) { return w * h; }
+public i64 area(i64 w, i64 h) => w * h;
 ```
 
 Puedes inspeccionar el PackageId (y los simbolos publicos) de una interfaz de
@@ -584,13 +601,13 @@ del binario.
 
 ```vesta
 namespace mat;
-concept Numerico<T> = is_numeric<T>();
+concept Numerico<T>  = is_numeric<T>();
 concept Ordenable<T> = Comparable<T>() && Sized<T>();
 
-public T doble<T: mat.Numerico>(T x) { return x + x; }
+public T doble < T : mat.Numerico > (T x) => x + x;
 public T maxv<T>(T a, T b) where T: mat.Ordenable {
-    if (a < b) { return b; }
-    return a;
+	if (a < b) { return b; }
+	return a;
 }
 ```
 
@@ -603,11 +620,11 @@ tiempo de compilacion.
 ```vesta
 namespace mat;
 
-comptime i64 BASE = 40;
-public comptime i64 sq(i64 n) { return n * n; }
+comptime        i64                  BASE = 40_i64;
+public comptime i64 sq(i64 n) => n * n;
 
 @Macro
-public comptime string veces7(i64 n) { return to_str(n * 7); }
+public comptime string veces7(i64 n) => to_str(n * 7);
 ```
 
 ```vesta
@@ -647,16 +664,16 @@ dentro de un namespace se busca por su nombre desnudo:
 ```vesta
 namespace zoo;
 public class Animal {
-    public i32 edad;
-    public Animal(i32 e) { this.edad = e; }
+	public i32 edad;
+	public Animal(i32 e) { this.edad = e; }
 }
 
 i32 main() {
-    Animal a = new Animal(7);
-    i64 by_name = forName("Animal");   // por nombre publico
-    i64 of_obj  = getClass(a);
-    if (by_name == of_obj && by_name != 0) { return 42; }
-    return 0;
+	Animal a       = new Animal(7);
+	i64    by_name = forName("Animal"); // por nombre publico
+	i64    of_obj  = getClass(a);
+	if (by_name == of_obj && by_name != 0) { return 42; }
+	return 0;
 }
 ```
 
@@ -669,19 +686,22 @@ Los *pointcuts* de AOP identifican el metodo objetivo por su nombre publico
 namespace ejemplos.aop;
 
 class Service {
-    public Service() { }
-    public i32 run() { return 1; }
+	public Service() { }
+	public i32 run() => 1;
 }
 
-@Aspect class Tracer {
-    public Tracer() { }
-    @Before("Service.run") public i32 pre()  { return 7; }
-    @After("Service.run")  public i32 post() { return 99; }
+@Aspect
+class Tracer {
+	public Tracer() { }
+	@Before("Service.run")
+	public i32 pre() => 7;
+	@After("Service.run")
+	public i32 post() => 99;
 }
 
 i32 main() {
-    Service s = new Service();
-    return s.run();   // el AFTER pisa el retorno -> R00 99
+	Service s = new Service();
+	return s.run(); // el AFTER pisa el retorno -> R00 99
 }
 ```
 

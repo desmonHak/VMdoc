@@ -235,25 +235,25 @@ Como bound (`<T: Concepto>`) o como predicado directo:
 | `ValuedEnum` | solo los C-style con valor (los ADT no tienen valor) |
 
 ```vesta
-i32 count<T: Enum>(T x)      { return 1; }   // acepta ADT y con-valor
-i32 tag<T: ValuedEnum>(T x)  { return 7; }   // solo con-valor
+i32 count < T : Enum > (T x) => 1; // acepta ADT y con-valor
+i32 tag < T : ValuedEnum > (T x) => 7;
 ```
 
 Ademas, un enum con valor **satisface el concepto de su backing**: un `enum : u8`
 cumple `Numeric` e `Integer` (es un `u8`); uno `: string` cumple `String`; etc.
 
 ```vesta
-i32 as_num<T: Numeric>(T x) { return (i32) x; }
-as_num(Op.MOV);   // OK: Op es u8 -> Numeric
+i32 as_num < T : Numeric > (T x) => (i32)x;
+as_num(Op.MOV);
 ```
 
 ### 3.3. Conceptos de usuario apoyados en `is_enum`
 
 ```vesta
 concept AnyEnum<T> = is_enum<T>();
-concept IntEnum<T> = is_enum<T>() && Numeric<T>();   // composicion
+concept IntEnum<T> = is_enum<T>() && Numeric<T>(); // composicion
 
-i32 mark<T: AnyEnum>(T x) { return 1; }
+i32 mark < T : AnyEnum > (T x) => 1;
 ```
 
 ### 3.4. Concepto como predicado directo

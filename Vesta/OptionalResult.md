@@ -431,11 +431,11 @@ Funciones que retornan `Optional<T>` o `Result<V, E>` se transforman internament
 
 ```vx
 // Tu código:
-Optional<i32> find(...) { return Some(42); }
+Optional<i32> find(...) => Some(42);
 
 // Lo que el compilador emite:
-void find(ptr retbuf, ...) {
-    *retbuf = { tag=1, payload=42 };
+void find(ptr retbuf,...) {
+	*retbuf = { tag = 1, payload = 42 };
 }
 ```
 

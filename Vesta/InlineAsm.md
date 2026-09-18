@@ -545,23 +545,25 @@ Solo en los backends **nativos** (JIT y AOT), el asm puede referenciar
 Ejemplo (compilado a nativo con `-m aot`):
 
 ```vesta
-i64 add(i64 a, i64 b) { return a + b; }
+i64 add(i64 a, i64 b) => a + b;
 
-i64 g_fp = 0;
+i64 g_fp = 0_i64;
 
-@Naked i64 via_call(i64 a, i64 b) {
-    asm volatile {
-        call add                 // llamada directa a la funcion del modulo
-        ret
-    }
+@Naked
+i64 via_call(i64 a, i64 b) {
+	asm volatile {
+		call add
+		ret
+	}
 }
 
-@Naked i64 via_lea(i64 a, i64 b) {
-    asm volatile {
-        lea rax, [rel add]       // direccion rip-relativa + llamada indirecta
-        call rax
-        ret
-    }
+@Naked
+i64 via_lea(i64 a, i64 b) {
+	asm volatile {
+		lea rax, [rel add]
+		call rax
+		ret
+	}
 }
 ```
 

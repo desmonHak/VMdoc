@@ -530,9 +530,7 @@ i32 main() {
 
 ```vx
 // Lectura de un entero big-endian desde memoria.
-u64 read_be64(u64 little_endian_value) {
-    return bswap(little_endian_value);
-}
+u64 read_be64(u64 little_endian_value) => bswap(little_endian_value);
 ```
 
 ---

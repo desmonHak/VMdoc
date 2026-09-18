@@ -144,20 +144,20 @@ Funciones declaradas a nivel de modulo se promocionan automaticamente a function
 values cuando se pasan como argumento a un parametro `fn(...)`:
 
 ```vx
-i32 add2(i32 a, i32 b) { return a + b; }
-i32 mul2(i32 a, i32 b) { return a * b; }
+i32 add2(i32 a, i32 b) => a + b;
+i32 mul2(i32 a, i32 b) => a * b;
 
 i32 reduce(fn(i32, i32) -> i32 op, i32 init, i32[4] arr) {
-    i32 acc = init;
-    for (i32 x : arr) { acc = op(acc, x); }
-    return acc;
+	i32 acc = init;
+	for (i32 x : arr) { acc = op(acc, x); }
+	return acc;
 }
 
 i32 main() {
-    i32[4] data = {1, 2, 3, 4};      // el tamano va en el tipo: T[N], no T[]
-    i32 sum = reduce(add2, 0, data); // add2 promovido a fn(i32,i32)->i32
-    i32 prod = reduce(mul2, 1, data); // idem mul2
-    return sum + prod;
+	i32[4] data = {1, 2, 3, 4};          // el tamano va en el tipo: T[N], no T[]
+	i32    sum  = reduce(add2, 0, data); // add2 promovido a fn(i32,i32)->i32
+	i32    prod = reduce(mul2, 1, data); // idem mul2
+	return sum + prod;
 }
 ```
 
@@ -332,19 +332,19 @@ espera un callback de C, una api-table de un kernel/driver, o una tabla de
 despacho, donde un fat-pointer de 16 bytes no es aceptable.
 
 ```vx
-i64 doblar(i64 x)    { return x * 2; }
-i64 triplicar(i64 x) { return x * 3; }
+i64 doblar(i64 x) => x * 2;
+i64 triplicar(i64 x) => x * 3;
 
 i32 main() {
-    // cfn: puntero crudo de 8 bytes; llamada indirecta directa.
-    cfn(i64) -> i64 f = &doblar;
-    if (f(21) != 42) { return 1; }        // CALLIND -> doblar(21) = 42
+	// cfn: puntero crudo de 8 bytes; llamada indirecta directa.
+	cfn(i64) -> i64 f = &doblar;
+	if (f(21) != 42) { return 1; } // CALLIND -> doblar(21) = 42
 
-    // fn: closure de 16 bytes que captura estado.
-    i64 factor = 7;
-    fn(i64) -> i64 escalar = (x) => x * factor;   // captura `factor`
-    if (escalar(6) != 42) { return 2; }   // CALLCLOSURE -> 42
-    return 42;
+	// fn: closure de 16 bytes que captura estado.
+	i64            factor  = 7_i64;
+	fn(i64) -> i64 escalar = (x) => x * factor; // captura `factor`
+	if (escalar(6) != 42) { return 2; }         // CALLCLOSURE -> 42
+	return 42;
 }
 ```
 
@@ -383,14 +383,15 @@ struct de dos `i64` (16 == 16).
 
 ```vx
 struct Calculadora {
-    i64 base;
-    i64 sumar(i64 x) { return this.base + x; }
+	i64                             base;
+	i64 sumar(i64 x) => this.base + x;
 }
 
 // &Tipo.metodo -- cfn NO ligado: el receptor va como primer arg explicito.
-cfn(Calculadora*, i64) -> i64 pm = &Calculadora.sumar;
-Calculadora c2; c2.base = 37;
-i64 r = pm(&c2, 5);              // sumar(c2, 5) = 42
+cfn(Calculadora *, i64) -> i64 pm = &Calculadora.sumar;
+Calculadora                    c2;
+c2.base = 37;
+i64 r = pm(&c2, 5);
 ```
 
 ```vx
@@ -464,7 +465,7 @@ Un `cfn` es lo que necesita un callback de C: el header C lo declara como
 
 ```vx
 // El parametro es un puntero a funcion crudo estilo C.
-i64 apply(cfn(i64) -> i64 f, i64 x) { return f(x); }
+i64 apply(cfn(i64) -> i64 f, i64 x) => f(x);
 ```
 
 Tambien puedes tomar la direccion de una funcion `extern` (FFI) y usarla como
@@ -487,11 +488,11 @@ Como un `cfn` es un valor de 8 bytes (igual que un primitivo), entra en un
 construye un slot de lambda:
 
 ```vx
-cfn(i64) -> i64 cc = &doblar;
-unique<cfn(i64) -> i64> up = unique_box(cc);   // toma posesion (8 B en heap)
-unique<cfn(i64) -> i64> uq = move(up);          // transfiere ownership
-cfn(i64) -> i64 desbox = *ptr_of(uq);           // recupera el cfn (1 LOAD)
-if (desbox(21) != 42) { return 10; }            // doblar(21) = 42
+cfn(i64) -> i64            cc     = &doblar;
+unique < cfn(i64) -> i64 > up     = unique_box(cc); // toma posesion (8 B en heap)
+unique < cfn(i64) -> i64 > uq     = move(up);       // transfiere ownership
+cfn(i64) -> i64            desbox = *ptr_of(uq);    // recupera el cfn (1 LOAD)
+if (desbox(21) != 42) { return 10; }
 ```
 
 Un `borrow<cfn(...)>` presta el `cfn` sin tomar ownership; se recupera con
@@ -513,11 +514,19 @@ en compile-time (cero llamada en runtime):
 
 ```vx
 cfn(i64) -> i64 conocido = &doblar;
-if (conocido(21) != 42) { return 12; }   // devirt + inline + const-fold -> 42
+if (conocido(21) != 42) { return 12; }
 ```
 
 Ejemplo completo que contrasta metodo / `cfn` / lambda en los tres backends
 (interprete, JIT y AOT): `examples_codes_vx/199_cfn_vs_lambda.vx`.
+
+---
+
+## 10bis. Los parametros de una lambda
+
+Son la MISMA gramatica que los de una funcion suelta: las doce formas y el
+variadico valen igual dentro de `(...) =>`.  Lo cuenta
+[Parametros](Parametros.md), que es donde vive la matriz entera.
 
 ---
 

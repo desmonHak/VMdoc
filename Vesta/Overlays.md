@@ -327,21 +327,23 @@ leer el elemento ANTERIOR (`this.Recs[index-1]`) para encadenar; esa recursion s
 resuelve como un CALL en runtime, guardado por el caso base `if (index == 0)`.
 
 ```vx
-@overlay struct Rec {
-    u8 tag @0x00;
-    u8 len @0x01;   // longitud del payload (el record ocupa 2 + len bytes)
+@overlay
+struct Rec {
+	u8 tag @0x00;
+	u8 len @0x01; // longitud del payload (el record ocupa 2 + len bytes)
 }
 
-@overlay struct Doc {
-    u32 count @0x00;
-    // Cada record va justo tras el anterior; el primero en base+8.  El paso NO
-    // es constante: depende del `len` del record previo.
-    Rec Recs[count] @element {
-        if (index == 0) { return base + 8; }
-        u64 prev = (u64) this.Recs[index - 1];   // direccion del anterior
-        u8  plen = this.Recs[index - 1].len;      // su longitud
-        return prev + 2 + (u64)plen;              // stride VARIABLE
-    };
+@overlay
+struct Doc {
+	u32 count @0x00;
+	// Cada record va justo tras el anterior; el primero en base+8.  El paso NO
+	// es constante: depende del `len` del record previo.
+	Rec Recs[count] @element {
+		if (index == 0) { return base + 8; }
+		u64 prev = (u64)this.Recs[index - 1]; // direccion del anterior
+		u8  plen = this.Recs[index - 1].len;  // su longitud
+		return prev + 2 + (u64)plen;          // stride VARIABLE
+	};
 }
 ```
 
@@ -363,11 +365,12 @@ Ejemplo del byte `ModR/M` de x86-64 (`mod:2 reg:3 rm:3`) con offset dinamico
 resuelto por un metodo del propio overlay:
 
 ```vx
-@overlay struct X86 {
-    u8 rm  : 3 @offset { return base + this.modrm_off_rel(); };
-    u8 reg : 3 @offset { return base + this.modrm_off_rel(); };
-    u8 mod : 2 @offset { return base + this.modrm_off_rel(); };
-    // ... this.modrm_off_rel() calcula la posicion del ModR/M segun REX y opcode
+@overlay
+struct X86 {
+	u8 rm : 3 @offset { return base + this.modrm_off_rel(); };
+	u8 reg : 3 @offset { return base + this.modrm_off_rel(); };
+	u8 mod : 2 @offset { return base + this.modrm_off_rel(); };
+// ... this.modrm_off_rel() calcula la posicion del ModR/M segun REX y opcode
 }
 ```
 
@@ -448,30 +451,31 @@ que recorre la tabla de secciones. En vez de repetirlo en cada resolver, se
 escribe una vez como metodo:
 
 ```vx
-@overlay struct PeImage {
-    u32 num_sections  @0x04;
-    Section Sections[num_sections] @offset(...) stride(40);
+@overlay
+struct PeImage {
+	u32 num_sections @0x04;
+	Section Sections[num_sections] @offset(...) stride(40);
 
-    // La abstraccion: traducir un RVA a direccion de fichero recorriendo las
-    // secciones.  Un metodo del overlay; lo usan todos los resolvers.
-    public u64 translate(u32 rva) {
-        u64 rb = (u64) this;
-        i32 i = 0;
-        while ((u32)i < (u32)this.num_sections) {
-            u32 va = this.Sections[i].virt_addr;
-            u32 vs = this.Sections[i].virt_size;
-            u32 rs = this.Sections[i].raw_size;
-            if (vs < rs) { vs = rs; }
-            if (rva >= va && rva < va + vs) {
-                return rb + (u64)this.Sections[i].raw_ptr + (u64)(rva - va);
-            }
-            i = i + 1;
-        }
-        return rb + (u64)rva;   // fallback: dentro de las cabeceras
-    }
+	// La abstraccion: traducir un RVA a direccion de fichero recorriendo las
+	// secciones.  Un metodo del overlay; lo usan todos los resolvers.
+	public u64 translate(u32 rva) {
+		u64 rb = (u64)this;
+		i32 i  = 0_i32;
+		while ((u32)i < (u32)this.num_sections) {
+			u32 va = this.Sections[i].virt_addr;
+			u32 vs = this.Sections[i].virt_size;
+			u32 rs = this.Sections[i].raw_size;
+			if (vs < rs) { vs = rs; }
+			if (rva >= va && rva < va + vs) {
+				return rb + (u64)this.Sections[i].raw_ptr + (u64)(rva - va);
+			}
+			i = i + 1;
+		}
+		return rb + (u64)rva; // fallback: dentro de las cabeceras
+	}
 
-    // El offset del directorio de imports = un campo-resolver que llama al metodo.
-    u8 import_dir @offset { return this.translate(this.Dirs[1].rva); };
+	// El offset del directorio de imports = un campo-resolver que llama al metodo.
+	u8 import_dir @offset { return this.translate(this.Dirs[1].rva); };
 }
 ```
 
@@ -502,20 +506,22 @@ resolver como un parametro extra. No se guarda ningun puntero-a-padre en runtime
 // Entrada de la ILT (import lookup table) de un PE.  El nombre de la funcion
 // vive en un RVA; para traducirlo hay que alcanzar el PeImage RAIZ (a dos
 // niveles: Thunk -> ImportDesc -> PeImage) via parent<PeImage>().
-@overlay struct Thunk {
-    u64 raw @0x00;
-    u8 fname @offset {
-        u32 rva = (u32)(this.raw & 0x7FFFFFFF) + 2;   // +2 salta el hint u16
-        return parent<PeImage>().translate(rva);       // metodo del padre raiz
-    };
+@overlay
+struct Thunk {
+	u64 raw @0x00;
+	u8 fname @offset {
+		u32 rva = (u32)(this.raw & 0x7FFFFFFF) + 2; // +2 salta el hint u16
+		return parent<PeImage>().translate(rva);    // metodo del padre raiz
+	};
 }
 
-@overlay struct ImportDesc {
-    u32 name_rva @0x0C;   // RVA al nombre de la DLL
-    // El nombre de la DLL, traducido por las secciones del PADRE raiz.
-    u8 dll_name @offset {
-        return parent<PeImage>().translate(this.name_rva);
-    };
+@overlay
+struct ImportDesc {
+	u32 name_rva @0x0C; // RVA al nombre de la DLL
+	// El nombre de la DLL, traducido por las secciones del PADRE raiz.
+	u8 dll_name @offset {
+		return parent<PeImage>().translate(this.name_rva);
+	};
 }
 ```
 
@@ -626,15 +632,16 @@ estructura, de un global runtime, o de un `comptime` const), el overlay
 discrimina la version por dentro -- `main` no sabe nada.
 
 ```vx
-@overlay struct PEB {
-    u16 OSBuildNumber @0x120;   // el CONTEXTO de version, leido de si mismo
-    // ...
-    // SessionId: su OFFSET cambia entre versiones -> resolver que lee el propio
-    // build del PEB para elegir el offset.
-    u32 SessionId @offset {
-        if (this.OSBuildNumber >= 10240) { return base + 0x2C0; }   // Win10/11
-        return base + 0x2A0;                                         // 8.1 y antes
-    };
+@overlay
+struct PEB {
+	u16 OSBuildNumber @0x0120; // el CONTEXTO de version, leido de si mismo
+	// ...
+	// SessionId: su OFFSET cambia entre versiones -> resolver que lee el propio
+	// build del PEB para elegir el offset.
+	u32 SessionId @offset {
+		if (this.OSBuildNumber >= 10_240) { return base + 0x02C0; } // Win10/11
+		return base + 0x02A0;                                       // 8.1 y antes
+	};
 }
 ```
 
@@ -664,9 +671,9 @@ quieras, eligiendo el coste y decidiendo que devolver** (un `Optional`, un
 // o -1 si el indice o el campo se salen del buffer real de `len` bytes.  Otro
 // programador podria devolver un Optional, un Result, o hacer panic.
 i64 sec_size_checked(Hdr h, i32 i, u64 len) {
-    if ((u32)i >= (u32)h.count) { return -1; }         // indice fuera de count
-    if (!in_bounds(h.secs[i].sz, len)) { return -1; }  // campo fuera del buffer
-    return (i64) h.secs[i].sz;                           // solo aqui, ya probado
+	if ((u32)i >= (u32)h.count) { return -1; }        // indice fuera de count
+	if (!in_bounds(h.secs[i].sz, len)) { return -1; } // campo fuera del buffer
+	return (i64)h.secs[i].sz;                         // solo aqui, ya probado
 }
 ```
 

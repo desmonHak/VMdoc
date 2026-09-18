@@ -106,13 +106,11 @@ si el usuario la hubiera escrito a mano.
 
 ```vx
 @Macro
-comptime string double_it(i64 n) {
-    return to_str(n * 2);
-}
+comptime string double_it(i64 n) => to_str(n * 2);
 
 i32 main() {
-    i32 r = double_it(21); // se compila como `i32 r = 42`
-    return r;
+	i32 r = double_it(21); // se compila como `i32 r = 42`
+	return r;
 }
 ```
 
@@ -234,21 +232,20 @@ Un `@Macro` o una `comptime fn` puede llamar, dentro de su cuerpo, a **otras
 funciones** -- comptime o runtime:
 
 ```vesta
-i32 rt_add(i32 x, i32 y) { return x + y; }        // funcion runtime
-comptime i32 ct_double(i32 n) { return n * 2; }    // funcion comptime
+i32 rt_add(i32 x, i32 y) => x + y;      // funcion runtime
+comptime i32 ct_double(i32 n) => n * 2; // funcion comptime
 
 // comptime fn que llama a otra comptime fn:
-comptime i32 chain(i32 n) { return ct_double(n) + 1; }
+comptime i32 chain(i32 n) => ct_double(n) + 1;
 
 // comptime fn que llama a una funcion runtime (se pliega en compile-time):
-comptime i32 uses_rt(i32 n) { return rt_add(n, 2); }
-const i32 K = uses_rt(40);      // 42, calculado al compilar
+comptime i32 uses_rt(i32 n) => rt_add(n, 2);
+const i32 K = uses_rt(40); // 42, calculado al compilar
 
 // @Macro que GENERA codigo que llama a una funcion runtime en el call site:
-@Macro comptime string gen(u32 n) {
-    return "rt_add(40, " + to_str(n) + ")";
-}
-i32 r = gen(2);                 // inyecta: rt_add(40, 2) -> 42
+@Macro
+comptime string gen(u32 n) => "rt_add(40, " + to_str(n) + ")";
+i32 r = gen(2);
 ```
 
 **Forwarding de `expr` anidado.**  Un macro/comptime fn con un parametro `expr`
@@ -256,17 +253,18 @@ puede pasar ese parametro a otra fn `expr`-capture; el texto capturado se
 propaga (no se re-captura el identificador):
 
 ```vesta
-comptime string source(expr code) { return code; }
+comptime string source(expr code) => code;
 
 // comptime fn (VALOR):
-comptime string outer(expr code) { return source(code); }
-string s = outer(a + b);        // "a + b"
+comptime string outer(expr code) => source(code);
+string s = outer(a + b); // "a + b"
 
 // @Macro (inyecta CODIGO):
-@Macro comptime string twice(expr e) {
-    return "(" + source(e) + ") + (" + source(e) + ")";
+@Macro
+comptime string twice(expr e) {
+	return "(" + source(e)+ ") + (" + source(e)+ ")";
 }
-i32 r2 = twice(a + b);          // inyecta:  (a + b) + (a + b)
+i32 r2 = twice(a + b);
 ```
 
 ### `source(...)` como quasi-quote: huecos `${...}` e interpolacion runtime `\${...}`
@@ -827,11 +825,8 @@ repetidas con los mismos args.
 ```vx
 @Macro
 comptime string make_getter(string field_name) {
-    return "i64 get_" + field_name + "() { return this." + field_name + "; }";
+	return "i64 get_" + field_name + "() { return this." + field_name + "; }";
 }
-
-// Uso (DEPENDE del contexto de inyeccion -- ver Limitaciones).
-// En la mayoria de casos, mejor usar properties get/set del lenguaje.
 ```
 
 ### Pointer chase generado (DSL con `expr`)
@@ -844,12 +839,9 @@ Ver seccion 2 -- `walk(root -> 0x100 -> 0)` emite el chain de derefs.
 extern "kernel32.dll" { fn GetTickCount() -> u32; }
 
 @Macro
-comptime string compile_timestamp() {
-    return to_str(GetTickCount());
-}
+comptime string compile_timestamp() => to_str(GetTickCount());
 
 const u64 BUILD_TIME = compile_timestamp();
-// El binario contiene literalmente el tick count del momento de compilar.
 ```
 
 ### Operaciones de string como builders
@@ -950,20 +942,24 @@ consultarla en ejecucion, cuando el tipo no se conoce en el sitio que pregunta.
 
 ```vesta
 @Introspect
-struct Vec3 { f64 x; f64 y; f64 z; }
+struct Vec3 {
+	f64 x;
+	f64 y;
+	f64 z;
+}
 
 i32 main() {
-	i64 info = find_type("Vec3");   // 0 si no existe o no esta marcado
+	i64 info = find_type("Vec3"); // 0 si no existe o no esta marcado
 	if (info == 0) { return 1; }
 
-	i32 kind  = type_info_kind(info);         // 2 = struct
-	u32 size  = type_info_size(info);         // 24
-	u32 align = type_info_align(info);        // 8
-	u32 n     = type_info_field_count(info);  // 3
+	i32 kind  = type_info_kind(info);        // 2 = struct
+	u32 size  = type_info_size(info);        // 24
+	u32 align = type_info_align(info);       // 8
+	u32 n     = type_info_field_count(info); // 3
 
-	u32    off = type_info_field_offset(info, 2);  // 16
-	string nom = type_info_field_name(info, 0);    // "x"
-	string t   = type_info_name(info);             // "Vec3"
+	u32    off = type_info_field_offset(info, 2); // 16
+	string nom = type_info_field_name(info, 0);   // "x"
+	string t   = type_info_name(info);            // "Vec3"
 	return 0;
 }
 ```

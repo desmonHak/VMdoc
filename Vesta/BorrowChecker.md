@@ -282,10 +282,9 @@ Implementación: `Expr::borrow_owner_source` (string) se propaga a través de
 factories de borrows encadenadas:
 
 ```vx
-borrow<i32> third_view(borrow<i32> b) { return b; }
-borrow<i32> second_view(borrow<i32> b) { return third_view(b); }
-borrow<i32> first_view(borrow<i32> b) { return second_view(b); }
-// El checker traza el owner a través de 3 niveles
+borrow<i32> third_view(borrow<i32> b) => b;
+borrow<i32> second_view(borrow<i32> b) => third_view(b);
+borrow<i32> first_view(borrow<i32> b) => second_view(b);
 ```
 
 ---

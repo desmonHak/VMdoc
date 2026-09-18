@@ -128,7 +128,7 @@ visible.
 
 ```vx
 // src/lib.vx
-import "src/internal/helpers";       // privado por defecto
+import "src/internal/helpers"; // privado por defecto
 
 // Reexportar simbolos publicos:
 public import "src/internal/helpers" only Counter, Result;

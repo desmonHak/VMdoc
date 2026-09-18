@@ -26,6 +26,8 @@ multi-paradigma estaticamente tipado disenado con tres principios:
 | [[Strings]] | Tipo string y sus METODOS (`length`/`cstr`/`wstr`/...), interpolacion `${expr:fmt}`, triple-quoted, codificacion solo en la frontera nativa |
 | [[OptionalResult]] | `Optional<T>`, `Result<V,E>`, `!!`, `nonnull`, `T !!name` |
 | [[Closures]] | Lambdas, captura lexica, HOF, top-level fn promotion |
+| [[Parametros]] | La MISMA gramatica en los 7 contextos: las 12 formas de parametro, el variadico `T...`, y los dos limites (12 registros en la VM, ninguno en nativo) |
+| [[LlamadaUniforme]] | `x.f(a)` == `f(x, a)`, el hueco `_` del receptor, argumentos con nombre `.n = v`, SOBRECARGA (por aridad, por tipos y por nombre de ranura) y la calificacion `$` |
 | [[Terminal]] | Control del terminal: truecolor `fg_rgb`/`bg_rgb`, cursor y borrado (`term_*`) |
 
 ### Modelo de programacion
@@ -64,7 +66,6 @@ multi-paradigma estaticamente tipado disenado con tres principios:
 | :------------------------------ | :----------------------------------------------------------- |
 | [[Modulos]] | `import`, public/private, paquete-dir, reexport, cache, paralelismo M8 |
 | [[Namespaces]] | `namespace a.b.c;`, `import a.b.c;`, alias, `internal`, PackageId `@id`, `impl` |
-| [[LlamadaUniforme]] | `x.f(a)` == `f(x, a)`, el hueco `_`, ranuras por nombre `.n = v`, sobrecarga por nombre de ranura, calificacion `$` |
 | [[CompilacionCondicional]] | `@Target(...)` con OS/arch/CPU/semver/mode + AND/OR/NOT/parens + sobre imports |
 | [[CargaDinamica]] | `loadmodule`/`unloadmodule`, hot-reload, transitividad caps |
 | [[Sandbox]] | Capability-based sandbox (10 caps + whitelists), `--vx-caps`, zero overhead |

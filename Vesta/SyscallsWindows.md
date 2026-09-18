@@ -141,54 +141,54 @@ Sin tocar `kernel32.dll`:
 ```vx
 import std.syscall.windows only *;
 
-const u32 GENERIC_READ           = 0x80000000;
-const u32 GENERIC_WRITE          = 0x40000000;
-const u32 SYNCHRONIZE            = 0x00100000;
-const u32 FILE_SHARE_READ        = 0x00000001;
-const u32 FILE_ATTRIBUTE_NORMAL  = 0x00000080;
+const u32 GENERIC_READ          = 0x80000000_u32;
+const u32 GENERIC_WRITE         = 0x40000000_u32;
+const u32 SYNCHRONIZE           = 0x00100000_u32;
+const u32 FILE_SHARE_READ       = 0x00000001_u32;
+const u32 FILE_ATTRIBUTE_NORMAL = 0x00000080_u32;
 
 i32 main() {
-    string ruta = "\\??\\C:\\tmp\\nt.txt";
+	string ruta = "\\??\\C:\\tmp\\nt.txt";
 
-    UNICODE_STRING nombre;
-    RtlInitUnicodeString(&nombre, (PWSTR) ruta.wstr());
+	UNICODE_STRING nombre;
+	RtlInitUnicodeString(&nombre, (PWSTR) ruta.wstr());
 
-    OBJECT_ATTRIBUTES attrs;
-    InitializeObjectAttributes(&attrs, &nombre, OBJ_CASE_INSENSITIVE,
-                               (HANDLE) 0, (PVOID) 0);
+	OBJECT_ATTRIBUTES attrs;
+	InitializeObjectAttributes(&attrs, &nombre, OBJ_CASE_INSENSITIVE,
+		(HANDLE) 0, (PVOID) 0);
 
-    HANDLE h = (HANDLE) 0;
-    IO_STATUS_BLOCK iosb;
+	HANDLE          h = (HANDLE) 0;
+	IO_STATUS_BLOCK iosb;
 
-    // Crear (o truncar) y escribir.
-    NTSTATUS st = NtCreateFile(&h, GENERIC_WRITE | SYNCHRONIZE, &attrs, &iosb,
-                               (PLARGE_INTEGER) 0, FILE_ATTRIBUTE_NORMAL,
-                               FILE_SHARE_READ, FILE_OVERWRITE_IF,
-                               FILE_SYNCHRONOUS_IO_NONALERT | FILE_NON_DIRECTORY_FILE,
-                               (PVOID) 0, 0);
-    if (st != STATUS_SUCCESS) { return 1; }
+	// Crear (o truncar) y escribir.
+	NTSTATUS st = NtCreateFile(&h, GENERIC_WRITE | SYNCHRONIZE, &attrs, &iosb,
+		(PLARGE_INTEGER) 0, FILE_ATTRIBUTE_NORMAL,
+		FILE_SHARE_READ, FILE_OVERWRITE_IF,
+		FILE_SYNCHRONOUS_IO_NONALERT | FILE_NON_DIRECTORY_FILE,
+		(PVOID) 0, 0);
+	if (st != STATUS_SUCCESS) { return 1; }
 
-    string texto = "NT OK!";
-    st = NtWriteFile(h, (HANDLE) 0, (PVOID) 0, (PVOID) 0, &iosb,
-                     (PVOID) texto.cstr(), (ULONG) texto.bytes(),
-                     (PLARGE_INTEGER) 0, (PULONG) 0);
-    NtFlushBuffersFile(h, &iosb);
-    NtClose(h);
+	string texto = "NT OK!";
+	st = NtWriteFile(h, (HANDLE) 0, (PVOID) 0, (PVOID) 0, &iosb,
+		(PVOID) texto.cstr(), (ULONG) texto.bytes(),
+		(PLARGE_INTEGER) 0, (PULONG) 0);
+	NtFlushBuffersFile(h, &iosb);
+	NtClose(h);
 
-    // Releer.
-    st = NtOpenFile(&h, GENERIC_READ | SYNCHRONIZE, &attrs, &iosb,
-                    FILE_SHARE_READ,
-                    FILE_SYNCHRONOUS_IO_NONALERT | FILE_NON_DIRECTORY_FILE);
-    if (st != STATUS_SUCCESS) { return 2; }
+	// Releer.
+	st = NtOpenFile(&h, GENERIC_READ | SYNCHRONIZE, &attrs, &iosb,
+		FILE_SHARE_READ,
+		FILE_SYNCHRONOUS_IO_NONALERT | FILE_NON_DIRECTORY_FILE);
+	if (st != STATUS_SUCCESS) { return 2; }
 
-    u8* buf = (u8*) malloc(64);
-    st = NtReadFile(h, (HANDLE) 0, (PVOID) 0, (PVOID) 0, &iosb,
-                    (PVOID) buf, 64, (PLARGE_INTEGER) 0, (PULONG) 0);
-    i64 leidos = (i64) iosb.Information;   // bytes efectivamente leidos
-    NtClose(h);
-    free(buf);
+	u8* buf = (u8*)malloc(64);
+	st = NtReadFile(h, (HANDLE) 0, (PVOID) 0, (PVOID) 0, &iosb,
+		(PVOID) buf, 64, (PLARGE_INTEGER) 0, (PULONG) 0);
+	i64 leidos = (i64)iosb.Information; // bytes efectivamente leidos
+	NtClose(h);
+	free(buf);
 
-    return (i32) leidos;   // 6
+	return (i32)leidos; // 6
 }
 ```
 

@@ -53,9 +53,9 @@ dan explicitamente como segundo argumento:
 ```vx
 // Funcion colocada en una seccion RWX propia (arranque de un dev-OS).
 @section(".boot", "rwx")
-i32 boot_entry(i32 x) { return x + 7; }
+i32 boot_entry(i32 x) => x + 7;
 
-i32 main() { return boot_entry(35); }   // llamada cross-seccion; exit 42
+i32 main() => boot_entry(35);
 ```
 
 Una funcion con `@section` **no se inlinea**: permanece fisicamente en su
@@ -307,14 +307,12 @@ En un `.bin`:
 ```vx
 // Binario plano: .text (main en offset 0) ++ .rodata (bytes) verbatim.
 bytes firma {
-    db "VX", 0x00            // 56 45 58 00
-    dw 0xCAFE                  // FE CA
-    dd 0x12345678             // 78 56 34 12
+	db "VX", 0x00     // 56 45 58 00
+		dw 0xCAFE     // FE CA
+		dd 0x12345678 // 78 56 34 12
 }
 
-i32 main() {
-    return 0x42;
-}
+i32 main() => 0x42;
 ```
 
 ---

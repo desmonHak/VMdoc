@@ -107,6 +107,9 @@ Prometer con la direccion algo que `const` prohibe es un error, no una
 preferencia silenciosa: `out i64 const* p` dice "por aqui escribo" sobre algo
 declarado constante, y se rechaza.
 
+> `in`/`out`/`inout` es un EJE del parametro, no una forma suya: se combina con
+> las doce de [Parametros](Parametros.md).
+
 ## 5. Es la misma regla que el borrow checker
 
 `in` e `inout` **no son otro sistema**: son la misma pregunta que `borrow<T>` y

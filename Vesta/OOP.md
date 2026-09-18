@@ -268,6 +268,11 @@ class Matematica {
 
 La forma `=> { ... }` (bloque) es rechazada por el parser.
 
+> **Sobrecargar** un metodo -- por aridad, por tipos o por el NOMBRE de sus
+> ranuras -- y llamarlo con argumentos nombrados se cuenta en
+> [Llamada uniforme](LlamadaUniforme.md).  Y la gramatica de sus parametros, la
+> misma que la de una funcion suelta, en [Parametros](Parametros.md).
+
 ---
 
 ## Metodos virtuales en STRUCTS: `@Virtual`

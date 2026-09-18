@@ -90,9 +90,7 @@ indentacion sea configurable, y es deliberado.
 **R4.  La llave de apertura va al final de la linea, con un espacio delante.**
 
 ```vesta
-i32 main() {
-	return 0;
-}
+i32 main() => 0;
 ```
 
 La regla vale en las DOS direcciones: una llave que venga en su propia linea
@@ -755,7 +753,7 @@ exactamente lo mismo, asi que solo puede quedar una (`P1`).
 ```vesta
 // Se junta: cabe entera.
 i64 add(i64 a, i64 b) => a + b;
-public i64 get_v() => this.v;
+public i64 get_v() => this.  v;
 
 // No se junta: no cabe, y repartir un `=>` deja la firma colgando de una
 // linea larga, que se lee peor que el bloque del que venia.
@@ -883,13 +881,14 @@ cosas que no se leen juntas, y los offsets literales -- que si se comparan entre
 si -- perderian su rejilla.
 
 ```vesta
-@overlay struct ImportDesc {
+@overlay
+struct ImportDesc {
 	u32 oft_rva  @0x00;
 	u32 name_rva @0x0C;
 	u32 ft_rva   @0x10;
 
 	Thunk thunks[] @offset {
-		u32 rva = this.oft_rva;
+		u32           rva = this.oft_rva;
 		if (rva == 0) rva = this.ft_rva;
 		return parent<PeImage>().translate(rva);
 	} stride(8);
@@ -954,16 +953,11 @@ concept Sumable<T> {
 requisito por linea si no cabe.**
 
 ```vesta
-T mayor<T>(T a, T b) where T: Comparable {
-	return a > b ? a : b;
-}
+T mayor<T>(T a, T b) where T: Comparable => a > b ? a : b;
 
 R reducir<T, R>(ArrayList xs, R inicial)
 	where T: Numeric,
-	      R: Numeric + Default
-{
-	return inicial;
-}
+R : Numeric + Default => inicial;
 ```
 
 > La ultima forma es la unica del documento donde la llave de apertura va sola
@@ -1161,9 +1155,7 @@ void trampolin() { }
 
 @Async
 @complexity(O(n), n = arg0.size)
-i32 procesar(ArrayList xs) {
-	return 0;
-}
+i32 procesar(ArrayList xs) => 0;
 ```
 
 **R76.  Una anotacion de parametro va en linea, antes del tipo** (no rompe la
@@ -1589,10 +1581,10 @@ using Precio = i64;
 using Cesta  = ArrayList;
 
 // R87 otra vez: con const y sin el tampoco comparten columnas.
-const f64 IVA        = 0.21;
-const i64 MAX_PIEZAS = 4096;
+const f64 IVA        = 0.21_f64;
+const i64 MAX_PIEZAS = 4096_i64;
 
-u32 siguiente_ref = 1;
+u32 siguiente_ref = 1_u32;
 
 
 /// Estado de una pieza en el almacen.
@@ -1627,9 +1619,9 @@ class Pieza : Articulo, Serializable {
 	}
 
 	// R88: formas distintas, pero comparten el ancla =>.
-	public Referencia get ref    => this.ref;
-	public Precio     get precio => this.precio;
-	public Precio     con_iva()  => this.precio + IVA;
+	public Referencia get ref => this.       ref;
+	public Precio get precio => this.        precio;
+	public Precio con_iva() => this.precio + IVA;
 
 	public set precio(Precio v) {
 		if (v < 0) throw new FatalError("precio negativo");
@@ -1644,11 +1636,7 @@ class Pieza : Articulo, Serializable {
 
 
 /// R12: no cabe -> todos los parametros uno por linea, sin coma (R13).
-i64 valorar(
-	HashMap catalogo,
-	borrow<Cesta> cesta,
-	borrow_mut<Estado> estado
-) {
+i64 valorar(HashMap catalogo, borrow<Cesta> cesta, borrow_mut<Estado> estado) {
 	// R94: la cadena no cabe -> un eslabon por linea, punto delante.
 	i64 bruto = cesta
 		.filter(esta_disponible)
@@ -1658,42 +1646,40 @@ i64 valorar(
 	// R6: un cuerpo de una sentencia que cabe va sin llaves, en linea.
 	if (bruto <= 0) return 0;
 
-	i64 total = 0;
+	i64 total = 0_i64;
 	for (i64 p : cesta) total += p;
 
 	// R89: la cadena if/else entera cabe -> se alinea por el (.
-	if      (total > 10000) aplicar_descuento(total);
-	else if (total > 1000)  aplicar_puntos(total);
-	else                    registrar(total);
+	if (total > 10_000) aplicar_descuento(total);
+	else if (total > 1000) aplicar_puntos(total);
+	else registrar(total);
 
 	return total;
 }
 
 
 /// R51: la clausula where va en su propia linea.
-T mayor<T>(T a, T b) where T: Comparable {
-	return a > b ? a : b;
-}
+T mayor<T>(T a, T b) where T: Comparable => a > b ? a : b;
 
 
 /// R77: dentro del asm la indentacion es tuya; las columnas, del
 /// formateador (R90).  Una etiqueta rompe el bloque de alineacion.
 i32 comparar(u8* a, u8* b, i64 n) {
 	asm volatile {
-		xor r8, r8
-	.loop:
-		cmp   r8, r9
-		jge   .fin
-		movzx r10, byte [rdi + r8] // ca
-		movzx r11, byte [rdx + r8] // cb
-		cmp   r10, r11
-		jne   .distinto
-		inc   r8
-		jmp   .loop
-	.fin:
-		xor rax, rax
-	.distinto:
-		mov rax, 1
+		    xor r8, r8
+		.loop:
+		    cmp   r8, r9
+		    jge   .fin
+		    movzx r10, byte [rdi + r8]
+		    movzx r11, byte [rdx + r8]
+		    cmp   r10, r11
+		    jne   .distinto
+		    inc   r8
+		    jmp   .loop
+		.fin:
+		    xor rax, rax
+		.distinto:
+		    mov rax, 1
 	}
 	return 0;
 }
@@ -1705,8 +1691,8 @@ i32 main(string[] args) {
 
 	match (clasificar(args)) {
 		case Some(x) if x > 0 => println("${x} piezas");
-		case Some(x) => println("nada que hacer");
-		case None => {
+		case Some(x)          => println("nada que hacer");
+		case None             => {
 			println("catalogo vacio");
 			return 1;
 		}

@@ -287,6 +287,56 @@ struct Rect {
 Funciona en struct plano, en `typedef struct { ... }` y en agregados anonimos
 inline (union/struct anidados).
 
+### `union`: los mismos bytes vistos de varias formas
+
+Una `union` da a sus miembros el **mismo offset**: mide lo que su miembro mayor
+y escribir uno cambia lo que leen los demas. Es el `union` de C, con su mismo
+uso -- mirar una representacion por varias ventanas -- y su misma
+responsabilidad: **el lenguaje no lleva la cuenta de cual esta activo**.
+
+```vesta
+union Palabra {
+	u32 entero;
+	f32 flotante;
+}
+
+Palabra p;
+p.entero = 0x3F800000;
+f32 f = p.flotante;   // 1.0 -- reinterpretar, no convertir
+```
+
+**Anonima dentro de un struct**, que es como se usa casi siempre: sus miembros
+se nombran como si fueran del struct, sin un nivel de por medio.
+
+```vesta
+struct Color {
+	union {
+		u32 rgba;
+		struct {       // struct anonimo: estos SI van uno tras otro
+			u8 r;
+			u8 g;
+			u8 b;
+			u8 a;
+		};
+		u8 bytes[4];
+	};
+}
+
+Color c;
+c.rgba = 0x11223344;
+u8 rojo = c.r;         // 0x44 en little-endian
+u8 b0   = c.bytes[0];  // el mismo byte, por la otra ventana
+// sizeof<Color>() == 4: las tres vistas comparten los mismos cuatro bytes.
+```
+
+Se anidan libremente: una union de structs anonimos es el idioma con el que la
+stdlib describe sus enteros anchos (`Wide128` se ve como dos `u64`, como cuatro
+`u32`, como ocho `u16` o como dieciseis bytes).
+
+> **Para leer memoria ajena con una forma tipada, mira los
+> [overlays](Overlays.md).** Una `union` describe un valor tuyo; un overlay es
+> una VISTA sobre bytes de otro, con offsets y endianness explicitos.
+
 ### Struct C-tagless (nombre al final)
 
 Al portar cabeceras C se acepta la forma con el nombre **despues** del cuerpo, sin
@@ -660,19 +710,24 @@ conserva **todo** lo suyo — campos, métodos, variantes, tamaño — y sólo a
 identidad:
 
 ```vx
-struct Punto { i64 x; i64 y; public i64 suma() { return this.x + this.y; } }
+struct Punto {
+	i64                                x;
+	i64                                y;
+	public i64 suma() => this.x + this.y;
+}
 
 typedef Punto Coord new;
-typedef Punto Pixel new;      // misma forma, otro significado
+typedef Punto Pixel new; // misma forma, otro significado
 
-i64 distancia(Coord c) { return c.suma(); }   // solo acepta Coord
+i64 distancia(Coord c) => c.suma(); // solo acepta Coord
 
 Coord c;
-c.x = 1;  c.y = 2;            // los campos, como en Punto
-distancia(c);                  // OK
+c.x = 1;
+c.y = 2;      // los campos, como en Punto
+distancia(c); // OK
 
 Pixel p;
-distancia(p);                  // error: Pixel no es Coord
+distancia(p);
 ```
 
 Ese último error es el motivo de todo: dos cosas con la misma representación
@@ -682,20 +737,27 @@ de poder confundirse, y se dice en compilación en vez de en producción.
 Funciona igual con clases y enums:
 
 ```vx
-class Caja { public i64 v = 0; public i64 leer() { return this.v; } }
+class Caja {
+	public i64                v = 0_i64;
+	public i64 leer() => this.v;
+}
 typedef Caja Sesion new;
 
-Sesion s = new Sesion();      // construye la Caja de debajo
+Sesion s = new Sesion(); // construye la Caja de debajo
 s.v = 7;
-s.leer();                      // sus metodos
+s.leer(); // sus metodos
 
-enum Color { Rojo, Verde, Azul }
+enum Color {
+	Rojo,
+	Verde,
+	Azul
+}
 typedef Color Tinta new;
 
-Tinta t = Tinta.Verde;         // sus variantes
+Tinta t = Tinta.Verde; // sus variantes
 match t {
-    case Verde => ...;
-    case _     => ...;
+	case Verde =>...;
+	case _     =>...;
 }
 ```
 
