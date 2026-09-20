@@ -56,6 +56,44 @@ Los tres kinds son un detalle interno: la materialización de ROPE/SLICE a FLAT
 la hace el runtime cuando hace falta (por ejemplo al pedir `cstr()`), y no se
 expone como operación del lenguaje.
 
+### En NATIVO no es eso: es un valor de 24 bytes
+
+El binario AOT no lleva GC ni handles, así que ahí `string` es un **value-type
+de 24 bytes en la pila**, con unión y la bandera en el bit alto del byte 23:
+
+| bandera | qué hay dentro |
+| :------ | :------------- |
+| bit 7 = 0 (**SSO**) | el texto INLINE en los bytes 0..21, longitud en `byte[23] & 0x7F`, NUL en `byte[len]` |
+| bit 7 = 1 (**HEAP**) | `ptr@0`, `len@8`, `cap` en los bytes 16..22 — y el bit 6 dice si el buffer es **propio** (se libera al salir del ámbito) o **prestado** |
+
+`.cstr()` es una carga del puntero (o la dirección de los datos inline), ya
+NUL-terminado: pasarlo a un `char*` no cuesta nada.
+
+Un **literal** cae siempre en la rama prestada, como vista sobre `.rodata`: sin
+reserva, sin liberación, y sin registrar limpieza — por eso una cadena constante
+no arrastra el asignador al binario.
+
+Es la misma diferencia que en el resto del lenguaje: el tipo es uno y su
+representación depende del modo.
+
+### El tipo de un literal es `string`
+
+Un literal se acepta donde se pida `string`, `char*`, `u8*` o `void*`: el
+contexto lo refina. Cuando **nada** pide nada — `auto s = "hola"`, o deducir un
+parámetro de tipo — el tipo es `string`, que es su tipo y no su representación.
+A `char*` se baja pidiéndolo (`.cstr()`), igual que desde cualquier otra cadena.
+
+```vesta
+string who<T>(T x) => type.name<T>();
+
+auto a = "hola";        // string
+who("hola")             // "string" -- igual que who(a)
+char* p = "hola";       // sigue valiendo: el contexto pide puntero
+```
+
+Donde el parámetro **sí** pide una forma (`T*`, `T[]`, `Caja<T>`) manda el
+contexto, no esta regla.
+
 ---
 
 ## 2. Literales: estándar, raw, triple-quoted
