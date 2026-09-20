@@ -452,14 +452,14 @@ Cualquier concepto se puede usar como **bound** (`<T: Concepto>`) o invocar como
 
 ```java
 // 1. Predicado (sobre la introspeccion comptime):
-concept MiNumero<T> = is_numeric<T>();
+concept MiNumero<T> = type.is_numeric<T>();
 
 // 2. Composicion de conceptos:
 concept Ordenable<T> = Comparable<T>() && Sized<T>();
 
 // 3. Bloque (logica comptime arbitraria, estilo comptime{}):
 concept CabeEnReg<T> {
-    if (is_primitive<T>()) { return sizeof<T>() <= 8; }
+    if (type.is_primitive<T>()) { return type.size<T>() <= 8; }
     return false;
 }
 
@@ -473,6 +473,59 @@ parametros: un tipo con `bool area()` NO satisface `Dibujable { i64 area(); }`.
 Predicados de introspeccion disponibles (ademas de `sizeof`, `field_count`,
 `has_method`, ...): `is_integer`, `is_signed`, `is_unsigned`, `is_float`,
 `is_numeric`, `is_bool`, `is_char`, `is_pointer`, `is_string`.
+
+---
+
+## Cuando falla: donde se dice y que se dice
+
+Hay dos modelos para comprobar una generica, y son excluyentes.
+
+**En la INSTANCIA** (C++, D, Zig): el cuerpo se comprueba cada vez que se
+instancia. Maxima libertad -- el cuerpo puede hacer con `T` lo que ese `T`
+soporte, sin declararlo -- al precio del muro de errores de C++.
+
+**En la DEFINICION** (Rust, Swift, Go, C#): se comprueba una vez contra las
+cotas, y entonces instanciar no puede fallar. Mas barato, pero el cuerpo solo
+puede usar lo que la cota garantice, y hay que declararlo todo. Java es un caso
+aparte: BORRA los tipos, asi que no hay instancias que comprobar -- y paga con
+que `T` solo pueda ser una referencia, con el encajonado de `Integer`, y con
+que `new T()` no exista.
+
+**Vesta usa el HIBRIDO**, que es donde su diseno ya estaba:
+
+1. **La cota, en la llamada.** Se evalua con los tipos concretos y *antes* de
+   construir la instancia. Si rechaza, no se construye: asi el error sale en la
+   linea que el programador escribio y nombrando el concepto, en vez de dentro
+   de un cuerpo que no es suyo.
+2. **El cuerpo de la instancia**, ya sustituido, como red de lo que ninguna
+   cota predijo. Corre una vez por instancia DISTINTA -- estan deduplicadas --
+   y sobre codigo que se iba a compilar igualmente.
+
+Esto **no** exige que un concepto enumere operaciones: en Vesta son predicados
+que se ejecutan al compilar, no listas de metodos, y el cuerpo sigue pudiendo
+usar cualquier cosa que el tipo concreto soporte.
+
+### El mensaje
+
+Que la capa 2 exista no basta: si habla el vocabulario del llamado, es el muro
+otra vez. Un fallo dentro de una instancia trae tres cosas:
+
+```
+error: tipo del inicializador (string) incompatible con tipo declarado (i64)
+note:  'suma_uno' exige que su 'T' se pueda asignar a un 'i64', y 'string' no.
+       Nadie declaro esa cota: sale de lo que el cuerpo hace con 'T'   [VX2113]
+note:  al comprobar 'suma_uno<string>', instanciada aqui               [VX2110]
+```
+
+- El **sintoma**, donde esta.
+- La **cota que el cuerpo exige**, DEDUCIDA en el momento en que se viola --
+  este declarada o no --. Rust solo puede nombrar la que alguien escribio; de
+  hecho obliga a escribirla antes de dejar compilar.
+- El **camino de vuelta** hasta la linea que el programador escribio. Si la
+  cadena no cabe se pliega POR EL MEDIO, nunca por el final -- ahi esta esa
+  linea --, y se dice cuantos niveles se saltaron (`VX2111`).
+
+Se ven funcionando en `589_cota_deducida.vx` y `588_cadena_instanciacion.vx`.
 
 ---
 
@@ -516,7 +569,7 @@ generico, mismo bound, misma especializacion elegida).
 ## Uso en comptime
 
 Los tipos genericos y especializados son introspectables en comptime:
-`sizeof<Caja<i64>>()` refleja la especializacion (sus campos), y los conceptos
+`type.size<Caja<i64>>()` refleja la especializacion (sus campos), y los conceptos
 (built-in y de usuario) se evaluan como predicados booleanos comptime
 (`comptime bool ok = Comparable<i64>();`).
 
@@ -529,7 +582,7 @@ modulo exporta `public struct Caja<T>` / `public i64 fn<T>(...)` /
 ```java
 // lib.vx
 public struct Caja<T> { T v; U id<U>(U x) { return x; } }
-public concept Num<T> = is_numeric<T>();
+public concept Num<T> = type.is_numeric<T>();
 public i64 doblar<T: Num>(T x) { return (i64)x + (i64)x; }
 
 // main.vx
