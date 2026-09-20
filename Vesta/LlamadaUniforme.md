@@ -212,6 +212,20 @@ en ambito desde otro, se llamen sus ranuras como se llamen. El error dice de
 que namespace es y como llamarla (`VX2079` si esta importado por su nombre,
 `VX2080` si es del mismo fichero).
 
+### 5.2. Y una GENERICA importada, igual
+
+Una plantilla viaja como fuente y se instancia en quien la usa, asi que al
+inyectarla se la renombra a su etiqueta (`std__func__apply`). Eso es interno: se
+escribe con su nombre, por el punto o libre, exactamente igual que cualquier
+otra importada.
+
+```vesta
+import std.func only apply;
+
+u64 n = apply(s, &largo);            // libre
+u64 m = s.apply(&largo);             // por el punto: la misma llamada
+```
+
 ---
 
 ## 6. Calificar la llamada por el punto: `$`
@@ -252,7 +266,35 @@ Lo que sigue al `$` tiene que ser un namespace que el fichero declare o importe
 
 ---
 
-## 7. Formato
+## 7. Elegir la funcion: `std.func.apply`
+
+Lo que sigue al punto tiene que ser un **nombre**, asi que una eleccion no cabe
+ahi: `s.(alto ? grita : susurra)()` no existe, y no deberia.
+
+El hueco no esta en el punto sino en el argumento. Una funcion ya es un valor
+(`&grita` es un `cfn`), asi que la eleccion se escribe donde se escriben todas
+-- en una expresion -- y lo unico que falta es quien la reciba:
+
+```vesta
+import std.func only apply, tap;
+
+s.apply(alto ? &grita : &susurra);   // la eleccion, sin sintaxis nueva
+
+u64 n = s.apply(&largo);             // y devuelve lo que devuelva la elegida
+5.tap(&nota).apply(&mas_uno);        // `tap` deja pasar el valor: efecto y sigue
+```
+
+`apply` liga su retorno con el de la funcion que reciba, **`void` incluido**, asi
+que no hace falta una segunda por no devolver nada.
+
+No cuesta nada frente a escribir la llamada a mano: son genericas, cada uso se
+monomorfiza a una funcion cuyo cuerpo es la llamada y el inliner se la come; y
+cuando la elegida se conoce al compilar, la devirtualizacion convierte ademas la
+indirecta en directa.
+
+---
+
+## 8. Formato
 
 El estandar ([EstiloYFormato.md](EstiloYFormato.md)) fija tres cosas:
 
@@ -263,11 +305,11 @@ El estandar ([EstiloYFormato.md](EstiloYFormato.md)) fija tres cosas:
 
 ---
 
-## 8. Donde mirarlo funcionando
+## 9. Donde mirarlo funcionando
 
 | Ejemplo | Que cubre |
 | :------ | :-------- |
-| `549_ufcs_llamada_uniforme.vx` | receptor struct, primitivo, puntero y clase; sobrecarga entre las candidatas |
+| `549_ufcs_llamada_uniforme.vx` | receptor struct, primitivo, puntero y clase; sobrecarga entre las candidatas; y `apply`/`tap` de otro modulo con la elegida por un ternario |
 | `551_ufcs_encadenado.vx` | encadenar sobre literales, cruzar de familia, el hueco `_` |
 | `552_argumentos_nombrados.vx` | ranuras por nombre, mezcladas, y el nombre eligiendo entre hermanas |
 | `556_ufcs_xmodulo.vx` | cruzando el modulo: `as`, sobrecarga por ranura, `$` |
