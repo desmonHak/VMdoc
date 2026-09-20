@@ -32,21 +32,21 @@ Documentos hermanos: [[TiposDatos]] (structs value-type, punteros, newtypes),
 | `@overlay struct N { ... }` | Declara una vista tipada; un valor `N` es un puntero de 8 bytes |
 | `N v = N(ptr)` | Construye la vista sobre el puntero base `ptr` (no aloca) |
 | `campo @offset(N)` / `campo @0xNN` | Offset CONSTANTE (se pliega a `[base + N]`) |
-| `campo @offset(expr)` | Offset DINAMICO: expresion sobre campos hermanos + `sizeof<T>()` |
+| `campo @offset(expr)` | Offset DINAMICO: expresion sobre campos hermanos + `type.size<T>()` |
 | `campo @offset { ...; return dir; }` | Resolver de BLOQUE: logica arbitraria que devuelve la DIRECCION del campo |
 | `T name[count] @offset(pos) stride(s)` | Array de overlay: `name[i]` en `base + pos + i*stride` (count/pos/stride runtime) |
 | `T name[count] @element { ...; return dir; }` | Resolver POR-ELEMENTO (stride variable / TLV); `index` en scope |
 | `u8 campo : N @offset(...)` | Bitfield de N bits (empaquetado, con read-modify-write al escribir) |
 | `campo @endian(expr)` | Orden de bytes: `expr` distinto de cero = big-endian |
-| `parent<T>()` | Dentro de un resolver: la vista RAIZ tipada `T` de la cadena |
-| `offsetof(v.campo)` | `u64`: offset resuelto del campo dentro de la vista |
-| `in_bounds(v.campo, len)` | `bool`: `offsetof(v.campo) + sizeof(campo) <= len` |
-| `extent(v)` | `u64`: span TOTAL en runtime que ocupa la instancia |
-| `sizeof<T>()` | `u64`: huella ESTATICA (constante de compilacion) del overlay `T` |
+| `type.parent<T>()` | Dentro de un resolver: la vista RAIZ tipada `T` de la cadena |
+| `field.offset(v.campo)` | `u64`: offset resuelto del campo dentro de la vista |
+| `overlay.in_bounds(v.campo, len)` | `bool`: `field.offset(v.campo) + type.size(campo) <= len` |
+| `overlay.extent(v)` | `u64`: span TOTAL en runtime que ocupa la instancia |
+| `type.size<T>()` | `u64`: huella ESTATICA (constante de compilacion) del overlay `T` |
 
 En scope dentro de un resolver: `base` (el puntero de la vista), los campos
 hermanos por su nombre, `this`/`self` (la propia vista), `index` (solo en
-`@element`) y `parent<T>()`.
+`@element`) y `type.parent<T>()`.
 
 ---
 
@@ -128,7 +128,7 @@ de `@offset(0xNN)`; ambos son intercambiables.
 ## Offsets dinamicos: `@offset(expr)`
 
 El offset de un campo puede ser una *expresion* que referencia campos hermanos de
-la misma vista, mas `sizeof<T>()`. El resolver lee esos hermanos en el momento del
+la misma vista, mas `type.size<T>()`. El resolver lee esos hermanos en el momento del
 acceso, asi que encadenas cabeceras (DOS -> NT -> ...) sin escribir aritmetica de
 punteros a mano. Los nombres desnudos en la expresion son campos hermanos; el
 compilador exige que la expresion evalue a un entero.
@@ -348,7 +348,7 @@ struct Doc {
 ```
 
 `stride(s)` es azucar de `@element { return table_base + index * s; }`, y el
-default (un array sin nada) es `@element { return table_base + index * sizeof(T); }`.
+default (un array sin nada) es `@element { return table_base + index * type.size<T>(); }`.
 Con el resolver por-elemento no hay ninguna limitacion de formato.
 
 ---
@@ -444,7 +444,7 @@ en memoria. Una sola forma (`@endian(expr)`) cubre el caso fijo y el dinamico.
 Un `@overlay struct` puede tener metodos. Dentro de un metodo, `this` es el puntero
 HOST de la vista (en los tres modos de ejecucion), y `(u64) this` es la direccion
 base. Los metodos encapsulan la logica del formato una sola vez y son llamables
-desde los resolvers via `this.metodo(...)` o `parent<T>().metodo(...)`.
+desde los resolvers via `this.metodo(...)` o `type.parent<T>().metodo(...)`.
 
 El caso canonico: la traduccion RVA -> offset de fichero de un PE es un algoritmo
 que recorre la tabla de secciones. En vez de repetirlo en cada resolver, se
@@ -488,15 +488,15 @@ instruccion decodificada.
 
 ---
 
-## `parent<T>()`: alcanzar la vista raiz
+## `type.parent<T>()`: alcanzar la vista raiz
 
 Un sub-overlay (por ejemplo un `ImportDesc` obtenido de `pe.Imports[i]`) a veces
 necesita datos del contenedor: el nombre de una DLL vive en su propio RVA, y para
-traducirlo hace falta la tabla de secciones del `PeImage` raiz. `parent<T>()`
+traducirlo hace falta la tabla de secciones del `PeImage` raiz. `type.parent<T>()`
 devuelve, desde dentro de un resolver, la vista RAIZ tipada `T` de la cadena de
 accesos.
 
-Lo importante es el modelo de implementacion, el **root-threading**: `parent<T>()`
+Lo importante es el modelo de implementacion, el **root-threading**: `type.parent<T>()`
 NO cambia la representacion del overlay (sigue siendo 8 bytes). El puntero raiz se
 enhebra en el *call site*: cuando escribes `pe.Imports[i].thunks[k].fname`, el
 compilador camina la cadena de accesos hasta la raiz (`pe`) y le pasa esa raiz al
@@ -505,13 +505,13 @@ resolver como un parametro extra. No se guarda ningun puntero-a-padre en runtime
 ```vx
 // Entrada de la ILT (import lookup table) de un PE.  El nombre de la funcion
 // vive en un RVA; para traducirlo hay que alcanzar el PeImage RAIZ (a dos
-// niveles: Thunk -> ImportDesc -> PeImage) via parent<PeImage>().
+// niveles: Thunk -> ImportDesc -> PeImage) via type.parent<PeImage>().
 @overlay
 struct Thunk {
 	u64 raw @0x00;
 	u8 fname @offset {
 		u32 rva = (u32)(this.raw & 0x7FFFFFFF) + 2; // +2 salta el hint u16
-		return parent<PeImage>().translate(rva);    // metodo del padre raiz
+		return type.parent<PeImage>().translate(rva);    // metodo del padre raiz
 	};
 }
 
@@ -520,64 +520,64 @@ struct ImportDesc {
 	u32 name_rva @0x0C; // RVA al nombre de la DLL
 	// El nombre de la DLL, traducido por las secciones del PADRE raiz.
 	u8 dll_name @offset {
-		return parent<PeImage>().translate(this.name_rva);
+		return type.parent<PeImage>().translate(this.name_rva);
 	};
 }
 ```
 
-Regla de uso: dentro de un resolver, `parent<T>()` solo es valido si el overlay se
+Regla de uso: dentro de un resolver, `type.parent<T>()` solo es valido si el overlay se
 construyo como SUB-overlay (via `pe.Imports[i]`, donde el compilador conoce el
 padre); un overlay construido suelto (`ImportDesc(ptr)`) no tiene padre y usar
-`parent<T>()` es un error de compilacion.
+`type.parent<T>()` es un error de compilacion.
 
 ---
 
 ## Builtins de introspeccion y seguridad
 
-### `sizeof<T>()` -- huella estatica
+### `type.size<T>()` -- huella estatica
 
-`sizeof<T>()` de un overlay devuelve su **huella estatica**: `max(offset + size)`
+`type.size<T>()` de un overlay devuelve su **huella estatica**: `max(offset + size)`
 sobre los campos de offset CONSTANTE, redondeada a 8. Es una constante de
 compilacion (los campos de offset dinamico no cuentan, porque su posicion depende
 de los datos). Sirve para reservar el buffer de respaldo exacto al crear una
 estructura:
 
 ```vx
-u64 fixed = sizeof<PePeek>();   // 64 (constante de compilacion)
+u64 fixed = type.size<PePeek>();   // 64 (constante de compilacion)
 u8* buf = (u8*) malloc(128);
 ```
 
-La forma es `sizeof<T>()` (con angulos). `sizeof(overlay_var)` sobre una variable
+La forma es `type.size<T>()` (con angulos). `type.size(overlay_var)` sobre una variable
 overlay tambien esta disponible.
 
-### `offsetof(v.campo)` -- offset resuelto
+### `field.offset(v.campo)` -- offset resuelto
 
-`offsetof(v.campo)` devuelve, como `u64`, el offset resuelto del campo dentro de la
+`field.offset(v.campo)` devuelve, como `u64`, el offset resuelto del campo dentro de la
 vista -- incluyendo `@offset(expr)` dinamico y `arr[i]*stride`. Es azucar de
 `(u64)(&v.campo) - (u64)v`, pero legible:
 
 ```vx
-println("OFF_S1_SZ=${offsetof(h.secs[1].sz)}");   // 20
-println("IMPORT_DIR_OFF=${offsetof(pe.import_dir)}");   // offset traducido por el resolver
+println("OFF_S1_SZ=${field.offset(h.secs[1].sz)}");   // 20
+println("IMPORT_DIR_OFF=${field.offset(pe.import_dir)}");   // offset traducido por el resolver
 ```
 
-### `in_bounds(v.campo, len)` -- comprobacion de rango
+### `overlay.in_bounds(v.campo, len)` -- comprobacion de rango
 
-`in_bounds(v.campo, len)` devuelve `bool`, azucar de
-`offsetof(v.campo) + sizeof(campo) <= len`. Comprueba que el campo cae completo
+`overlay.in_bounds(v.campo, len)` devuelve `bool`, azucar de
+`field.offset(v.campo) + type.size(campo) <= len`. Comprueba que el campo cae completo
 dentro de un buffer de `len` bytes:
 
 ```vx
-if (!in_bounds(eh.Phdrs[i].p_align, size)) {
+if (!overlay.in_bounds(eh.Phdrs[i].p_align, size)) {
     // fuera de rango: politica del usuario (contar, avisar, saltar...)
 }
 ```
 
-### `extent(v)` -- span total en runtime
+### `overlay.extent(v)` -- span total en runtime
 
-`extent(v)` devuelve el span REAL de una INSTANCIA: `max(fin de campo) - base`,
+`overlay.extent(v)` devuelve el span REAL de una INSTANCIA: `max(fin de campo) - base`,
 evaluando los counts dinamicos y los resolvers con los datos de `v`. Es el
-complemento runtime de `sizeof<T>()` (estatico):
+complemento runtime de `type.size<T>()` (estatico):
 
 ```vx
 @overlay struct Img {
@@ -587,8 +587,8 @@ complemento runtime de `sizeof<T>()` (estatico):
     Sec secs[count] @offset(0x10) stride(8);
 }
 // ... con count=3:  secs 0x10 + 3*8 = 40  <- el mayor  ->  extent = 40
-u64 ext = extent(im);                   // 40
-println("fits256=${extent(im) <= 256}");   // true
+u64 ext = overlay.extent(im);                   // 40
+println("fits256=${overlay.extent(im) <= 256}");   // true
 ```
 
 `extent` cubre escalares (offset const / `@offset(expr)` / `@offset{}`) + arrays de
@@ -662,7 +662,7 @@ del buffer devolveria basura silenciosa. La filosofia de Vesta es **no imponer
 maquinaria**: no hay 0-por-defecto (no distingue un 0 real), ni abort (no todo
 entorno tiene stderr), ni excepciones obligatorias, ni flags implicitos. En su
 lugar, el lenguaje expone primitivas legibles (`offsetof`, `in_bounds`,
-`extent`, `sizeof<T>()`) para que **compongas tu propia validacion, donde
+`extent`, `type.size<T>()`) para que **compongas tu propia validacion, donde
 quieras, eligiendo el coste y decidiendo que devolver** (un `Optional`, un
 `Result`, un centinela, un `panic`... ver [[OptionalResult]]).
 
@@ -672,7 +672,7 @@ quieras, eligiendo el coste y decidiendo que devolver** (un `Optional`, un
 // programador podria devolver un Optional, un Result, o hacer panic.
 i64 sec_size_checked(Hdr h, i32 i, u64 len) {
 	if ((u32)i >= (u32)h.count) { return -1; }        // indice fuera de count
-	if (!in_bounds(h.secs[i].sz, len)) { return -1; } // campo fuera del buffer
+	if (!overlay.in_bounds(h.secs[i].sz, len)) { return -1; } // campo fuera del buffer
 	return (i64)h.secs[i].sz;                         // solo aqui, ya probado
 }
 ```
@@ -686,7 +686,7 @@ decides el punto de comprobacion y la respuesta.
 
 Todo lo descrito -- offsets constantes y dinamicos, resolvers de bloque y
 por-elemento, arrays con stride runtime, bitfields, `@endian`, metodos,
-`parent<T>()`, los builtins de introspeccion -- funciona identico en los tres modos
+`type.parent<T>()`, los builtins de introspeccion -- funciona identico en los tres modos
 de ejecucion: el interprete, el JIT y la compilacion nativa (AOT). Un overlay es un
 puntero host de 8 bytes en todos ellos; los resolvers se compilan a funciones
 normales; los offsets constantes se pliegan; los swaps de `@endian` se pliegan o se
@@ -708,7 +708,7 @@ DENTRO de los overlays, como campos-resolver y metodos. `main` solo abre el
 fichero, itera y lee campos. Se parsean cabeceras completas, los 16 data
 directories de un PE, las tablas de secciones y program/section headers, y se
 recorren los imports (descriptores + funciones de la ILT) resolviendo cada nombre
-por su RVA via `parent<PeImage>()`.
+por su RVA via `type.parent<PeImage>()`.
 
 ### Dump del PEB de Windows
 

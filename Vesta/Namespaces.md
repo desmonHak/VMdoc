@@ -557,7 +557,7 @@ funcionan cross-modulo.
 
   ```vesta
   namespace mat;
-  concept Numerico<T> = is_numeric<T>();
+  concept Numerico<T> = type.is_numeric<T>();
   public T doble<T: mat.Numerico>(T x) { return x + x; }
   public K primero<K, V>(K a, V b) { return a; }
   ```
@@ -599,7 +599,7 @@ del binario.
 
 ```vesta
 namespace mat;
-concept Numerico<T>  = is_numeric<T>();
+concept Numerico<T>  = type.is_numeric<T>();
 concept Ordenable<T> = Comparable<T>() && Sized<T>();
 
 public T doble < T : mat.Numerico > (T x) => x + x;
@@ -636,7 +636,7 @@ i64 main() {
 
 ### 10.5. Introspeccion
 
-Los builtins de introspeccion (`typename<T>`, y en general los que devuelven el
+Los builtins de introspeccion (`type.name<T>`, y en general los que devuelven el
 nombre de un tipo) devuelven el **nombre publico** del tipo, sin el prefijo del
 namespace:
 
@@ -644,15 +644,15 @@ namespace:
 namespace geom;
 public struct Vec3 { i64 x; i64 y; i64 z; }
 
-comptime string N = typename<geom.Vec3>();
+comptime string N = type.name<geom.Vec3>();
 
 i64 main() {
-    static_assert(comptime_streq(N, "Vec3"), "nombre publico sin prefijo");
+    static_assert(comptime.str.eq(N, "Vec3"), "nombre publico sin prefijo");
     return 42;
 }
 ```
 
-`typename<geom.Vec3>()` produce `"Vec3"`, no `"geom.Vec3"`.
+`type.name<geom.Vec3>()` produce `"Vec3"`, no `"geom.Vec3"`.
 
 ### 10.6. Reflexion
 

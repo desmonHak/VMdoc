@@ -1349,7 +1349,7 @@ Todas retornan `handle` salvo `strlen`/`strcmp` (`i64`), `strhash` (`u64`) y
 | `strfinalize` | `strfinalize buf, byte_len` | Confirmar escritura manual en FLAT (actualiza metadatos) |
 | `strgetenc` | `dst = strgetenc.handle s` | Obtener byte de encoding |
 | `strgetbytes` | `dst = strgetbytes.handle s` | Obtener `byte_len` |
-| `strgetkind` | `dst = strgetkind.handle s` | Obtener kind (0=FLAT 1=ROPE 2=SLICE) |
+| `strgetkind` | `dst = strgetkind.handle s` | Obtener type.kind (0=FLAT 1=ROPE 2=SLICE) |
 
 Ejemplo:
 ```ir

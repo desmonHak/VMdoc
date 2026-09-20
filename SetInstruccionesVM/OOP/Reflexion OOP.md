@@ -161,7 +161,7 @@ Si `field_idx >= field_count`: `R0 = 0`.
 +8 name.size (4B) longitud del nombre
 +12 -- (4B) padding
 +16 access (4B) enum: PUBLIC=0, PRIVATE=1, PROTECTED=2, DEFAULT=3
-+20 kind (4B) enum: PRIMITIVE=0, CLASS=1, STRUCT=2, TYPEDEF=3, ENUM=4, ASPECT=5
++20 type.kind (4B) enum: PRIMITIVE=0, CLASS=1, STRUCT=2, TYPEDEF=3, ENUM=4, ASPECT=5
 +24 type_class (8B) ClassInfo* (si kind == CLASS o STRUCT; null si no)
 +32 size (4B) bytes que ocupa el campo en el payload del objeto
 +36 offset (4B) offset del campo dentro del payload (desde el inicio del objeto)
@@ -322,14 +322,14 @@ La estructura que describe una clase completa:
 +48 interfaces (8B) ClassInfo** (array de interfaces implementadas)
 +56 interface_count (8B) size_t
 +64 fields (8B) FieldInfo* (array de campos)
-+72 field_count (8B) size_t
++72 field.count (8B) size_t
 +80 vtable (8B) MethodInfo** (tabla de metodos virtuales)
 +88 vtable_size (8B) size_t
 +96 static_data (8B) uint8_t* (datos estaticos de la clase)
 +104 static_fields (8B) FieldInfo* (campos estaticos)
 +112 static_field_count (8B) size_t
 +120 methods (8B) MethodInfo* (array de metodos)
-+128 method_count (8B) size_t
++128 method.count (8B) size_t
 +136 doc.data (8B) puntero host a la documentacion de la clase
 +144 doc.size (4B) longitud del doc
 +148 -- (4B) padding

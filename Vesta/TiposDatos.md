@@ -158,7 +158,7 @@ println("x = ${*p}"); // x = 100
 ```java
 u8* arr = malloc(10);
 u8* ptr = arr;
-ptr = ptr + 3; // avanza 3 bytes (T* escala por sizeof(u8) = 1)
+ptr = ptr + 3; // avanza 3 bytes (T* escala por type.size<u8>() = 1)
 *ptr = 0xAB; // escribe en arr[3]
 ptr[2] = 0xCD; // equivalente a *(ptr + 2) = 0xCD
 ```
@@ -326,7 +326,7 @@ Color c;
 c.rgba = 0x11223344;
 u8 rojo = c.r;         // 0x44 en little-endian
 u8 b0   = c.bytes[0];  // el mismo byte, por la otra ventana
-// sizeof<Color>() == 4: las tres vistas comparten los mismos cuatro bytes.
+// type.size<Color>() == 4: las tres vistas comparten los mismos cuatro bytes.
 ```
 
 Se anidan libremente: una union de structs anonimos es el idioma con el que la
@@ -696,7 +696,7 @@ Diferencias clave respecto al alias transparente:
 | `u32 x = e;` | OK | ERROR (sin cast) |
 | `Edad e = (Edad) 25;` | OK | OK |
 | `u32 x = (u32) e;` | OK | OK |
-| `is_newtype<Edad>()` | `false` | `true` |
+| `type.is_newtype<Edad>()` | `false` | `true` |
 
 **Coste runtime:** cero. El newtype ocupa exactamente los mismos bytes
 que su underlying; el cast explicito baja al mismo BITCAST que cualquier
@@ -796,7 +796,7 @@ struct Packet {
     u32 magic; // offset 0
     simd_byte payload; // offset 16 (forzado a 16)
 }
-// sizeof(Packet) es multiplo de 16
+// type.size<Packet>() es multiplo de 16
 ```
 
 `N` debe ser potencia de 2 en `[1, 4096]` (1, 2, 4, 8, 16, 32, 64,
@@ -866,22 +866,22 @@ implementador.
 Los builtins comptime distinguen newtypes de aliases transparentes:
 
 ```c
-is_newtype<user_id>() // true
-is_newtype<u64>() // false
-is_opaque<session_id>() // true
-is_opaque<user_id>() // false
-underlying_of<user_id>() // "u64" (typename del underlying)
+type.is_newtype<user_id>() // true
+type.is_newtype<u64>() // false
+type.is_opaque<session_id>() // true
+type.is_opaque<user_id>() // false
+type.underlying<user_id>() // "u64" (typename del underlying)
 
 // is_same compara identidad nominal, no underlying:
-is_same<user_id, group_id>() // false (ambos son u64, pero IDs distintos)
-is_same<user_id, user_id>() // true
+type.is_same<user_id, group_id>() // false (ambos son u64, pero IDs distintos)
+type.is_same<user_id, user_id>() // true
 ```
 
 Util en macros `@Macro` para generar codigo distinto segun el tipo:
 
 ```c
 @Macro string emit_validator(Type T) {
-    if (is_newtype<T>() && is_opaque<T>()) {
+    if (type.is_newtype<T>() && type.is_opaque<T>()) {
         return "/* opaque: nada que validar externamente */";
     }
     return "/* validacion estandar del underlying */";

@@ -209,9 +209,9 @@ un **ADT** (union etiquetada). La presencia de un `= valor` (o de la palabra
 Un **concepto** es un predicado compile-time sobre un tipo (ver [[Generics]]).
 Los enums participan del sistema de concepts de tres formas.
 
-### 3.1. Introspeccion: `is_enum<T>()`
+### 3.1. Introspeccion: `type.is_enum<T>()`
 
-`is_enum<T>()` es un builtin comptime que da `true` para cualquier enum -- ADT o
+`type.is_enum<T>()` es un builtin comptime que da `true` para cualquier enum -- ADT o
 con valor de backing entero/float/string. (Los de backing struct/clase son su
 tipo base por diseno, asi que para esos da `false`: un `Color` se ve como un
 `Rgb`.)
@@ -220,9 +220,9 @@ tipo base por diseno, asi que para esos da `false`: un `Color` se ve como un
 enum Shape { Circle(i32) }           // ADT
 enum Op : u8 { MOV = 0x89 }          // con valor
 
-is_enum<Shape>()   // true
-is_enum<Op>()      // true
-is_enum<i32>()     // false
+type.is_enum<Shape>()   // true
+type.is_enum<Op>()      // true
+type.is_enum<i32>()     // false
 ```
 
 ### 3.2. Concepts built-in `Enum` y `ValuedEnum`
@@ -250,8 +250,8 @@ as_num(Op.MOV);
 ### 3.3. Conceptos de usuario apoyados en `is_enum`
 
 ```vesta
-concept AnyEnum<T> = is_enum<T>();
-concept IntEnum<T> = is_enum<T>() && Numeric<T>(); // composicion
+concept AnyEnum<T> = type.is_enum<T>();
+concept IntEnum<T> = type.is_enum<T>() && Numeric<T>(); // composicion
 
 i32 mark < T : AnyEnum > (T x) => 1;
 ```
@@ -312,7 +312,7 @@ detiene con el mensaje dado.
 - Una variante con valor se usa **directo, sin cast**, como su tipo base.
 - **Auto-incremento** para backing entero.
 - **Genericos**: los ADT admiten `<T>` (monomorfizacion).
-- **Concepts**: `is_enum<T>()`, `Enum`, `ValuedEnum`, backing concepts, conceptos
+- **Concepts**: `type.is_enum<T>()`, `Enum`, `ValuedEnum`, backing concepts, conceptos
   de usuario, y concepto-como-predicado.
 - **Comptime**: enums usables en expresiones y bloques `comptime` + `static_assert`.
 - Cero runtime: todo se resuelve en compile-time. `interp = JIT = AOT`.

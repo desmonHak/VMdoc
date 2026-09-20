@@ -79,7 +79,7 @@ multi-paradigma estaticamente tipado disenado con tres principios:
 | [[Enlazador]] | Linker y archivador propios (`vm --link`/`vm --ar`), flags de salida (`--emit`/`--format`/`--no-pie`/`--bin-base`/`--target`/`--freestanding`/`--float-isa`) |
 | [[DisposicionSecciones]] | Layout en el propio lenguaje (sustituto de linker scripts): `@section`/`@at`/`@order`, bloques `bytes {}`, `@bits` asm, `.bin` plano, script de enlace en Vesta (`fn link()`) |
 | [[InlineAsm]] | Ensamblador inline (`asm {}` + `@Naked`), `register()`, calificadores `volatile`/`nomem`/`preserves_flags`/`pure`, `clobbers`, sustitucion comptime |
-| [[Overlays]] | Vistas tipadas sobre memoria binaria: `@offset`/`@element`/`@endian`, bitfields, arrays con stride, `parent<T>`, `offsetof`/`in_bounds`/`extent` |
+| [[Overlays]] | Vistas tipadas sobre memoria binaria: `@offset`/`@element`/`@endian`, bitfields, arrays con stride, `type.parent<T>`, `offsetof`/`in_bounds`/`extent` |
 
 ---
 
@@ -851,18 +851,18 @@ Con un solo contrato no se puede decir la verdad de los dos casos a la vez.
 public T swap(T v) { ... }
 
 // Por el parametro de tipo.
-@complexity(total_post: O(1), when: is_integer<T>())
-@complexity(total_post: O(n), when: is_float<T>())
+@complexity(total_post: O(1), when: type.is_integer<T>())
+@complexity(total_post: O(n), when: type.is_float<T>())
 public T fetch_add(T d) { ... }
 
 // Los dos ejes se combinan: es una sola expresion.
-@complexity(total_post: O(n), when: arch:x86_64 && is_float<T>())
+@complexity(total_post: O(n), when: arch:x86_64 && type.is_float<T>())
 ```
 
 La expresion es la de `@Target` (`os:` / `arch:` / `cpu:` / `mode:` /
 `compiler OP M.m` / `vm OP M.m`, con `&&`, `||`, `!` y parentesis) mas los
-predicados sobre los type params: `is_float<T>()`, `is_integer<T>()`,
-`is_pointer<T>()`, `is_signed<T>()` y `sizeof<T>() OP N`. Va **sin comillas**:
+predicados sobre los type params: `type.is_float<T>()`, `type.is_integer<T>()`,
+`type.is_pointer<T>()`, `type.is_signed<T>()` y `type.size<T>() OP N`. Va **sin comillas**:
 asi un editor la ve como una expresion y puede completarla y validarla, no como
 una cadena opaca.
 
@@ -879,7 +879,7 @@ aplican todas las que casan. Si dos escriben el mismo campo (p.ej. dos
 que B si A implica B y B no implica A (se comprueba por tabla de verdad sobre la
 union de sus atomos). Si el compilador no puede decidir cual es mas especifica,
 es un **error de ambiguedad**, no una eleccion arbitraria. Asi un
-`when: arch:x86_64 && is_float<T>()` gana sobre un `when: arch:x86_64` para la
+`when: arch:x86_64 && type.is_float<T>()` gana sobre un `when: arch:x86_64` para la
 instancia `f64` en x86-64, sin que haga falta ordenarlos a mano.
 
 ### Inspeccion: modo analisis
@@ -906,7 +906,7 @@ arquitecturas soportadas y, si una instancia generica cambia con `T`, en todas
 las clases de tipo, y agrupa las instancias bajo su plantilla
 (`atomic<T>::fetch_add`). Donde el valor coincide en todo, sale una linea sin
 `when:`; donde difiere, el analisis pone el `when:` MiNIMO que lo describe
-(`arch:x86_64`, `is_float<T>()`, o los dos), sin perder la informacion por-arch
+(`arch:x86_64`, `type.is_float<T>()`, o los dos), sin perder la informacion por-arch
 ni por-tipo. Las cuatro dimensiones de `@complexity` se miden por separado:
 
 - `partial` = **el cuerpo escrito**, contando cada llamada como O(1). Es una

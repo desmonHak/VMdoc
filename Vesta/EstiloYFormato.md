@@ -890,11 +890,11 @@ struct ImportDesc {
 	Thunk thunks[] @offset {
 		u32           rva = this.oft_rva;
 		if (rva == 0) rva = this.ft_rva;
-		return parent<PeImage>().translate(rva);
+		return type.parent<PeImage>().translate(rva);
 	} stride(8);
 
 	u8 dll_name @offset {
-		return parent<PeImage>().translate(this.name_rva);
+		return type.parent<PeImage>().translate(this.name_rva);
 	};
 }
 ```
@@ -934,11 +934,11 @@ enum Maybe<T> {
 como una funcion.**
 
 ```vesta
-concept Numeric<T> = is_int<T>() || is_float<T>();
+concept Numeric<T> = is_int<T>() || type.is_float<T>();
 
 concept Sumable<T> {
 	comptime {
-		return has_method<T>("add");
+		return method.has<T>("add");
 	}
 }
 ```

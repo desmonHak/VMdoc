@@ -89,7 +89,7 @@ en el mismo orden que la documentación de Microsoft.
 
 `InitializeObjectAttributes` no es una syscall: en la NT API es una macro de
 `ntdef.h`, y aquí es una función normal. Fija `Length` con
-`sizeof<OBJECT_ATTRIBUTES>()` —el kernel usa ese campo para validar la versión
+`type.size<OBJECT_ATTRIBUTES>()` —el kernel usa ese campo para validar la versión
 del descriptor, así que tomarlo del tipo y no a mano evita que se descuadre si
 la estructura cambia.
 

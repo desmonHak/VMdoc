@@ -41,7 +41,7 @@ introspeccion, exactamente igual que un valor `comptime`.
 
 ```vx
 const i64 N = 5;
-const string E = comptime_concat("(", comptime_concat(comptime_to_str(N), ") * 8"));
+const string E = comptime.str.concat("(", comptime.str.concat(comptime.to_str(N), ") * 8"));
 const i64 R = comptime_compile(E);          // 40, calculado al compilar
 static_assert(R == 40, "5 * 8");
 ```
@@ -323,28 +323,28 @@ El AST evaluator de macros soporta operadores nativos y builtins cortos.
 
 | Verbose | Corto / azucar |
 |---|---|
-| `comptime_concat(a, b)` | `a + b` |
-| `comptime_streq(a, b)` | `a == b` |
-| `comptime_streq(a, b) == false` | `a != b` |
-| `comptime_strlen(s)` | `strlen(s)` |
-| `comptime_substr(s, a, b)` | `substr(s, a, b)` |
-| `comptime_to_str(n)` | `to_str(n)` |
-| `comptime_chr(cp)` | `chr(cp)` |
-| `comptime_ord(s)` | `ord(s)` |
-| `comptime_repeat(s, n)` | `repeat(s, n)` |
-| `comptime_replace(s, from, to)` | `replace(s, from, to)` |
-| `comptime_contains(haystack, needle)` | `contains(haystack, needle)` |
+| `comptime.str.concat(a, b)` | `a + b` |
+| `comptime.str.eq(a, b)` | `a == b` |
+| `comptime.str.eq(a, b) == false` | `a != b` |
+| `comptime.str.len(s)` | `strlen(s)` |
+| `comptime.str.substr(s, a, b)` | `substr(s, a, b)` |
+| `comptime.to_str(n)` | `to_str(n)` |
+| `comptime.chr(cp)` | `chr(cp)` |
+| `comptime.ord(s)` | `ord(s)` |
+| `comptime.str.repeat(s, n)` | `repeat(s, n)` |
+| `comptime.str.replace(s, from, to)` | `replace(s, from, to)` |
+| `comptime.str.contains(haystack, needle)` | `contains(haystack, needle)` |
 | `gensym()` | `gensym()` (genera identificador unico) |
 
 **Ejemplo refactorizado** (antes vs ahora):
 
 ```vx
 // Verbose (legacy):
-return comptime_concat(
+return comptime.str.concat(
 "( *(u64*)((u64)",
-comptime_concat(current,
-comptime_concat(" + ",
-comptime_concat(tok, ") )"))));
+comptime.str.concat(current,
+comptime.str.concat(" + ",
+comptime.str.concat(tok, ") )"))));
 
 // Compacto (preferido):
 return "( *(u64*)((u64)" + current + " + " + tok + ") )";
@@ -369,30 +369,81 @@ runtime (cuando existen) deben ser **literales compile-time**: un string
 literal no interpolado para nombres de campo/metodo, o un literal entero
 para indices.
 
+### Los nombres van en ARBOL
+
+Un builtin de introspeccion no se llama `field_count` sino **`field.count`**:
+las familias se agrupan con el punto, que es como se agrupa de verdad en este
+lenguaje, en vez de imitarlo con guiones bajos.
+
+```
+type.     size  align  name  id  kind  underlying  parent  find
+          is_class  is_struct  is_enum  is_primitive  is_newtype  is_opaque
+          is_integer  is_signed  is_unsigned  is_float  is_numeric
+          is_bool  is_char  is_pointer  is_string  is_same  is_subtype
+  .by_name  size  align  kind          <- el tipo por su NOMBRE, como cadena
+  .info     size  align  kind  name  field_count  field_name  field_offset
+                                                  field_size
+                                                  <- sobre un handle, en
+                                                     EJECUCION
+field.    count  name  type  type_at  offset  has  get  set  each
+method.   count  has  name  result  each
+scoped.method.  count  has  name  origin  arity  result  param  each
+                                          <- lo ALCANZABLE desde aqui
+overlay.  extent  in_bounds
+comptime. chr  ord  to_str  print
+  .str      len  concat  substr  replace  contains  eq  repeat
+```
+
+Tres razones, y la tercera es la que decide:
+
+1. **Se lee mejor**: `scoped.method.arity` dice a que familia pertenece; con
+   `scoped_method_arity` hay que saberselo.
+2. **El editor puede ofrecerlas por ramas**, en vez de una lista plana de
+   medio centenar de nombres sin relacion aparente.
+3. **La documentacion tiene la misma forma que el lenguaje.** Esta tabla ES el
+   arbol; antes era una lista donde relacionar dos entradas dependia de que
+   compartieran un prefijo que nadie garantizaba.
+
+Los primeros segmentos -- `type`, `field`, `method`, `scoped`, `overlay` y
+`comptime` -- quedan **reservados**: un namespace del usuario no puede
+llamarse asi, porque entonces `field.count` seria ambiguo.
+
+Con receptor de tipo (`T.f()` es `f<T>()`) se escribe el nombre **entero**:
+
+```vx
+u64 n = type.size<u64>();   // y lo mismo escrito por el punto:
+u64 m = u64.type.size();
+```
+
+La raiz no se omite a proposito.  `u64.size()` seria mas corto, pero
+`u64.type.size()` dice que se esta preguntando por un TIPO, que es lo que
+distingue esta llamada de un metodo cuando el receptor es un alias o un tipo
+fuerte.
+
 ### 4.1 Tamanos y layout
 
 | Builtin | Firma | Devuelve | Notas |
 |---|---|---|---|
-| `sizeof<T>()` | `<T>()` | `u64` | Bytes del tipo. Para `CLASS` devuelve 8 (es un puntero al objeto, no el tamano de la instancia). |
-| `alignof<T>()` | `<T>()` | `u64` | Alineamiento en bytes. |
-| `offsetof<T>("campo")` | `<T>(string_lit)` | `u64` | Offset del campo dentro del struct/clase. |
+| `type.size<T>()` | `<T>()` | `u64` | Bytes del tipo. Para `CLASS` devuelve 8 (es un puntero al objeto, no el tamano de la instancia). |
+| `type.align<T>()` | `<T>()` | `u64` | Alineamiento en bytes. |
+| `field.offset<T>("campo")` | `<T>(string_lit)` | `u64` | Offset del campo dentro del struct/clase. |
 
 ```vx
-u64 sz_i64 = sizeof<i64>();        // 8
-u64 sz_punto = sizeof<Punto>();    // suma de fields alineada
-u64 al_f64 = alignof<f64>();       // 8
-u64 off_y = offsetof<Punto>("y");  // p.ej. 8
+u64 sz_i64 = type.size<i64>();        // 8
+u64 sz_punto = type.size<Punto>();    // suma de fields alineada
+u64 al_f64 = type.align<f64>();       // 8
+u64 off_y = field.offset<Punto>("y");  // p.ej. 8
 ```
 
 ### 4.2 Identidad del tipo
 
 | Builtin | Firma | Devuelve | Notas |
 |---|---|---|---|
-| `typename<T>()` | `<T>()` | `string` | Nombre canonico sin espacios: `"i32"`, `"Punto"`, `"Box<i32>"`, `"i32*"`, `"i32[8]"`. |
-| `type_id<T>()` | `<T>()` | `u32` | Hash FNV-1a de 32 bits del nombre canonico. Estable cross-build; permite "es el tipo X?" con 1 comparacion entera. |
-| `kind<T>()` | `<T>()` | `i32` | Categoria del tipo (ver tabla de codigos). |
+| `type.name<T>()` | `<T>()` | `string` | Nombre canonico sin espacios: `"i32"`, `"Punto"`, `"Box<i32>"`, `"i32*"`, `"i32[8]"`. |
+| `type.id<T>()` | `<T>()` | `u32` | Hash FNV-1a de 32 bits del nombre canonico. Estable cross-build; permite "es el tipo X?" con 1 comparacion entera. |
+| `type.kind<T>()` | `<T>()` | `i32` | Categoria del tipo (ver tabla de codigos). |
 
-**Codigos de `kind<T>()`** (valores estables; nuevos kinds se agregan al
+**Codigos de `type.kind<T>()`** (valores estables; nuevos kinds se agregan al
 final):
 
 | Codigo | Categoria | Codigo | Categoria |
@@ -407,42 +458,102 @@ final):
 | 7 | `Ptr` | 99 | `Unknown` |
 
 ```vx
-string name = typename<Box<i32>>();  // "Box<i32>"
-u32 id = type_id<i32>();             // hash FNV-1a estable
-i32 k = kind<Punto>();               // 2 (Struct)
+string name = type.name<Box<i32>>();  // "Box<i32>"
+u32 id = type.id<i32>();             // hash FNV-1a estable
+i32 k = type.kind<Punto>();               // 2 (Struct)
 ```
 
 ### 4.3 Campos
 
 | Builtin | Firma | Devuelve | Notas |
 |---|---|---|---|
-| `field_count<T>()` | `<T>()` | `u32` | Numero de campos (incluye heredados en clases). |
-| `has_field<T>("f")` | `<T>(string_lit)` | `bool` | Cierto si el campo existe. |
-| `field_name<T>(idx)` | `<T>(int_lit)` | `string` | Nombre del campo idx-esimo (orden de declaracion); vacio si fuera de rango. |
-| `field_type<T>("f")` | `<T>(string_lit)` | `string` | Nombre del tipo del campo. |
-| `field_type_at<T>(idx)` | `<T>(int_lit)` | `Type` | Tipo del campo idx-esimo como valor de tipo (ver 4.7). |
+| `field.count<T>()` | `<T>()` | `u32` | Numero de campos (incluye heredados en clases). |
+| `field.has<T>("f")` | `<T>(string_lit)` | `bool` | Cierto si el campo existe. |
+| `field.name<T>(idx)` | `<T>(int_lit)` | `string` | Nombre del campo idx-esimo (orden de declaracion); vacio si fuera de rango. |
+| `field.type<T>("f")` | `<T>(string_lit)` | `string` | Nombre del tipo del campo. |
+| `field.type_at<T>(idx)` | `<T>(int_lit)` | `Type` | Tipo del campo idx-esimo como valor de tipo (ver 4.7). |
 
 ```vx
-u32 nf = field_count<Punto>();       // 2
-bool hf = has_field<Punto>("z");     // false
-string fn = field_name<Punto>(0);    // "x"
-string ft = field_type<Punto>("x");  // "i64"
+u32 nf = field.count<Punto>();       // 2
+bool hf = field.has<Punto>("z");     // false
+string fn = field.name<Punto>(0);    // "x"
+string ft = field.type<Punto>("x");  // "i64"
 ```
 
 ### 4.4 Metodos
 
 | Builtin | Firma | Devuelve | Notas |
 |---|---|---|---|
-| `method_count<T>()` | `<T>()` | `u32` | Numero de metodos (incluye heredados). |
-| `has_method<T>("m")` | `<T>(string_lit)` | `bool` | Cierto si el metodo existe. |
-| `method_name<T>(idx)` | `<T>(int_lit)` | `string` | Nombre del metodo idx-esimo; vacio si fuera de rango. |
-| `method_return_type<T>(idx)` | `<T>(int_lit)` | `Type` | Tipo de retorno del metodo idx-esimo como valor de tipo (ver 4.7). |
+| `method.count<T>()` | `<T>()` | `u32` | Numero de metodos (incluye heredados). |
+| `method.has<T>("m")` | `<T>(string_lit)` | `bool` | Cierto si el metodo existe. |
+| `method.name<T>(idx)` | `<T>(int_lit)` | `string` | Nombre del metodo idx-esimo; vacio si fuera de rango. |
+| `method.result<T>(idx)` | `<T>(int_lit)` | `Type` | Tipo de retorno del metodo idx-esimo como valor de tipo (ver 4.7). |
 
 ```vx
-u32 nm = method_count<Animal>();       // p.ej. 3
-bool hm = has_method<Animal>("speak"); // true
-string m0 = method_name<Animal>(0);    // "speak"
+u32 nm = method.count<Animal>();       // p.ej. 3
+bool hm = method.has<Animal>("speak"); // true
+string m0 = method.name<Animal>(0);    // "speak"
 ```
+
+### 4.4-bis Lo que se puede LLAMAR desde aqui
+
+`method.*` contesta que metodos TIENE el tipo, y eso no cambia con quien mire.
+Lo que si cambia es que se le puede **llamar por el punto**: con llamada
+uniforme, `x.area()` tambien alcanza una funcion libre `area(Punto)` que este
+fichero tenga a la vista.  Son dos preguntas distintas y se responden por
+separado.
+
+La familia lleva `scoped` en el nombre para que la respuesta **confiese** que
+depende del ambito, en vez de dejar que se descubra leyendo esto.
+
+| Builtin | Firma | Devuelve | Notas |
+|---|---|---|---|
+| `scoped.method.count<T>()` | `<T>()` | `u32` | TOTAL: metodos del tipo + libres alcanzables. |
+| `scoped.method.has<T>("m")` | `<T>(string_lit)` | `bool` | Si se puede llamar algo con ese nombre. |
+| `scoped.method.name<T>(i)` | `<T>(int_lit)` | `string` | Nombre de la entrada i-esima. |
+| `scoped.method.origin<T>(i)` | `<T>(int_lit)` | `string` | De que namespace viene.  **Vacio = metodo del tipo.** |
+| `scoped.method.arity<T>(i)` | `<T>(int_lit)` | `u32` | Parametros, RECEPTOR INCLUIDO. |
+| `scoped.method.result<T>(i)` | `<T>(int_lit)` | `Type` | Lo que devuelve (ver 4.7). |
+| `scoped.method.param<T>(i,j)` | `<T>(int_lit,int_lit)` | `Type` | Su parametro j; el **0 es siempre el receptor**. |
+| `scoped.method.each<T>(cb)` | `<T>(fn(string,string))` | -- | Recorre; el cuerpo se repite una vez por entrada. |
+
+```vx
+namespace ejemplos;
+
+struct Punto {
+	i64 x;
+	i64 y;
+
+	i64 doble() => this.x * 2;
+}
+
+i64 area(Punto p) => p.x * p.y; // libre: no es suya, pero habla de ella
+
+u32 suyos = method.count<Punto>();        // 1  -- solo `doble`
+u32 aqui  = scoped.method.count<Punto>(); // 2  -- y ademas `area`
+
+string n = scoped.method.name<Punto>(0);   // "area"
+string o = scoped.method.origin<Punto>(0); // "ejemplos"  (vacio si fuera suya)
+u32    a = scoped.method.arity<Punto>(0);  // 1  -- el receptor cuenta
+```
+
+Tres reglas que conviene tener presentes:
+
+- **El parametro 0 es SIEMPRE el receptor**, tanto en un metodo -- donde
+  `this` es implicito y aqui figura -- como en una libre, donde es su primer
+  parametro de verdad.  Es lo que permite leer las dos igual sin preguntar
+  antes de que clase es cada una.
+- **Recorre SOBRECARGAS, no nombres**: dos `f` con firmas distintas ocupan dos
+  indices.
+- **Las ambiguedades se ENSEÑAN en vez de esconderse.**  Si dos namespaces
+  ofrecen `f` para el mismo receptor, llamar es un error, pero enumerar saca
+  las dos con su `origin` distinto -- que es lo que hace depurable el choque,
+  y la razon de dar el origen.
+
+El orden es estable entre compilaciones (por nombre, y a igualdad por origen):
+el indice tiene que significar lo mismo en dos compilaciones del mismo
+programa, o un `scoped.method.each` desenrollado daria codigo distinto cada
+vez.
 
 ### 4.5 Predicados de categoria
 
@@ -450,64 +561,84 @@ Todos devuelven `bool` y toman un unico type-arg.
 
 | Builtin | Cierto cuando `T` es... |
 |---|---|
-| `is_class<T>()` | una clase (reference type). |
-| `is_struct<T>()` | un struct value-type. |
-| `is_primitive<T>()` | un primitivo (`i8..u64`, `f32`, `f64`, `bool`, `char`, `void`). |
-| `is_integer<T>()` | un entero con signo o sin signo. |
-| `is_signed<T>()` | un entero con signo. |
-| `is_unsigned<T>()` | un entero sin signo. |
-| `is_float<T>()` | `f32` o `f64`. |
-| `is_numeric<T>()` | entero o float. |
-| `is_bool<T>()` | `bool`. |
-| `is_char<T>()` | `char`. |
-| `is_pointer<T>()` | un puntero raw `T*`. |
-| `is_string<T>()` | `string`. |
+| `type.is_class<T>()` | una clase (reference type). |
+| `type.is_struct<T>()` | un struct value-type. |
+| `type.is_primitive<T>()` | un primitivo (`i8..u64`, `f32`, `f64`, `bool`, `char`, `void`). |
+| `type.is_integer<T>()` | un entero con signo o sin signo. |
+| `type.is_signed<T>()` | un entero con signo. |
+| `type.is_unsigned<T>()` | un entero sin signo. |
+| `type.is_float<T>()` | `f32` o `f64`. |
+| `type.is_numeric<T>()` | entero o float. |
+| `type.is_bool<T>()` | `bool`. |
+| `type.is_char<T>()` | `char`. |
+| `type.is_pointer<T>()` | un puntero raw `T*`. |
+| `type.is_string<T>()` | `string`. |
 
 ```vx
-bool ic = is_class<Animal>();     // true
-bool iu = is_unsigned<u32>();     // true
-bool inum = is_numeric<f64>();    // true
-bool ip = is_pointer<i64*>();     // true
+bool ic = type.is_class<Animal>();     // true
+bool iu = type.is_unsigned<u32>();     // true
+bool inum = type.is_numeric<f64>();    // true
+bool ip = type.is_pointer<i64*>();     // true
 ```
 
 ### 4.6 Newtypes y relaciones entre tipos
 
 | Builtin | Firma | Devuelve | Notas |
 |---|---|---|---|
-| `is_newtype<T>()` | `<T>()` | `bool` | Cierto si `T` es un `typedef ... name new`. |
-| `is_opaque<T>()` | `<T>()` | `bool` | Cierto si es un newtype opaco. |
-| `underlying_of<T>()` | `<T>()` | `string` | Nombre del tipo subyacente de un newtype (`"u64"`, ...). |
-| `is_subtype<D, B>()` | `<D, B>()` | `bool` | Cierto si `D` deriva de `B` (herencia). |
-| `is_same<A, B>()` | `<A, B>()` | `bool` | Identidad nominal. `is_same<user_id, group_id>` es `false` aunque ambos sean `u64`. |
+| `type.is_newtype<T>()` | `<T>()` | `bool` | Cierto si `T` es un `typedef ... name new`. |
+| `type.is_opaque<T>()` | `<T>()` | `bool` | Cierto si es un newtype opaco. |
+| `type.underlying<T>()` | `<T>()` | `string` | Nombre del tipo subyacente de un newtype (`"u64"`, ...). |
+| `type.is_subtype<D, B>()` | `<D, B>()` | `bool` | Cierto si `D` deriva de `B` (herencia). |
+| `type.is_same<A, B>()` | `<A, B>()` | `bool` | Identidad nominal. `type.is_same<user_id, group_id>` es `false` aunque ambos sean `u64`. |
 
 ```vx
-bool nt = is_newtype<user_id>();       // true (typedef new)
-bool op = is_opaque<session_id>();     // true (@opaque)
-string un = underlying_of<user_id>();  // "u64"
+bool nt = type.is_newtype<user_id>();       // true (typedef new)
+bool op = type.is_opaque<session_id>();     // true (@opaque)
+string un = type.underlying<user_id>();  // "u64"
 
-bool sub = is_subtype<Perro, Animal>();  // true
-bool same = is_same<i32, i32>();         // true
+bool sub = type.is_subtype<Perro, Animal>();  // true
+bool same = type.is_same<i32, i32>();         // true
 ```
 
 ### 4.7 Tipos como valores (Type-as-first-class-value)
 
 Estos builtins devuelven un **valor de tipo** que se guarda en un
 `const Type X = ...` y luego se reutiliza en cualquier posicion de tipo
-(por ejemplo dentro de `sizeof<X>()` o `typename<X>()`).
+(por ejemplo dentro de `type.size<X>()` o `type.name<X>()`).
 
-| Builtin | Firma | Devuelve | Notas |
+| Builtin | Firma | Devuelve | Se pregunta antes con |
 |---|---|---|---|
-| `comptime_type<T>()` | `<T>()` | `Type` | Materializa `T` como valor reutilizable. |
-| `parent_class<T>()` | `<T>()` | `Type` | Superclase de `T`; tipo meta vacio si no hay super o `T` no es clase. |
-| `element_type<T>()` | `<T>()` | `Type` | Tipo interior de wrappers: `T*`->`T`, `T[N]`->`T`, `Optional<T>`->`T`, `Future<T>`->`T`, `borrow<T>`/`unique<T>`/`shared<T>`->`T`. |
-| `error_type<T>()` | `<T>()` | `Type` | Para `Result<V, E>` devuelve `E`; tipo meta vacio si no es `Result`. |
+| `type.of<T>()` | `<T>()` | `Type` | -- (siempre hay respuesta) |
+| `type.base<T>()` | `<T>()` | `Type` | `type.has_base<T>()` |
+| `type.inner<T>()` | `<T>()` | `Type` | `type.has_inner<T>()` |
+| `type.error<T>()` | `<T>()` | `Type` | `type.is_result<T>()` |
+| `type.result<F>()` | `<F>()` | `Type` | `type.is_callable<F>()` |
+
+`type.inner<T>` da lo interior de un envoltorio: `T*`->`T`, `T[N]`->`T`,
+`Optional<T>`->`T`, `Future<T>`->`T`, y lo mismo con `borrow`/`unique`/`shared`.
+`type.result<F>` da lo que devuelve un invocable, sea `fn` o `cfn`.
+
+**Ninguno devuelve un tipo vacio cuando la pregunta no aplica: lo DICEN.** Un
+vacio de respuesta no es una respuesta -- es un caso sin tratar convertido en
+dato --, y ademas no se queda quieto: mas abajo se lee como `void` y el fallo
+sale lejos del sitio, hablando de otra cosa. Por eso cada uno tiene su pregunta
+al lado, que es lo que permite escribir codigo correcto sobre un tipo que no se
+conoce de antemano. Dentro de una plantilla no se dice nada: ahi el tipo aun no
+esta ligado y la respuesta la da cada instancia.
 
 ```vx
-const Type Base = parent_class<Perro>();  // Animal
-string base_name = typename<Base>();      // "Animal"
+const Type Base = type.base<Perro>();     // Animal
+string base_name = type.name<Base>();      // "Animal"
 
-const Type Elem = element_type<i32*>();   // i32
-u64 elem_sz = sizeof<Elem>();             // 4
+const Type Elem = type.inner<i32*>();     // i32
+u64 elem_sz = type.size<Elem>();             // 4
+```
+
+Lo que abre `type.result<F>` es escribir una generica de orden superior sin
+fijar de antemano que forma de invocable recibe -- el retorno se LEE de el:
+
+```vx
+type.result<F>() apply<T, F: Callable>(T x, F f) => f(x);
 ```
 
 ### 4.8 Iteracion y acceso directo a campos
@@ -515,28 +646,28 @@ u64 elem_sz = sizeof<Elem>();             // 4
 ```vx
 // Loop desenrollado en compile-time: el callback se invoca UNA vez
 // por cada campo/metodo, sin bucle runtime.
-for_each_field<Punto>((string name) => { /* ... */ });
-for_each_method<Animal>((string name) => { /* ... */ });
+field.each<Punto>((string name) => { /* ... */ });
+method.each<Animal>((string name) => { /* ... */ });
 
 // Acceso directo por nombre de campo cuando el tipo es conocido en
 // compile-time.  Bypass del path getfield/setfield virtual.
-i32 val = field_get<Punto>(p, "x");  // baja a LOAD directo al offset
-field_set<Punto>(p, "y", 100);       // baja a STORE directo al offset
+i32 val = field.get<Punto>(p, "x");  // baja a LOAD directo al offset
+field.set<Punto>(p, "y", 100);       // baja a STORE directo al offset
 ```
 
-`field_get<T>(obj, "f")` devuelve el tipo del propio campo;
-`field_set<T>(obj, "f", value)` devuelve `void` y exige que `value` sea
+`field.get<T>(obj, "f")` devuelve el tipo del propio campo;
+`field.set<T>(obj, "f", value)` devuelve `void` y exige que `value` sea
 asignable al tipo del campo.
 
 ### 4.9 Depuracion de metaprogramas
 
-`comptime_print(val)` imprime un valor a la salida de error **durante la
+`comptime.print(val)` imprime un valor a la salida de error **durante la
 compilacion** (no en runtime). Acepta enteros, strings, valores de tipo,
 arrays o structs. Devuelve `0` (`u64`) para poder componerlo dentro de
 `static_assert`:
 
 ```vx
-static_assert(comptime_print(sizeof<Punto>()) == 0, "solo para debug");
+static_assert(comptime.print(type.size<Punto>()) == 0, "solo para debug");
 ```
 
 **Verificacion empirica**: cada builtin escalar baja a un solo `CONST`
@@ -547,7 +678,7 @@ a un `STRMAKE`. Sin runtime dispatch en ningun caso.
 
 ```vx
 // Dead-branch elimination en compile-time.
-comptime if (sizeof<u64>() == 8) {
+comptime if (type.size<u64>() == 8) {
     // bytecode emitido solo para esta rama
 }
 
@@ -562,21 +693,21 @@ comptime for (i in 0..N) {
 ```vx
 @Macro
 comptime string dump_fields() {
-    for_each_field<Punto>((string name) => {
+    field.each<Punto>((string name) => {
         // body invocado UNA vez por campo en compile-time
 });
     return "...";
 }
 ```
 
-`for_each_field<T>(cb)` y `for_each_method<T>(cb)` invocan el callback N
+`field.each<T>(cb)` y `method.each<T>(cb)` invocan el callback N
 veces en compile-time, una por cada field/method. Sin loop runtime.
 
-### `field_get<T>` y `field_set<T>` directos
+### `field.get<T>` y `field.set<T>` directos
 
 ```vx
-i32 val = field_get<Punto>(p, "x"); // baja a LOAD directo al offset
-field_set<Punto>(p, "y", 100); // baja a STORE directo al offset
+i32 val = field.get<Punto>(p, "x"); // baja a LOAD directo al offset
+field.set<Punto>(p, "y", 100); // baja a STORE directo al offset
 ```
 
 Bypass del path getfield/setfield virtual. Util cuando el tipo es conocido
@@ -756,13 +887,13 @@ i32 main() {
 la cond es falsa, el compilador emite error y NO genera el `.velb`:
 
 ```vx
-static_assert(sizeof<u64>() == 8, "u64 debe ser 8 bytes");
-static_assert(sizeof<u32>() == 4, "u32 debe ser 4 bytes");
+static_assert(type.size<u64>() == 8, "u64 debe ser 8 bytes");
+static_assert(type.size<u32>() == 4, "u32 debe ser 4 bytes");
 
 @Macro
 comptime string size_table() {
-    static_assert(sizeof<u64>() + sizeof<u32>() == 12, "size mismatch");
-    return to_str(sizeof<u64>() + sizeof<u32>()); // "12"
+    static_assert(type.size<u64>() + type.size<u32>() == 12, "size mismatch");
+    return to_str(type.size<u64>() + type.size<u32>()); // "12"
 }
 ```
 
@@ -778,9 +909,9 @@ Funciones disponibles:
 @Macro
 comptime string demo_virtual_lib() {
     // Queries de tipos via virtual lib (sin extern explicito).
-    u64 sz = comptime_type_sizeof("u64"); // 8
-    u64 al = comptime_type_alignof("f64"); // 8
-    u32 k = comptime_type_kind("Punto"); // STRUCT
+    u64 sz = type.by_name.size("u64"); // 8
+    u64 al = type.by_name.align("f64"); // 8
+    u32 k = type.by_name.kind("Punto"); // STRUCT
     return to_str(sz);
 }
 ```
@@ -789,9 +920,9 @@ Si quisieras ser explicito, podrias declarar:
 
 ```vx
 extern "vesta_comptime" {
-    fn comptime_type_sizeof(string name) -> u64;
-    fn comptime_type_alignof(string name) -> u64;
-    fn comptime_type_kind(string name) -> u32;
+    fn type.by_name.size(string name) -> u64;
+    fn type.by_name.align(string name) -> u64;
+    fn type.by_name.kind(string name) -> u32;
     fn static_assert(bool cond, string msg) -> u64;
 }
 ```
@@ -935,8 +1066,8 @@ Notas del ejemplo:
 
 ## 8bis. Introspeccion en EJECUCION: `@Introspect` y `type_info_*`
 
-Todo lo anterior es introspeccion **al compilar**: `sizeof<T>()`,
-`field_count<T>()`, `field_name<T>(i)` se resuelven y desaparecen. `@Introspect`
+Todo lo anterior es introspeccion **al compilar**: `type.size<T>()`,
+`field.count<T>()`, `field.name<T>(i)` se resuelven y desaparecen. `@Introspect`
 es la otra mitad: deja la informacion del tipo **en el binario** para poder
 consultarla en ejecucion, cuando el tipo no se conoce en el sitio que pregunta.
 
@@ -949,17 +1080,17 @@ struct Vec3 {
 }
 
 i32 main() {
-	i64 info = find_type("Vec3"); // 0 si no existe o no esta marcado
+	i64 info = type.find("Vec3"); // 0 si no existe o no esta marcado
 	if (info == 0) { return 1; }
 
-	i32 kind  = type_info_kind(info);        // 2 = struct
-	u32 size  = type_info_size(info);        // 24
-	u32 align = type_info_align(info);       // 8
-	u32 n     = type_info_field_count(info); // 3
+	i32 kind  = type.info.kind(info);        // 2 = struct
+	u32 size  = type.info.size(info);        // 24
+	u32 align = type.info.align(info);       // 8
+	u32 n     = type.info.field_count(info); // 3
 
-	u32    off = type_info_field_offset(info, 2); // 16
-	string nom = type_info_field_name(info, 0);   // "x"
-	string t   = type_info_name(info);            // "Vec3"
+	u32    off = type.info.field_offset(info, 2); // 16
+	string nom = type.info.field_name(info, 0);   // "x"
+	string t   = type.info.name(info);            // "Vec3"
 	return 0;
 }
 ```
@@ -971,15 +1102,15 @@ puntero a esa estructura -- o **0** si el tipo no existe o no lleva
 
 | Builtin | Devuelve |
 | :------------------------------- | :------- |
-| `find_type(nombre)` | `i64`: puntero a la info, o 0 |
-| `type_info_kind(info)` | que es (struct, clase, enum) |
-| `type_info_name(info)` | `string` con el nombre del tipo |
-| `type_info_size(info)` | tamano en bytes |
-| `type_info_align(info)` | alineamiento |
-| `type_info_field_count(info)` | cuantos campos |
-| `type_info_field_name(info, i)` | nombre del campo `i` |
-| `type_info_field_offset(info, i)` | su desplazamiento |
-| `type_info_field_size(info, i)` | su tamano |
+| `type.find(nombre)` | `i64`: puntero a la info, o 0 |
+| `type.info.kind(info)` | que es (struct, clase, enum) |
+| `type.info.name(info)` | `string` con el nombre del tipo |
+| `type.info.size(info)` | tamano en bytes |
+| `type.info.align(info)` | alineamiento |
+| `type.info.field_count(info)` | cuantos campos |
+| `type.info.field_name(info, i)` | nombre del campo `i` |
+| `type.info.field_offset(info, i)` | su desplazamiento |
+| `type.info.field_size(info, i)` | su tamano |
 
 > **Es opt-in y cuesta lo que ocupa.** Un tipo sin `@Introspect` no emite nada,
 > y un programa sin ningun `@Introspect` no lleva la tabla. Por eso no es lo
@@ -1021,7 +1152,7 @@ Los init lists solo son validos en el path estatico del var-decl.
 **Workaround**: emitir una expresion escalar (suma, primer elemento, etc.) o
 usar el macro para emitir cada elemento individualmente.
 
-### Builtins `comptime_compile` / `comptime_emit_expr` / `comptime_type`
+### Builtins `comptime_compile` / `comptime_emit_expr` / `type.of`
 
 Estos builtins son comptime-only y NO se lowean a IR. Macros que los usen
 caen al AST evaluator (mas lento que VM eval pero funcional).

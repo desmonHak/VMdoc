@@ -36,7 +36,7 @@ implementadas en `src/runtime/exec_instruction_string.cpp`.
 | `strintern` | 0x00 | 0x4F | TWO | r_dst = handle canonico del intern pool |
 | `strgetenc` | 0x00 | 0x50 | TWO | r_dst = byte de codificacion (0=ASCII..4=UTF32) |
 | `strgetbytes` | 0x00 | 0x51 | TWO | r_dst = byte_len (numero de bytes del buffer) |
-| `strgetkind` | 0x00 | 0x52 | TWO | r_dst = kind (0=FLAT 1=ROPE 2=SLICE) |
+| `strgetkind` | 0x00 | 0x52 | TWO | r_dst = type.kind (0=FLAT 1=ROPE 2=SLICE) |
 | `strreserve` | 0x00 | 0x53 | TWO | Crear FLAT mutable con capacidad r_src bytes, byte_len=0 |
 | `strfinalize` | 0x00 | 0x54 | TWO | Fijar byte_len, length y hash tras escritura directa |
 
@@ -104,7 +104,7 @@ offset 20..21 lock_depth (ObjectHeader: 2 bytes) -- contador reentrante del moni
 offset 22..23 _mon_pad (ObjectHeader: 2 bytes) -- relleno de alineacion
 --- campo propio de StringObject ---
 offset 24 encoding (uint8_t) -- codificacion: ASCII=0 ANSI=1 UTF8=2 UTF16=3 UTF32=4
-offset 25 kind (uint8_t) -- bits[1:0]=StringKind, bit7=is_interned
+offset 25 type.kind (uint8_t) -- bits[1:0]=StringKind, bit7=is_interned
 offset 26..27 _pad[2] (2 bytes) -- alineacion
 offset 28..31 length (uint32_t) -- numero de code-points
 offset 32..35 byte_len (uint32_t) -- numero de bytes en data[]

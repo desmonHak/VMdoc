@@ -245,7 +245,7 @@ Mismo shape que `findmethod`. Reutiliza `FindMethodParams` (mismo ABI de 24 byte
 ```
 [0x00][0xCE][byte2][byte3]
 byte2 = (r_advice << 4) | r_target (convencion B: raw bytes)
-byte3 = kind (0=BEFORE, 1=AFTER, 2=AROUND)
+byte3 = type.kind (0=BEFORE, 1=AFTER, 2=AROUND)
 ```
 
 - `r_target`: `MethodInfo*` del metodo objetivo (el que va a ser interceptado).
